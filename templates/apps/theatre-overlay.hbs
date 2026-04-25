@@ -1,0 +1,402 @@
+<section class="tom-overlay tom-theme-root tom-theme-default {{#if isGM}}is-gm-preview{{/if}} {{#if playEntranceAnimation}}is-entering{{/if}}" style="{{themeInlineStyle}}">
+  <div class="tom-overlay-backdrop {{#if backdropBlurEnabled}}is-blurred{{/if}}">
+    <div class="tom-overlay-backdrop__media" style="{{backdropMediaStyle}}" {{#unless hasBackdropMedia}}hidden{{/unless}}></div>
+    <div class="tom-overlay-backdrop__dim" style="{{backdropDimStyle}}"></div>
+  </div>
+  <div class="tom-stage-shell tom-theme-surface" style="{{stageStyle}}">
+    <div class="tom-background {{backgroundFitClass}}">
+      {{#if backgroundPath}}
+        {{#if backgroundIsVideo}}
+        <video
+          class="tom-background__media"
+          src="{{backgroundPath}}"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="auto"
+        ></video>
+        {{else}}
+        <img class="tom-background__media" src="{{backgroundPath}}" alt="" />
+        {{/if}}
+      {{/if}}
+    </div>
+    <div class="tom-background-dim" aria-hidden="true"></div>
+    <div class="tom-background-cinematic" style="{{cinematicBarsStyle}}" {{#unless hasCinematicBars}}hidden{{/unless}}></div>
+
+    {{#if stageTitle}}
+    <header class="tom-stage-heading tom-theme-surface" aria-label="{{tr "Stage title"}}">
+      <strong class="tom-stage-heading__title">{{stageTitle}}</strong>
+      {{#if stageSubtitle}}
+      <span class="tom-stage-heading__subtitle">{{stageSubtitle}}</span>
+      {{/if}}
+    </header>
+    {{/if}}
+
+    {{#if isGM}}
+    <button
+      type="button"
+      class="tom-stage-side-toggle tom-stage-side-toggle--left tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button"
+      data-action="toggle-left-sidebar"
+      aria-label="{{#if isLeftSidebarVisible}}{{tr "Hide left sidebar"}}{{else}}{{tr "Show left sidebar"}}{{/if}}"
+      title="{{#if isLeftSidebarVisible}}{{tr "Hide left sidebar"}}{{else}}{{tr "Show left sidebar"}}{{/if}}"
+    >
+      <i class="fas {{#if isLeftSidebarVisible}}fa-chevron-left{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i>
+    </button>
+    {{/if}}
+
+    {{#if isGM}}
+    <div class="tom-gm-bar-shell {{#if isGmBarCollapsed}}is-collapsed{{/if}}">
+      <button
+        type="button"
+        class="tom-gm-bar-shell__toggle tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button"
+        data-action="toggle-gm-bar"
+        title="{{#if isGmBarCollapsed}}{{tr "Show GM control bar"}}{{else}}{{tr "Hide GM control bar"}}{{/if}}"
+        aria-label="{{#if isGmBarCollapsed}}{{tr "Show GM control bar"}}{{else}}{{tr "Hide GM control bar"}}{{/if}}"
+        aria-pressed="{{#if isGmBarCollapsed}}true{{else}}false{{/if}}"
+      >
+        <i class="fas {{#if isGmBarCollapsed}}fa-chevron-right{{else}}fa-chevron-left{{/if}}" aria-hidden="true"></i>
+      </button>
+
+      <aside class="tom-gm-bar tom-theme-surface" {{#if isGmBarCollapsed}}hidden{{/if}}>
+        <div class="tom-gm-bar__top">
+          <div class="tom-gm-bar__meta">
+            <span class="tom-gm-bar__eyebrow">{{tr "GM control bar"}}</span>
+            <strong class="tom-gm-bar__title">{{theatreScene.name}}</strong>
+            <span class="tom-gm-bar__subtitle">{{tr "Highlighted: {label}" label=highlightedActorsLabel}}</span>
+          </div>
+
+          <button type="button" class="tom-button tom-button-danger tom-button-icon tom-gm-bar__close" data-action="close-scene" title="{{tr "End scene"}}" aria-label="{{tr "End scene"}}">
+            <i class="fas fa-power-off" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="tom-gm-bar__actions">
+          <div class="tom-gm-bar__actions-left">
+            <button
+              type="button"
+              class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button {{#if isSceneRevealedToPlayers}}is-active{{/if}}"
+              data-action="reveal-scene-to-players"
+              title="{{#if isSceneRevealedToPlayers}}{{tr "Scene is visible to players"}}{{else}}{{tr "Reveal scene to all players"}}{{/if}}"
+              aria-label="{{#if isSceneRevealedToPlayers}}{{tr "Scene is visible to players"}}{{else}}{{tr "Reveal scene to all players"}}{{/if}}"
+              aria-pressed="{{#if isSceneRevealedToPlayers}}true{{else}}false{{/if}}"
+            >
+              <i class="fas fa-users" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="auto-arrange-actors" title="{{tr "Auto-arrange avatars"}}" aria-label="{{tr "Auto-arrange avatars"}}">
+              <i class="fas fa-arrows-left-right" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="toggle-dim-controls" title="{{tr "Dim background"}}" aria-label="{{tr "Dim background"}}">
+              <i class="fas fa-circle-half-stroke" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="tom-gm-bar__actions-right">
+            <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="open-scene-library" title="{{tr "Open Footlights Library"}}" aria-label="{{tr "Open Footlights Library"}}">
+              <i class="fas fa-photo-film" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="edit-scene" title="{{tr "Edit scene"}}" aria-label="{{tr "Edit scene"}}">
+              <i class="fas fa-pen-to-square" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="tom-gm-bar__dim-panel tom-theme-container" {{#unless isDimControlsOpen}}hidden{{/unless}}>
+          <label for="tom-background-dim-range">{{tr "Dim background"}}</label>
+          <div class="tom-gm-bar__dim-controls">
+            <input id="tom-background-dim-range" type="range" min="0" max="85" step="1" value="{{backgroundDimPercent}}" data-action="set-background-dim" />
+            <span>{{backgroundDimPercent}}%</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+    {{/if}}
+
+    {{#if isGM}}
+    <button
+      type="button"
+      class="tom-stage-side-toggle tom-stage-side-toggle--right tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button"
+      data-action="toggle-right-sidebar"
+      aria-label="{{#if isRightSidebarVisible}}{{tr "Hide right sidebar"}}{{else}}{{tr "Show right sidebar"}}{{/if}}"
+      title="{{#if isRightSidebarVisible}}{{tr "Hide right sidebar"}}{{else}}{{tr "Show right sidebar"}}{{/if}}"
+    >
+      <i class="fas {{#if isRightSidebarVisible}}fa-chevron-right{{else}}fa-chevron-left{{/if}}" aria-hidden="true"></i>
+    </button>
+    {{/if}}
+
+    {{#if hasSceneSoundControls}}
+    <div class="tom-scene-sound-shell">
+      <button
+        type="button"
+        class="tom-scene-sound-shell__toggle tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button"
+        data-action="toggle-sound-controls"
+        aria-label="{{tr "Toggle sound controls"}}"
+        title="{{tr "Sound controls"}}"
+      >
+        <i class="fas fa-music" aria-hidden="true"></i>
+      </button>
+
+      <section class="tom-scene-sound-panel tom-theme-container" {{#unless isSoundControlsOpen}}hidden{{/unless}}>
+        <div class="tom-scene-sound-panel__player">
+          <div class="tom-scene-sound-panel__player-actions">
+            <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="scene-audio-play" title="{{tr "Play"}}" aria-label="{{tr "Play"}}">
+              <i class="fas fa-play" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="scene-audio-pause" title="{{tr "Pause"}}" aria-label="{{tr "Pause"}}">
+              <i class="fas fa-pause" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button {{#if currentSceneAudio.loop}}is-active{{/if}}"
+              data-action="scene-audio-loop"
+              title="{{#if currentSceneAudio.loop}}{{tr "Disable loop"}}{{else}}{{tr "Enable loop"}}{{/if}}"
+              aria-label="{{#if currentSceneAudio.loop}}{{tr "Disable loop"}}{{else}}{{tr "Enable loop"}}{{/if}}"
+              aria-pressed="{{#if currentSceneAudio.loop}}true{{else}}false{{/if}}"
+            >
+              <i class="fas fa-repeat" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="scene-audio-stop" title="{{tr "Stop"}}" aria-label="{{tr "Stop"}}">
+              <i class="fas fa-stop" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="tom-scene-sound-panel__volume">
+            <input type="range" min="0" max="1" step="0.01" value="{{currentSceneAudio.volume}}" data-action="set-scene-audio-volume" />
+            <span class="tom-scene-sound-panel__volume-value">{{currentSceneAudio.volumePercent}}%</span>
+          </div>
+        </div>
+
+        <div class="tom-scene-sound-panel__content">
+          <section class="tom-scene-sound-panel__tracks">
+            <header><strong>{{tr "Music"}}</strong></header>
+            <div class="tom-scene-sound-panel__track-list">
+              {{#each sceneSoundTracks}}
+              <button
+                type="button"
+                class="tom-scene-sound-track tom-button tom-button-ghost {{#if isActive}}is-active{{/if}}"
+                data-action="play-scene-track"
+                data-track-id="{{id}}"
+                data-src="{{src}}"
+                data-label="{{label}}"
+                title="{{label}}"
+              >
+                <span>{{label}}</span>
+                {{#if playlistName}}<small>{{playlistName}}</small>{{/if}}
+                {{#if showPlaybackStatus}}
+                <span class="tom-scene-sound-track__status" aria-hidden="true">
+                  <i class="fas fa-play"></i>
+                  {{#if isLooping}}<i class="fas fa-repeat tom-scene-sound-track__loop"></i>{{/if}}
+                </span>
+                {{/if}}
+              </button>
+              {{/each}}
+            </div>
+          </section>
+
+          <section class="tom-scene-sound-panel__board">
+            <header class="tom-scene-sound-panel__board-header">
+              <strong>{{tr "Soundboard"}}</strong>
+              {{#if hasMultipleSoundboardPages}}
+              <div class="tom-scene-sound-panel__board-pagination">
+                <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="soundboard-page-prev" aria-label="{{tr "Previous soundboard page"}}" title="{{tr "Back"}}">
+                  <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <span>{{currentSceneAudio.pageDisplay}} / {{sceneSoundboardPageCount}}</span>
+                <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="soundboard-page-next" aria-label="{{tr "Next soundboard page"}}" title="{{tr "Next"}}">
+                  <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+              {{/if}}
+            </header>
+            <div class="tom-scene-sound-panel__board-grid">
+              {{#each sceneSoundboardPageItems}}
+              <button
+                type="button"
+                class="tom-scene-soundboard-item tom-button tom-button-ghost {{#if icon}}has-image{{/if}}"
+                data-action="play-soundboard-item"
+                data-src="{{src}}"
+                data-label="{{label}}"
+                title="{{label}}"
+                style="{{buttonStyle}}"
+              >
+                <span>{{label}}</span>
+              </button>
+              {{/each}}
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+    {{/if}}
+
+    <div class="tom-stage" role="group" aria-label="{{tr "Footlights scene"}}">
+      <div class="tom-actors">
+        {{#if renderableActors.length}}
+        {{#each renderableActors}}
+        <article
+          class="tom-actor tom-position-{{positionClass}} {{#if isHighlighted}}is-highlighted{{/if}} {{#unless isVisible}}is-hidden{{/unless}}"
+          data-scene-actor-id="{{sceneActorId}}"
+          data-offset-x="{{offsetX}}"
+          data-offset-y="{{offsetY}}"
+          data-scale="{{scale}}"
+          data-active-scale="{{activeScale}}"
+          style="{{style}}"
+        >
+          <div class="tom-actor-frame">
+            <button
+              type="button"
+              class="tom-actor-select"
+              data-action="select-speaker"
+              data-scene-actor-id="{{sceneActorId}}"
+              aria-label="{{stageRoleLabel}}"
+            >
+              <div class="tom-actor-portrait {{#if useCircularCrop}}is-circular{{/if}} {{#if showBackdrop}}has-backdrop{{/if}}">
+                <div class="tom-actor-image-stack {{#if imageTransitioning}}is-transitioning{{/if}}">
+                  {{#if imageTransitioning}}
+                  <img src="{{previousActorImage}}" alt="" class="tom-actor-image tom-actor-image--previous" aria-hidden="true" />
+                  {{/if}}
+                  <img src="{{actorImage}}" alt="{{actorName}}" class="tom-actor-image tom-actor-image--current {{#if imageTransitioning}}is-transitioning{{/if}}" />
+                </div>
+                {{#if frameImage}}
+                <img src="{{frameImage}}" alt="" class="tom-actor-frame-overlay" aria-hidden="true" />
+                {{/if}}
+                <span class="tom-actor-name {{#unless showName}}is-hidden{{/unless}}">{{actorName}}</span>
+              </div>
+            </button>
+
+            {{#if showVisibilityToggle}}
+            <div class="tom-actor-status-row">
+              <div class="tom-actor-icon-group tom-theme-surface">
+                <button
+                  type="button"
+                  class="tom-actor-delete-toggle tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button"
+                  data-action="remove-actor-from-scene"
+                  data-scene-actor-id="{{sceneActorId}}"
+                  aria-label="{{tr "Remove avatar from Footlights scene"}}"
+                  title="{{tr "Remove avatar from Footlights scene"}}"
+                >
+                  <i class="fas fa-trash-can" aria-hidden="true"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="tom-actor-mirror-toggle tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button"
+                  data-action="toggle-actor-mirror"
+                  data-scene-actor-id="{{sceneActorId}}"
+                  aria-pressed="{{#if isMirrored}}true{{else}}false{{/if}}"
+                  aria-label="{{#if isMirrored}}{{tr "Disable mirroring"}}{{else}}{{tr "Mirror avatar"}}{{/if}}"
+                  title="{{#if isMirrored}}{{tr "Disable mirroring"}}{{else}}{{tr "Mirror avatar"}}{{/if}}"
+                >
+                  <i class="fas fa-left-right" aria-hidden="true"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="tom-actor-name-toggle tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button"
+                  data-action="toggle-actor-name"
+                  data-scene-actor-id="{{sceneActorId}}"
+                  aria-pressed="{{#if showName}}true{{else}}false{{/if}}"
+                  aria-label="{{#if showName}}{{tr "Hide names"}}{{else}}{{tr "Show names"}}{{/if}}"
+                  title="{{#if showName}}{{tr "Hide names"}}{{else}}{{tr "Show names"}}{{/if}}"
+                >
+                  <i class="fas fa-font" aria-hidden="true"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="tom-actor-visibility-toggle tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button"
+                  data-action="toggle-actor-visibility"
+                  data-scene-actor-id="{{sceneActorId}}"
+                  aria-pressed="{{#if isVisible}}true{{else}}false{{/if}}"
+                  aria-label="{{#if isVisible}}{{tr "Hide avatar"}}{{else}}{{tr "Show avatar"}}{{/if}}"
+                  title="{{#if isVisible}}{{tr "Hide avatar"}}{{else}}{{tr "Show avatar"}}{{/if}}"
+                >
+                  <i class="fas {{#if isVisible}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i>
+                </button>
+              </div>
+
+              {{#if showMoodDisplay}}
+              {{#if canChangeMood}}
+              <div class="tom-mood-controls">
+                <button
+                  type="button"
+                  class="tom-actor-mood tom-actor-mood-button tom-button tom-button-ghost"
+                  data-action="toggle-moods"
+                  data-scene-actor-id="{{sceneActorId}}"
+                  aria-expanded="{{#if isMoodMenuOpen}}true{{else}}false{{/if}}"
+                >
+                  {{displayMoodLabel}}
+                </button>
+
+                {{#if isMoodMenuOpen}}
+                <div class="tom-mood-menu tom-theme-surface">
+                  {{#each availableMoodOptions}}
+                  <button
+                    type="button"
+                    class="tom-button tom-button-ghost tom-mood-option"
+                    data-action="set-mood"
+                    data-scene-actor-id="{{../sceneActorId}}"
+                    data-mood="{{key}}"
+                    data-image-path="{{imagePath}}"
+                  >
+                    {{label}}
+                  </button>
+                  {{/each}}
+                </div>
+                {{/if}}
+              </div>
+              {{else}}
+              <span class="tom-actor-mood">{{displayMoodLabel}}</span>
+              {{/if}}
+              {{/if}}
+            </div>
+            {{/if}}
+            {{#unless showVisibilityToggle}}
+            {{#if showMoodDisplay}}
+            <div class="tom-actor-status-row">
+              {{#if canChangeMood}}
+              <div class="tom-mood-controls">
+                <button
+                  type="button"
+                  class="tom-actor-mood tom-actor-mood-button tom-button tom-button-ghost"
+                  data-action="toggle-moods"
+                  data-scene-actor-id="{{sceneActorId}}"
+                  aria-expanded="{{#if isMoodMenuOpen}}true{{else}}false{{/if}}"
+                >
+                  {{displayMoodLabel}}
+                </button>
+
+                {{#if isMoodMenuOpen}}
+                <div class="tom-mood-menu tom-theme-surface">
+                  {{#each availableMoodOptions}}
+                  <button
+                    type="button"
+                    class="tom-button tom-button-ghost tom-mood-option"
+                    data-action="set-mood"
+                    data-scene-actor-id="{{../sceneActorId}}"
+                    data-mood="{{key}}"
+                    data-image-path="{{imagePath}}"
+                  >
+                    {{label}}
+                  </button>
+                  {{/each}}
+                </div>
+                {{/if}}
+              </div>
+              {{else}}
+              <span class="tom-actor-mood">{{displayMoodLabel}}</span>
+              {{/if}}
+            </div>
+            {{/if}}
+            {{/unless}}
+          </div>
+        </article>
+        {{/each}}
+        {{else}}
+        <div class="tom-empty-stage tom-theme-surface" role="status" aria-live="polite">
+          <strong>{{tr "No actor images visible"}}</strong>
+          <p>{{tr "Add actors to the Footlights scene or check the actor profiles/image paths."}}</p>
+        </div>
+        {{/if}}
+      </div>
+    </div>
+  </div>
+</section>

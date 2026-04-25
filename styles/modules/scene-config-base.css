@@ -1,0 +1,304 @@
+.tom-scene-config-headings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin: 0;
+}
+
+.tom-scene-config-setup-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.92fr) minmax(360px, 1.08fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.tom-scene-config-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tom-scene-config-toolbar h2,
+.tom-scene-config-toolbar p {
+  margin: 0;
+}
+
+.tom-scene-config-toolbar h2 {
+  font-size: var(--tom-font-size-title-md);
+}
+
+.tom-scene-config-save {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}
+
+.tom-scene-config-headings .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.tom-scene-config-headings label {
+  font-size: var(--tom-font-size-body-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tom-color-muted) !important;
+}
+
+.tom-scene-config-headings :is(input[type="text"], textarea) {
+  min-height: 2.9rem;
+  padding: 0.68rem 0.9rem;
+  font-size: var(--tom-font-size-title-sm);
+  line-height: 1.2;
+}
+
+.tom-scene-config-headings textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.tom-scene-config-settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 0.9rem;
+  margin-top: 0;
+}
+
+.tom-editor-header--toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 1rem 1.1rem;
+  border: 0;
+  background: transparent !important;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tom-editor-header--toggle i {
+  flex: 0 0 auto;
+  color: var(--tom-color-muted);
+}
+
+.tom-editor-header--toggle:hover,
+.tom-editor-header--toggle:focus,
+.tom-editor-header--toggle:focus-visible {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tom-editor-header--toolbar {
+  padding: 1rem 1.1rem 0.15rem;
+  align-items: flex-start;
+}
+
+.tom-editor-header--toolbar .tom-inline-actions {
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tom-editor-header__chevron {
+  width: 2.2rem;
+  min-width: 2.2rem;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+[data-scene-editor-section],
+[data-scene-config-section] {
+  overflow: hidden;
+}
+
+.tom-scene-editor-section-body {
+  display: block;
+  padding: 0 1.1rem 1.1rem;
+}
+
+[data-scene-editor-section].is-collapsed > .tom-scene-editor-section-body,
+[data-scene-config-section].is-collapsed > .tom-scene-editor-section-body {
+  display: none;
+}
+
+.tom-scene-transition-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.tom-scene-transition-grid--stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tom-range-with-value {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.tom-range-with-value span {
+  min-width: 3.4rem;
+  text-align: right;
+  font-size: var(--tom-font-sub-text);
+  color: var(--tom-color-text);
+}
+
+.tom-scene-config-settings-card {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: 0.85rem;
+  padding: 1rem;
+  align-items: stretch;
+}
+
+.tom-scene-config-settings-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.tom-scene-config-settings-card__header h3,
+.tom-scene-config-settings-card__header p {
+  margin: 0;
+}
+
+.tom-scene-config-settings-card__header h3 {
+  font-size: var(--tom-font-heading-3);
+  color: var(--tom-content-subheading) !important;
+}
+
+.tom-scene-config-toolbar p,
+.tom-scene-config-settings-card__header p {
+  color: var(--tom-color-sub-text, var(--tom-content-muted-text, var(--tom-color-muted))) !important;
+  font-family: var(--tom-font-family-sub-text, inherit);
+  font-size: var(--tom-font-sub-text);
+  line-height: 1.4;
+}
+
+.tom-scene-config-settings-card .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  margin: 0;
+  align-items: stretch;
+}
+
+.tom-scene-config-settings-card .form-group > label {
+  font-size: var(--tom-font-sub-text);
+  color: var(--tom-color-label, var(--tom-color-heading-3, var(--tom-color-text-strong))) !important;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.tom-scene-config-settings-card :is(input[type="text"], select, textarea) {
+  min-height: 2.9rem;
+  font-size: var(--tom-font-body);
+}
+
+.tom-scene-config-settings-card textarea {
+  min-height: 6.4rem;
+  resize: vertical;
+}
+
+.tom-scene-config-settings-card .tom-input-with-button {
+  align-items: stretch;
+}
+
+.tom-scene-config-settings-card .tom-input-with-button .tom-button {
+  min-height: 2.9rem;
+}
+
+.tom-scene-config-settings-card--background,
+.tom-scene-config-settings-card--background .form-group,
+.tom-scene-config-settings-card--background .tom-input-with-button {
+  justify-items: start;
+  text-align: left;
+}
+
+@media (max-width: 1080px) {
+  .tom-scene-config-setup-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tom-scene-transition-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tom-scene-config-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.tom-scene-config-toggle-card {
+  display: grid !important;
+  grid-template-columns: 1.05rem minmax(0, 1fr) !important;
+  align-items: center !important;
+  min-height: 3rem;
+  padding: 0.8rem 0.9rem;
+  column-gap: 0.7rem !important;
+  border: var(--tom-content-border-3-width) solid var(--tom-content-border-3);
+  border-radius: var(--tom-content-card-radius, var(--tom-radius-card));
+  background: color-mix(in srgb, var(--tom-content-card-bg) 82%, transparent);
+}
+
+.tom-scene-config-toggle-card input[type="checkbox"] {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  margin: 0 !important;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 0.28rem;
+  border: 1px solid var(--tom-content-border-2, rgba(255,255,255,0.28));
+  background: rgba(5, 12, 22, 0.34);
+  display: inline-grid !important;
+  place-items: center;
+  transform: none !important;
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: center;
+  align-self: center !important;
+}
+
+.tom-scene-config-toggle-card input[type="checkbox"]::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 0.14rem;
+  transform: scale(0);
+  transition: transform 140ms ease;
+  background: var(--tom-color-accent-strong);
+}
+
+.tom-scene-config-toggle-card input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+.tom-scene-config-toggle-card span {
+  display: flex !important;
+  align-items: center !important;
+  grid-column: 2;
+  grid-row: 1;
+  min-height: 1.05rem;
+  margin: 0;
+  font-size: var(--tom-font-body);
+  line-height: 1.15;
+  align-self: center;
+}
+

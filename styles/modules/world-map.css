@@ -1,0 +1,2856 @@
+.theatre-world-map .window-content,
+.theatre-world-map-config .window-content {
+  padding: 0.75rem;
+}
+
+.theatre-world-map-stage-app .window-content {
+  padding: 0 !important;
+}
+
+.tom-world-map {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+}
+
+.tom-world-map__toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0.8rem;
+}
+
+.tom-world-map-stage .tom-stage-shell {
+  background:
+    radial-gradient(circle at top center, rgba(255, 255, 255, 0.03), transparent 34%),
+    linear-gradient(180deg, rgba(8, 20, 35, 0.94), rgba(6, 14, 24, 0.96));
+}
+
+.tom-world-map-stage__frame {
+  position: absolute;
+  inset: 0;
+  padding: 1.15rem 1.25rem 1.2rem;
+  display: flex;
+  min-height: 0;
+  background: var(--tom-app-background, var(--tom-app-background-solid, #08121f)) !important;
+  background-image: none !important;
+}
+
+.tom-world-map-stage .tom-world-map__layout {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.tom-world-map-stage .tom-world-map__viewport,
+.tom-world-map-stage .tom-world-map__sidebar--right {
+  min-height: 0;
+}
+
+.tom-world-map-stage .tom-world-map__viewport,
+.tom-world-map-stage .tom-world-map__canvas,
+.theatre-world-map-stage-app .leaflet-container,
+.theatre-world-map-stage-app .leaflet-pane,
+.theatre-world-map-stage-app .leaflet-tile-pane {
+  background: var(--tom-app-background) !important;
+}
+
+.tom-world-map-stage .tom-world-map__viewport {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--tom-app-background) !important;
+}
+
+.tom-world-map-stage .tom-world-map__sidebar--right {
+  border-radius: 18px;
+}
+
+.tom-world-map-stage .tom-world-map__viewport.tom-theme-container,
+.tom-world-map-stage .tom-world-map__viewport.tom-theme-container::before,
+.tom-world-map-stage .tom-world-map__canvas,
+.theatre-world-map-stage-app .leaflet-container,
+.theatre-world-map-stage-app .leaflet-pane,
+.theatre-world-map-stage-app .leaflet-tile-pane,
+.theatre-world-map-stage-app .leaflet-map-pane,
+.theatre-world-map-stage-app .leaflet-layer,
+.theatre-world-map-stage-app .leaflet-tile-container {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.tom-world-map-stage__close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.45rem;
+  z-index: 7;
+  width: 1.85rem;
+  min-width: 1.85rem;
+  height: 1.85rem;
+  min-height: 1.85rem;
+  padding: 0 !important;
+  border: var(--tom-nav-action-create-border-width, 1px) solid var(--tom-nav-action-create-border) !important;
+  border-radius: 8px !important;
+  background: var(--tom-nav-action-create-bg) !important;
+  color: var(--tom-nav-action-create-text) !important;
+  box-shadow: none !important;
+}
+
+.tom-world-map-stage__close:hover,
+.tom-world-map-stage__close:focus,
+.tom-world-map-stage__close:focus-visible {
+  border-color: var(--tom-nav-action-create-hover-border, var(--tom-nav-action-create-border)) !important;
+  background: var(--tom-nav-action-create-hover-bg, var(--tom-nav-action-create-bg)) !important;
+  color: var(--tom-nav-action-create-hover-text, var(--tom-nav-action-create-text)) !important;
+}
+
+.tom-world-map-stage__close i {
+  color: inherit !important;
+  font-size: 0.82rem;
+}
+
+.tom-world-map__toolbar h2 {
+  margin: 0;
+}
+
+.tom-world-map__toolbar .notes {
+  margin: 0.2rem 0 0;
+  color: var(--tom-color-sub-text, var(--tom-content-muted-text, var(--tom-color-muted))) !important;
+  font-family: var(--tom-font-family-sub-text, inherit);
+  font-size: var(--tom-font-sub-text);
+  line-height: 1.4;
+}
+
+.tom-world-map__layout {
+  --tom-world-map-sidebar-width: minmax(230px, 300px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 300px);
+  grid-template-areas: "viewport pins";
+  gap: 0.75rem;
+  min-height: 0;
+  flex: 1 1 auto;
+  position: relative;
+}
+
+.tom-world-map__layout.is-right-collapsed {
+  grid-template-columns: minmax(0, 1fr) 0;
+}
+
+.tom-world-map__sidebar {
+  padding: 0.8rem;
+  overflow: auto;
+}
+
+.tom-world-map__sidebar--right {
+  grid-area: pins;
+  position: relative;
+}
+
+.tom-world-map__sidebar h3 {
+  margin: 0 0 0.6rem;
+  color: var(--tom-world-map-pinlist-heading-color, var(--tom-content-text));
+  font-family: var(--tom-world-map-pinlist-heading-font, var(--tom-font-family-heading-3, inherit));
+  font-size: var(--tom-world-map-pinlist-heading-size, var(--tom-font-heading-3));
+}
+
+.tom-world-map__sidebar p {
+  margin: 0.32rem 0;
+  color: var(--tom-world-map-pinlist-text-color, var(--tom-content-muted-text));
+  font-family: var(--tom-world-map-pinlist-text-font, var(--tom-font-family-sub-text, inherit));
+  font-size: var(--tom-world-map-pinlist-text-size, var(--tom-font-sub-text));
+}
+
+.tom-world-map__layout.is-right-collapsed .tom-world-map__sidebar--right {
+  visibility: hidden;
+  opacity: 0;
+  display: none;
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.tom-world-map__viewport {
+  grid-area: viewport;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  background: var(--tom-app-background);
+}
+
+.tom-world-map__canvas {
+  width: 100%;
+  height: 100%;
+  min-height: 380px;
+  background: var(--tom-app-background);
+}
+
+.tom-world-map__canvas.is-drop-target {
+  outline: 2px dashed var(--tom-content-action-generic-border);
+  outline-offset: -6px;
+}
+
+.tom-world-map__viewport-toolbar {
+  display: none;
+}
+
+.tom-world-map__map-actions {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.22rem;
+  border: 1px solid color-mix(in srgb, var(--tom-content-border-2, rgba(255,255,255,0.18)) 78%, transparent) !important;
+  border-radius: 9px !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tom-content-card-bg, #122235) 86%, transparent), color-mix(in srgb, var(--tom-app-background-solid, #08121f) 78%, transparent)) !important;
+  box-shadow: 0 14px 30px rgba(4, 12, 24, 0.26) !important;
+  backdrop-filter: blur(10px);
+}
+
+.tom-world-map__map-actions--gm {
+  top: 0.72rem;
+  right: auto;
+  left: 3.65rem;
+  gap: 0.3rem;
+  padding: 0.3rem;
+}
+
+.tom-world-map-stage .tom-world-map__map-actions--gm {
+  top: 0.92rem;
+  right: auto;
+  left: 3.85rem;
+}
+
+.tom-world-map__fog-toolbar {
+  position: absolute;
+  top: 3.1rem;
+  right: 0.6rem;
+  z-index: 910;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.32rem;
+  width: min(18rem, calc(100% - 1.2rem));
+  padding: 0.42rem;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tom-app-background-solid, #08121f) 90%, transparent);
+  color: var(--tom-content-text);
+  box-shadow: 0 16px 32px rgba(4, 12, 24, 0.26);
+  backdrop-filter: blur(10px);
+}
+
+.tom-world-map-stage .tom-world-map__fog-toolbar {
+  top: 3.35rem;
+  right: 2.9rem;
+}
+
+.tom-world-map__fog-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.tom-world-map__fog-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  min-height: 1.55rem;
+  padding: 0.18rem 0.48rem;
+  border: 1px solid var(--tom-nav-button-border) !important;
+  border-radius: 5px !important;
+  background: var(--tom-nav-button-bg-start, var(--tom-nav-button-bg)) !important;
+  background-image: none !important;
+  color: var(--tom-content-text) !important;
+  font-size: 0.68rem;
+  line-height: 1.1;
+  box-shadow: none !important;
+}
+
+.tom-world-map__fog-button:hover,
+.tom-world-map__fog-button:focus,
+.tom-world-map__fog-button:focus-visible {
+  border-color: var(--tom-nav-button-hover-border) !important;
+  background: var(--tom-nav-button-hover-bg-start, var(--tom-nav-button-hover-bg)) !important;
+  color: var(--tom-content-text) !important;
+}
+
+.tom-world-map__fog-button.is-active {
+  border-color: var(--tom-nav-button-active-border) !important;
+  background: var(--tom-nav-button-active-bg-start, var(--tom-nav-button-active-bg)) !important;
+  color: var(--tom-nav-icon-active-color, var(--tom-content-text)) !important;
+}
+
+.tom-world-map__fog-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.tom-world-map__fog-button--danger {
+  justify-self: stretch;
+  border-color: var(--tom-content-action-delete-border, var(--tom-nav-button-border)) !important;
+  background: var(--tom-content-action-delete-bg, var(--tom-nav-button-bg-start, var(--tom-nav-button-bg))) !important;
+  color: var(--tom-content-action-delete-text, var(--tom-content-text)) !important;
+}
+
+.tom-world-map__fog-field {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr) 2.35rem;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--tom-content-text) !important;
+  font-size: 0.66rem;
+  line-height: 1.1;
+}
+
+.tom-world-map__fog-field span,
+.tom-world-map__fog-field strong {
+  color: inherit !important;
+  font: inherit;
+}
+
+.tom-world-map__fog-field strong {
+  text-align: right;
+  font-weight: 600;
+  opacity: 0.86;
+}
+
+.tom-world-map__fog-field input[type="range"] {
+  min-width: 0;
+}
+
+.leaflet-container .tom-world-map__fog-canvas {
+  position: absolute;
+  inset: 0;
+  right: auto;
+  bottom: auto;
+  z-index: 690;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+  pointer-events: none;
+}
+
+.tom-world-map-stage .tom-world-map__map-actions {
+  top: 0.82rem;
+  right: 2.9rem;
+}
+
+.tom-world-map-stage .tom-world-map__map-actions--gm {
+  top: 0.92rem;
+  right: auto;
+  left: 3.85rem;
+}
+
+.tom-world-map-stage .tom-world-map__overlay-actions {
+  right: 3.1rem;
+}
+
+.tom-world-map__overlay-actions {
+  position: absolute;
+  top: 3.6rem;
+  right: 0.75rem;
+  z-index: 900;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  max-width: min(24rem, calc(100% - 1.5rem));
+}
+
+.tom-world-map__region-draw-bar {
+  position: absolute;
+  top: 3.6rem;
+  left: 0.75rem;
+  z-index: 900;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.32rem;
+  width: min(17rem, calc(100% - 1.5rem));
+  padding: 0.38rem 0.42rem;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--tom-app-background-solid, #08121f) 88%, transparent);
+  box-shadow: 0 12px 24px rgba(4, 12, 24, 0.2);
+  backdrop-filter: blur(6px);
+}
+
+.tom-world-map__region-draw-bar--line {
+  top: 3.6rem;
+}
+
+.tom-world-map__region-draw-note {
+  font-size: 0.68rem;
+  color: var(--tom-content-text);
+  line-height: 1.25;
+}
+
+.tom-world-map__region-edit-actions,
+.tom-world-map__region-draw-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.tom-world-map__overlay-button {
+  border: 1px solid var(--tom-nav-button-border);
+  border-radius: 5px;
+  background: var(--tom-nav-button-bg);
+  color: var(--tom-content-text) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(6px);
+  padding: 0.18rem 0.42rem;
+  min-height: 1.4rem;
+  font-size: 0.68rem;
+  line-height: 1.1;
+}
+
+.tom-world-map__overlay-button:hover,
+.tom-world-map__overlay-button:focus,
+.tom-world-map__overlay-button:focus-visible {
+  border-color: var(--tom-nav-button-hover-border);
+  background: var(--tom-nav-button-hover-bg);
+}
+
+.tom-world-map__overlay-button.is-active {
+  color: var(--tom-nav-icon-active-color) !important;
+  background: var(--tom-nav-button-active-bg);
+  border-color: var(--tom-nav-button-active-border);
+}
+
+.tom-world-map__region-draw-bar .tom-world-map__overlay-button {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: 1.28rem;
+  padding: 0.16rem 0.4rem;
+  font-size: 0.65rem;
+}
+
+.tom-world-map__legend-stack {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  max-width: min(22rem, calc(100% - 1.5rem));
+}
+
+.tom-world-map__legend {
+  position: relative;
+  max-width: 100%;
+}
+
+.tom-world-map__legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  padding: 0.18rem;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--tom-app-background-solid, #08121f) 88%, transparent);
+  box-shadow: 0 12px 24px rgba(4, 12, 24, 0.2);
+  backdrop-filter: blur(6px);
+}
+
+.tom-world-map__legend-item {
+  --tom-category-color: var(--tom-nav-button-border);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  border: none !important;
+  border-radius: 5px;
+  background: var(--tom-nav-button-bg-start, var(--tom-app-background-solid, #08121f)) !important;
+  background-image: none !important;
+  color: var(--tom-world-map-legend-color, var(--tom-nav-text, var(--tom-content-text))) !important;
+  box-shadow: inset 3px 0 0 0 var(--tom-category-color) !important;
+  text-align: left;
+  padding: 0.12rem 0.3rem 0.12rem 0.72rem;
+  min-height: 0.9rem;
+  font-family: var(--tom-world-map-legend-font, Verdana, Tahoma, Geneva, sans-serif);
+  font-size: var(--tom-world-map-legend-size, 0.56rem);
+  line-height: 1.08;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  opacity: 0.48;
+}
+
+.tom-world-map__legend-lock {
+  display: inline-grid;
+  place-items: center;
+  width: 0.82rem;
+  height: 0.82rem;
+  margin-left: auto;
+  border-radius: 4px;
+  color: inherit;
+  opacity: 0.52;
+  cursor: pointer;
+}
+
+.tom-world-map__legend-lock:hover,
+.tom-world-map__legend-lock:focus,
+.tom-world-map__legend-lock:focus-visible,
+.tom-world-map__legend-lock.is-locked {
+  opacity: 1;
+  background: color-mix(in srgb, var(--tom-category-color) 28%, transparent);
+  outline: none;
+}
+
+.tom-world-map__legend-lock i {
+  font-size: 0.5rem;
+  line-height: 1;
+  color: inherit !important;
+}
+
+.theatre-world-map .tom-world-map__legend-item,
+.theatre-world-map .tom-world-map__legend-item:hover,
+.theatre-world-map .tom-world-map__legend-item:focus,
+.theatre-world-map .tom-world-map__legend-item:focus-visible,
+.theatre-world-map .tom-world-map__legend-item.is-active {
+  color: var(--tom-world-map-legend-color, var(--tom-content-text, var(--tom-color-text))) !important;
+}
+
+.theatre-world-map .tom-world-map__legend-label,
+.theatre-world-map .tom-world-map__legend-icon,
+.theatre-world-map .tom-world-map__legend-item span,
+.theatre-world-map .tom-world-map__legend-item i {
+  color: inherit !important;
+}
+
+.tom-world-map__legend--objects .tom-world-map__legend-item {
+  justify-content: flex-start;
+}
+
+.tom-world-map__legend-item:hover,
+.tom-world-map__legend-item:focus,
+.tom-world-map__legend-item:focus-visible {
+  border: none !important;
+  background: var(--tom-nav-button-hover-bg-start, var(--tom-nav-button-bg-start, var(--tom-app-background-solid, #08121f))) !important;
+  background-image: none !important;
+  box-shadow: inset 3px 0 0 0 var(--tom-category-color) !important;
+}
+
+.tom-world-map__legend-item.is-active {
+  color: var(--tom-nav-text, var(--tom-content-text)) !important;
+  background: var(--tom-nav-button-bg-start, var(--tom-app-background-solid, #08121f)) !important;
+  background-image: none !important;
+  box-shadow: inset 3px 0 0 0 var(--tom-category-color) !important;
+  opacity: 1;
+}
+
+.tom-world-map__legend-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.7rem;
+  flex: 0 0 0.7rem;
+  font-size: 0.46rem;
+  margin-right: 0.2rem;
+  color: inherit;
+}
+
+.tom-world-map__legend-label {
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tom-world-map__legend-item span,
+.tom-world-map__legend-item i {
+  color: inherit !important;
+}
+
+.tom-world-map__action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.32rem;
+  min-width: 1.32rem;
+  height: 1.32rem;
+  min-height: 1.32rem;
+  padding: 0;
+  border: 1px solid var(--tom-nav-button-border) !important;
+  border-radius: 8px !important;
+  background: var(--tom-nav-button-bg-start, var(--tom-nav-button-bg)) !important;
+  background-image: none !important;
+  color: var(--tom-content-text) !important;
+  box-shadow: none !important;
+  line-height: 1;
+  text-align: center;
+  transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease;
+}
+
+.tom-world-map__map-actions--gm .tom-world-map__action-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 1.98rem;
+  min-width: 1.98rem;
+  height: 1.98rem;
+  min-height: 1.98rem;
+}
+
+.tom-world-map__map-actions--gm .tom-world-map__action-button i {
+  position: relative;
+  z-index: 1;
+  font-size: 0.96rem;
+}
+
+.tom-world-map__map-actions--gm .tom-world-map__action-button:is([data-action="force-world-map-window"], [data-action="force-world-map-stage"]).is-awaiting-share {
+  box-shadow: 0 0 0 0 var(--tom-nav-action-create-border, var(--tom-nav-button-active-border)) !important;
+  animation: tom-world-map-force-share-ring 1.75s ease-in-out infinite;
+}
+
+.tom-world-map__map-actions--gm .tom-world-map__action-button:is([data-action="force-world-map-window"], [data-action="force-world-map-stage"]).is-awaiting-share::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--tom-nav-action-create-bg, var(--tom-nav-button-active-bg-start, var(--tom-nav-button-active-bg))) !important;
+  opacity: 0;
+  animation: tom-world-map-force-share-fill 1.75s ease-in-out infinite;
+}
+
+@keyframes tom-world-map-force-share-fill {
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 0.86;
+  }
+}
+
+@keyframes tom-world-map-force-share-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--tom-nav-action-create-border, var(--tom-nav-button-active-border)) !important;
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px var(--tom-nav-action-create-border, var(--tom-nav-button-active-border)) !important;
+  }
+}
+
+.tom-world-map-open-mode-dialog {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.2rem 0;
+  color: var(--tom-color-text, var(--tom-content-text, #eef6ff)) !important;
+}
+
+.tom-world-map-open-mode-dialog .notes {
+  margin: 0;
+  color: var(--tom-content-muted-text, var(--tom-color-text, #c6d2df)) !important;
+  font-family: var(--tom-font-family-body, inherit);
+  font-size: var(--tom-font-sub-text, 0.86rem);
+  line-height: 1.35;
+}
+
+.tom-world-map__action-button i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  min-width: 1em;
+  height: 1em;
+  font-size: 0.64rem;
+  line-height: 1;
+  text-align: center;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: inherit !important;
+}
+
+.tom-world-map__action-button i::before {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.tom-world-map__action-button:hover,
+.tom-world-map__action-button:focus,
+.tom-world-map__action-button:focus-visible {
+  background: var(--tom-nav-button-hover-bg-start, var(--tom-nav-button-hover-bg)) !important;
+  background-image: none !important;
+  border-color: var(--tom-nav-button-hover-border) !important;
+  transform: translateY(-1px);
+}
+
+.tom-world-map__action-button.is-active {
+  color: var(--tom-nav-icon-active-color) !important;
+  background: var(--tom-nav-button-active-bg-start, var(--tom-nav-button-active-bg)) !important;
+  background-image: none !important;
+  border-color: var(--tom-nav-button-active-border) !important;
+}
+
+.tom-world-map__pin-sidebar-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  z-index: 510;
+  width: 1.9rem;
+  height: 1.9rem;
+  min-height: 1.9rem;
+  border-radius: 5px !important;
+  border: 1px solid var(--tom-nav-button-border) !important;
+  background: var(--tom-nav-button-bg) !important;
+  color: var(--tom-content-text) !important;
+  box-shadow: 0 12px 24px rgba(4, 12, 24, 0.22) !important;
+}
+
+.tom-world-map__layout.is-right-collapsed .tom-world-map__pin-sidebar-toggle {
+  right: 0.5rem;
+}
+
+.tom-world-map-stage .tom-world-map__layout.is-right-collapsed .tom-world-map__pin-sidebar-toggle {
+  right: 0.5rem;
+}
+
+.tom-world-map__pin-sidebar-toggle:hover,
+.tom-world-map__pin-sidebar-toggle:focus,
+.tom-world-map__pin-sidebar-toggle:focus-visible,
+.tom-world-map__layout.is-right-collapsed .tom-world-map__pin-sidebar-toggle:hover,
+.tom-world-map__layout.is-right-collapsed .tom-world-map__pin-sidebar-toggle:focus,
+.tom-world-map__layout.is-right-collapsed .tom-world-map__pin-sidebar-toggle:focus-visible {
+  transform: translateY(-50%) !important;
+}
+
+.tom-world-map__context-menu {
+  position: absolute;
+  z-index: 560;
+  display: none;
+  flex-direction: column;
+  min-width: 10.5rem;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--tom-app-background-solid, #08121f) 90%, transparent);
+  box-shadow: 0 14px 26px rgba(4, 12, 24, 0.24);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+
+.tom-world-map__context-menu.is-visible {
+  display: flex;
+}
+
+.tom-world-map__context-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.tom-world-map__context-group--edit,
+.tom-world-map__context-menu.is-edit-menu .tom-world-map__context-group--create {
+  display: none;
+}
+
+.tom-world-map__context-menu.is-edit-menu .tom-world-map__context-group--edit {
+  display: flex;
+}
+
+.tom-world-map__context-action {
+  border: none !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--tom-content-border-2) 88%, transparent) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--tom-content-text) !important;
+  box-shadow: none !important;
+  text-align: left;
+  font-size: 0.68rem;
+  line-height: 1.15;
+  padding: 0.42rem 0.62rem;
+  min-height: 0;
+}
+
+.tom-world-map__context-action:last-child {
+  border-bottom: none !important;
+}
+
+.tom-world-map__context-action:hover,
+.tom-world-map__context-action:focus,
+.tom-world-map__context-action:focus-visible {
+  background: var(--tom-nav-button-hover-bg) !important;
+  color: var(--tom-content-text) !important;
+}
+
+.theatre-world-map .leaflet-container,
+.theatre-world-map .leaflet-pane,
+.theatre-world-map .leaflet-tile-pane,
+.theatre-world-map-stage-app .leaflet-container,
+.theatre-world-map-stage-app .leaflet-pane,
+.theatre-world-map-stage-app .leaflet-tile-pane {
+  background: var(--tom-app-background);
+}
+
+.theatre-world-map .leaflet-tile,
+.theatre-world-map-stage-app .leaflet-tile {
+  image-rendering: auto;
+  outline: 1px solid transparent;
+  background-clip: padding-box;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.theatre-world-map .leaflet-container .leaflet-tile-pane img,
+.theatre-world-map .leaflet-container img.leaflet-tile,
+.theatre-world-map .leaflet-container .leaflet-tile,
+.tom-world-map-stage .leaflet-container .leaflet-tile-pane img,
+.tom-world-map-stage .leaflet-container img.leaflet-tile,
+.tom-world-map-stage .leaflet-container .leaflet-tile,
+.theatre-world-map-stage-app .leaflet-container .leaflet-tile-pane img,
+.theatre-world-map-stage-app .leaflet-container img.leaflet-tile,
+.theatre-world-map-stage-app .leaflet-container .leaflet-tile {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  clip-path: none !important;
+  mask: none !important;
+  -webkit-mask: none !important;
+  filter: none !important;
+  background: transparent !important;
+  mix-blend-mode: normal !important;
+}
+
+.theatre-world-map .leaflet-container img.leaflet-tile,
+.tom-world-map-stage .leaflet-container img.leaflet-tile,
+.theatre-world-map-stage-app .leaflet-container img.leaflet-tile {
+  mix-blend-mode: plus-lighter !important;
+}
+
+.theatre-world-map .tom-world-map-object {
+  will-change: transform;
+}
+
+.tom-world-map-region-vertex {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+}
+
+.tom-world-map-region-vertex__dot {
+  display: block;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #d7f0ff;
+  border-radius: 50%;
+  background: #7ebaec;
+  box-shadow: 0 0 0 2px rgba(6, 16, 28, 0.44);
+}
+
+.tom-world-map-region-vertex__dot--square {
+  border-radius: 3px;
+}
+
+.tom-world-map-line-point {
+  background: transparent;
+  border: none;
+}
+
+.tom-world-map-line-point span {
+  display: block;
+  box-sizing: border-box;
+  box-shadow: none;
+}
+
+.tom-world-map-line-point--circle span {
+  border-radius: 50%;
+}
+
+.tom-world-map-line-point--square span {
+  border-radius: 2px;
+}
+
+.tom-world-map-fog-vertex {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+}
+
+.tom-world-map-fog-vertex__dot {
+  display: block;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--tom-nav-icon-active-color, #d7f0ff);
+  border-radius: 50%;
+  background: var(--tom-content-action-create-bg-start, #7ebaec);
+  box-shadow: 0 0 0 2px rgba(6, 16, 28, 0.48), 0 0 12px color-mix(in srgb, var(--tom-nav-icon-active-color, #d7f0ff) 55%, transparent);
+}
+
+.tom-world-map-line-dialog {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.tom-world-map-shape-dialog {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem;
+}
+
+.tom-world-map-shape-dialog__card {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: var(--tom-content-card-border-width, 1px) solid var(--tom-content-card-border, rgba(126, 186, 236, 0.24));
+  border-radius: var(--tom-content-card-radius, 12px);
+  background: var(--tom-content-card-bg, rgba(20, 38, 58, 0.74));
+  color: var(--tom-color-text, inherit);
+}
+
+.tom-world-map-shape-dialog > .tom-world-map-linked-document {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: var(--tom-content-card-border-width, 1px) solid var(--tom-content-card-border, rgba(126, 186, 236, 0.24));
+  border-radius: var(--tom-content-card-radius, 12px);
+  background: var(--tom-content-card-bg, rgba(20, 38, 58, 0.74));
+  color: var(--tom-color-text, inherit);
+}
+
+.tom-world-map-shape-dialog--region,
+.tom-world-map-shape-dialog--line {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tom-world-map-shape-dialog__card--line-style {
+  grid-row: span 2;
+}
+
+.tom-world-map-shape-dialog__card--line-style .tom-world-map-shape-dialog__grid {
+  grid-template-columns: repeat(2, minmax(7rem, 1fr));
+}
+
+.tom-world-map-shape-dialog__card--wide,
+.tom-world-map-shape-dialog__card--compact {
+  grid-column: 1 / -1;
+}
+
+.tom-world-map-shape-dialog__card h3 {
+  margin: 0;
+  color: var(--tom-color-heading-2, var(--tom-content-subheading, inherit));
+  font-family: var(--tom-font-family-heading-2, inherit);
+  font-size: var(--tom-font-heading-2, 1rem);
+  line-height: 1;
+}
+
+.tom-world-map-shape-dialog__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.65rem 0.75rem;
+  align-items: end;
+  min-width: 0;
+}
+
+.tom-world-map-shape-dialog__grid--two {
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.tom-world-map-shape-dialog .form-group {
+  margin: 0;
+  min-width: 0;
+}
+
+.tom-world-map-shape-dialog .form-group label {
+  margin-bottom: 0.25rem;
+}
+
+.tom-world-map-shape-dialog input[type="color"] {
+  min-height: 2.25rem;
+  width: 100%;
+}
+
+.tom-world-map-shape-dialog input,
+.tom-world-map-shape-dialog select {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.tom-world-map-shape-dialog__card--compact {
+  padding-block: 0.65rem;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-shape-dialog-host .window-content {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-region-dialog-host {
+  width: 630px !important;
+  min-width: 630px !important;
+  max-width: min(630px, calc(100vw - 2rem)) !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-line-dialog-host {
+  width: 890px !important;
+  min-width: 890px !important;
+  max-width: min(890px, calc(100vw - 2rem)) !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-shape-dialog-host form {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-shape-dialog-host .dialog-content {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+  overflow-x: hidden !important;
+  padding: 0.7rem !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-shape-dialog-host .dialog-buttons {
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  margin: 0.45rem 0.7rem 0.7rem !important;
+  padding: 0.35rem 0 0 !important;
+  background: transparent !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-pin-dialog-host .dialog-content {
+  padding: 0.85rem !important;
+}
+
+.tom-world-map-pin-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.72rem;
+}
+
+.tom-world-map-pin-dialog .form-group,
+.tom-world-map-pin-dialog .checkbox {
+  margin: 0;
+}
+
+.tom-world-map-pin-dialog__style-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.7rem;
+}
+
+.tom-world-map-pin-dialog__style-card h4 {
+  margin: 0;
+  color: var(--tom-color-heading-3, var(--tom-content-heading));
+  font-family: var(--tom-font-family-heading-3, inherit);
+  font-size: var(--tom-font-heading-3, 1rem);
+}
+
+.tom-world-map-pin-dialog__style-grid {
+  display: grid;
+  grid-template-columns: minmax(5rem, 0.48fr) minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.tom-world-map-pin-dialog__style-grid--shadow {
+  grid-template-columns: minmax(5rem, 0.8fr) repeat(3, minmax(4.25rem, 1fr));
+}
+
+.tom-world-map-pin-dialog input[type="color"] {
+  width: 3rem;
+  min-width: 3rem;
+  height: 2rem;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-shape-dialog-host .dialog-buttons .dialog-button {
+  flex: 1 1 0 !important;
+  align-self: center !important;
+  height: auto !important;
+  min-height: 1.9rem !important;
+  max-height: 2.15rem !important;
+  padding: 0.28rem 0.75rem !important;
+  line-height: 1.15 !important;
+}
+
+@media (max-width: 720px) {
+  .tom-world-map-shape-dialog,
+  .tom-world-map-shape-dialog--region,
+  .tom-world-map-shape-dialog--line,
+  .tom-world-map-shape-dialog__grid,
+  .tom-world-map-shape-dialog__grid--two {
+    grid-template-columns: 1fr;
+  }
+}
+
+.theatre-world-map .leaflet-control-zoom,
+.tom-world-map-stage .leaflet-control-zoom,
+.theatre-world-map-stage-app .leaflet-control-zoom {
+  border: none;
+  box-shadow: none;
+}
+
+.theatre-world-map .leaflet-bar,
+.tom-world-map-stage .leaflet-bar,
+.theatre-world-map-stage-app .leaflet-bar {
+  border: var(--tom-content-action-generic-border-width) solid var(--tom-content-action-generic-border);
+  border-radius: var(--tom-content-action-generic-radius);
+  overflow: hidden;
+  box-shadow: 0 16px 32px rgba(4, 12, 24, 0.24);
+}
+
+.theatre-world-map .leaflet-bar a,
+.theatre-world-map .leaflet-bar a:hover,
+.theatre-world-map .leaflet-bar a:focus,
+.tom-world-map-stage .leaflet-bar a,
+.tom-world-map-stage .leaflet-bar a:hover,
+.tom-world-map-stage .leaflet-bar a:focus,
+.theatre-world-map-stage-app .leaflet-bar a,
+.theatre-world-map-stage-app .leaflet-bar a:hover,
+.theatre-world-map-stage-app .leaflet-bar a:focus {
+  background: var(--tom-content-action-generic-bg);
+  color: var(--tom-content-action-generic-text);
+  border-bottom: var(--tom-content-action-generic-border-width) solid var(--tom-content-action-generic-border);
+}
+
+.theatre-world-map .leaflet-control-zoom a,
+.theatre-world-map .leaflet-control-zoom a:hover,
+.theatre-world-map .leaflet-control-zoom a:focus {
+  background: var(--tom-content-action-generic-bg) !important;
+  color: var(--tom-content-action-generic-text) !important;
+  border-bottom: var(--tom-content-action-generic-border-width) solid var(--tom-content-action-generic-border) !important;
+}
+
+.theatre-world-map .leaflet-bar a:last-child,
+.tom-world-map-stage .leaflet-bar a:last-child,
+.theatre-world-map-stage-app .leaflet-bar a:last-child {
+  border-bottom: none;
+}
+
+.theatre-world-map .leaflet-bar a.leaflet-disabled,
+.theatre-world-map .leaflet-bar a.leaflet-disabled:hover,
+.theatre-world-map .leaflet-bar a.leaflet-disabled:focus,
+.tom-world-map-stage .leaflet-bar a.leaflet-disabled,
+.tom-world-map-stage .leaflet-bar a.leaflet-disabled:hover,
+.tom-world-map-stage .leaflet-bar a.leaflet-disabled:focus,
+.theatre-world-map-stage-app .leaflet-bar a.leaflet-disabled,
+.theatre-world-map-stage-app .leaflet-bar a.leaflet-disabled:hover,
+.theatre-world-map-stage-app .leaflet-bar a.leaflet-disabled:focus {
+  background: var(--tom-content-container-bg) !important;
+  color: var(--tom-content-muted-text) !important;
+  opacity: 1;
+  cursor: default;
+}
+
+.theatre-world-map .leaflet-control-zoom a.leaflet-disabled,
+.theatre-world-map .leaflet-control-zoom a.leaflet-disabled:hover,
+.theatre-world-map .leaflet-control-zoom a.leaflet-disabled:focus {
+  background: var(--tom-content-container-bg) !important;
+  color: var(--tom-content-muted-text) !important;
+}
+
+.theatre-world-map .leaflet-bar a:hover,
+.theatre-world-map .leaflet-bar a:focus,
+.tom-world-map-stage .leaflet-bar a:hover,
+.tom-world-map-stage .leaflet-bar a:focus,
+.theatre-world-map-stage-app .leaflet-bar a:hover,
+.theatre-world-map-stage-app .leaflet-bar a:focus {
+  filter: brightness(1.08);
+}
+
+.tom-world-map__pin-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.24rem;
+}
+
+.tom-world-map__pin-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.24rem;
+  align-items: center;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: min(var(--tom-content-card-radius), 8px);
+  background: var(--tom-content-card-bg);
+  padding: 0.18rem;
+}
+
+.tom-world-map__pin-item.is-selected {
+  border-color: var(--tom-content-action-generic-border);
+  background: var(--tom-content-card-hover-bg);
+}
+
+.tom-world-map__pin-item[hidden],
+.tom-world-map__pin-item.is-filtered-out {
+  display: none !important;
+}
+
+.tom-world-map__pin-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none;
+  color: inherit !important;
+  width: 100%;
+  min-width: 0;
+  cursor: pointer;
+  text-align: left;
+  padding: 0.22rem 0.34rem;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: calc(var(--tom-content-card-radius) - 4px);
+}
+
+.tom-world-map__pin-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tom-world-map__pin-label {
+  display: block;
+  color: var(--tom-world-map-pinlist-heading-color, var(--tom-content-text));
+  font-family: var(--tom-world-map-pinlist-heading-font, var(--tom-font-family-heading-3, inherit));
+  font-size: var(--tom-world-map-pinlist-heading-size, var(--tom-font-heading-3));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.05;
+}
+
+.tom-world-map__pin-note {
+  display: none;
+  color: var(--tom-world-map-pinlist-text-color, var(--tom-content-muted-text));
+  font-family: var(--tom-world-map-pinlist-text-font, var(--tom-font-family-sub-text, inherit));
+  font-size: var(--tom-world-map-pinlist-text-size, var(--tom-font-sub-text));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tom-world-map__pin-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.38rem;
+  margin: 0.55rem 0 0.65rem;
+}
+
+.tom-world-map__pin-filters :is(input, select) {
+  width: 100%;
+  min-height: 1.8rem;
+  padding: 0.28rem 0.48rem;
+  border: var(--tom-content-border-2-width, 1px) solid var(--tom-content-border-2, rgba(255,255,255,0.16));
+  border-radius: 4px !important;
+  background: var(--tom-content-form-bg, var(--tom-content-card-bg, rgba(12, 24, 38, 0.94))) !important;
+  color: var(--tom-world-map-pinlist-text-color, var(--tom-content-text)) !important;
+  font-family: var(--tom-world-map-pinlist-text-font, var(--tom-font-family-sub-text, inherit));
+  font-size: var(--tom-world-map-pinlist-text-size, var(--tom-font-sub-text));
+  box-shadow: none !important;
+}
+
+.tom-world-map__pin-filters :is(input, select):focus,
+.tom-world-map__pin-filters :is(input, select):focus-visible {
+  outline: none;
+  border-color: var(--tom-content-border-3, var(--tom-nav-button-active-border, rgba(131, 240, 236, 0.54)));
+}
+
+.tom-world-map__pin-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.18rem;
+  line-height: 1;
+}
+
+.tom-world-map__sidebar .tom-library-action--delete {
+  width: 1.45rem !important;
+  height: 1.45rem !important;
+  min-width: 1.45rem !important;
+  min-height: 1.45rem !important;
+  border-radius: 5px !important;
+  border: var(--tom-nav-button-border-width, 1px) solid var(--tom-nav-button-border, var(--tom-content-border-2)) !important;
+  background: var(--tom-nav-button-bg-start, var(--tom-content-card-bg)) !important;
+  background-image: none !important;
+  color: var(--tom-nav-text, var(--tom-content-text)) !important;
+  box-shadow: none !important;
+}
+
+.tom-world-map__sidebar .tom-library-action--delete:hover,
+.tom-world-map__sidebar .tom-library-action--delete:focus,
+.tom-world-map__sidebar .tom-library-action--delete:focus-visible {
+  background: var(--tom-nav-button-hover-bg-start, var(--tom-nav-button-bg-start, var(--tom-content-card-bg))) !important;
+  background-image: none !important;
+  border-color: var(--tom-nav-button-hover-border, var(--tom-nav-button-border)) !important;
+}
+
+.tom-world-map__sidebar .tom-library-action--delete i {
+  color: inherit !important;
+}
+
+.tom-world-map__object-section {
+  margin-top: 0.8rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--tom-content-border-2);
+}
+
+.tom-world-map__object-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.24rem;
+}
+
+.tom-world-map__object-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.24rem;
+  align-items: center;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: min(var(--tom-content-card-radius), 8px);
+  background: var(--tom-content-card-bg);
+  padding: 0.18rem;
+}
+
+.tom-world-map__object-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none;
+  color: inherit !important;
+  width: 100%;
+  min-width: 0;
+  cursor: pointer;
+  text-align: left;
+  padding: 0.22rem 0.34rem;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: calc(var(--tom-content-card-radius) - 4px);
+}
+
+.tom-world-map__object-type-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.18rem;
+  color: var(--tom-content-muted-text);
+}
+
+.tom-world-map__object-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tom-world-map__object-label {
+  display: block;
+  color: var(--tom-world-map-pinlist-heading-color, var(--tom-content-text));
+  font-family: var(--tom-world-map-pinlist-heading-font, var(--tom-font-family-heading-3, inherit));
+  font-size: var(--tom-world-map-pinlist-heading-size, var(--tom-font-heading-3));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.05;
+}
+
+.tom-world-map__object-note {
+  display: none;
+  color: var(--tom-world-map-pinlist-text-color, var(--tom-content-muted-text));
+  font-family: var(--tom-world-map-pinlist-text-font, var(--tom-font-family-sub-text, inherit));
+  font-size: var(--tom-world-map-pinlist-text-size, var(--tom-font-sub-text));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tom-world-map__sidebar-tooltip {
+  position: absolute;
+  z-index: 720;
+  pointer-events: none;
+  max-width: 18rem;
+  padding: 0.44rem 0.58rem;
+  border: 1px solid var(--tom-world-map-tooltip-border, var(--tom-content-border-2));
+  border-radius: 6px;
+  background: var(--tom-world-map-tooltip-bg, var(--tom-content-card-bg));
+  color: var(--tom-world-map-tooltip-text-color, var(--tom-content-text));
+  box-shadow: 0 14px 28px rgba(4, 12, 24, 0.28);
+  backdrop-filter: blur(var(--tom-world-map-tooltip-blur, 0px));
+  font-family: var(--tom-world-map-tooltip-text-font, var(--tom-font-family-body, inherit));
+  font-size: var(--tom-world-map-tooltip-text-size, var(--tom-font-sub-text));
+  line-height: 1.3;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 70ms ease, transform 70ms ease;
+}
+
+.tom-world-map__sidebar-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tom-world-map__empty {
+  padding: 1.1rem;
+}
+
+.tom-world-map-marker {
+  background: transparent;
+  border: none;
+}
+
+.tom-world-map-object-marker {
+  background: transparent;
+  border: none;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+.tom-world-map-object {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  transform-origin: center center;
+  transform-box: border-box;
+  will-change: transform;
+}
+
+.tom-world-map-object.is-zoom-animating {
+  transition: transform 180ms linear;
+}
+
+.tom-world-map-object--image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  filter: drop-shadow(0 4px 12px rgba(4, 10, 18, 0.4));
+}
+
+.tom-world-map-object--image,
+.tom-world-map-object--image img,
+.theatre-world-map .tom-world-map-object--image,
+.theatre-world-map .tom-world-map-object--image img,
+.theatre-world-map-stage-app .tom-world-map-object--image,
+.theatre-world-map-stage-app .tom-world-map-object--image img {
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+}
+
+.tom-world-map-object--text {
+  white-space: pre-wrap;
+  text-align: center;
+  font-weight: 600;
+  text-shadow: 0 2px 8px rgba(4, 10, 18, 0.7);
+}
+
+.tom-world-map-marker__dot {
+  display: block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  border: 2px solid rgba(5, 8, 15, 0.88);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.16);
+  background: var(--tom-world-map-pin-color, #7ebaec);
+}
+
+.tom-world-map-marker__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: none;
+}
+
+.theatre-world-map .leaflet-tooltip.tom-world-map__tooltip,
+.tom-world-map-stage .leaflet-tooltip.tom-world-map__tooltip,
+.theatre-world-map-stage-app .leaflet-tooltip.tom-world-map__tooltip,
+#tooltip.tom-world-map__tooltip {
+  background: var(--tom-world-map-tooltip-bg, var(--tom-content-card-bg));
+  border: 1px solid var(--tom-world-map-tooltip-border, var(--tom-content-border-2));
+  color: var(--tom-world-map-tooltip-text-color, var(--tom-content-text));
+  border-radius: 6px;
+  box-shadow: 0 14px 28px rgba(4, 12, 24, 0.28);
+  backdrop-filter: blur(var(--tom-world-map-tooltip-blur, 0px));
+  padding: 0.44rem 0.58rem;
+  max-width: 18rem;
+  line-height: 1.3;
+  font-family: var(--tom-world-map-tooltip-text-font, var(--tom-font-family-body, inherit));
+  font-size: var(--tom-world-map-tooltip-text-size, var(--tom-font-sub-text));
+}
+
+.theatre-world-map .leaflet-tooltip.tom-world-map__tooltip::before,
+.tom-world-map-stage .leaflet-tooltip.tom-world-map__tooltip::before,
+.theatre-world-map-stage-app .leaflet-tooltip.tom-world-map__tooltip::before,
+#tooltip.tom-world-map__tooltip::before {
+  border-top-color: var(--tom-world-map-tooltip-border, var(--tom-content-border-2));
+}
+
+.tom-world-map__tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 10rem;
+  max-width: 18rem;
+}
+
+.tom-world-map__tooltip-heading {
+  color: var(--tom-world-map-tooltip-heading-color, var(--tom-content-text));
+  font-family: var(--tom-world-map-tooltip-heading-font, var(--tom-font-family-heading-3, inherit));
+  font-size: var(--tom-world-map-tooltip-heading-size, 1rem);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.tom-world-map__tooltip-text {
+  color: var(--tom-world-map-tooltip-text-color, var(--tom-content-text));
+  font-family: var(--tom-world-map-tooltip-text-font, var(--tom-font-family-body, inherit));
+  font-size: var(--tom-world-map-tooltip-text-size, var(--tom-font-sub-text));
+  line-height: 1.35;
+}
+
+.tom-world-map__tooltip-info {
+  color: var(--tom-world-map-tooltip-info-color, var(--tom-content-muted-text));
+  font-family: var(--tom-world-map-tooltip-info-font, var(--tom-font-family-sub-text, inherit));
+  font-size: var(--tom-world-map-tooltip-info-size, var(--tom-font-sub-text));
+  line-height: 1.3;
+}
+
+.tom-world-map-config {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.tom-world-map-config__surface {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  overflow: hidden;
+}
+
+[data-world-map-config-section].tom-world-map-config__surface {
+  padding: 0;
+  gap: 0;
+  border-radius: var(--tom-content-container-radius, 14px);
+}
+
+.tom-world-map-config__section-toggle {
+  width: 100%;
+  align-items: center;
+  padding: 1.08rem 1.18rem !important;
+  border-radius: var(--tom-content-container-radius, 14px) !important;
+}
+
+.tom-world-map-config__section-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.tom-world-map-config .tom-world-map-config__section-toggle > .tom-world-map-config__section-copy > .tom-world-map-config__section-title {
+  font-family: var(--tom-font-family-heading-1, inherit) !important;
+  font-size: var(--tom-font-heading-1) !important;
+  color: var(--tom-typography-heading-1-color, var(--tom-content-heading, var(--tom-color-heading-1, var(--tom-content-subheading)))) !important;
+  -webkit-text-fill-color: var(--tom-typography-heading-1-color, var(--tom-content-heading, var(--tom-color-heading-1, var(--tom-content-subheading)))) !important;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  font-weight: inherit;
+}
+
+.tom-world-map-config__section-note {
+  color: var(--tom-color-sub-text, var(--tom-content-muted-text, var(--tom-color-muted))) !important;
+  font-family: var(--tom-font-family-sub-text, inherit);
+  font-size: calc(var(--tom-font-sub-text) + 0.04rem);
+  line-height: 1.4;
+  opacity: 0.88;
+}
+
+.tom-world-map-config .tom-editor-header:not(.tom-world-map-config__section-toggle),
+.tom-world-map-config .tom-scene-editor-section-body,
+.tom-world-map-config .form-group,
+.tom-world-map-config .checkbox {
+  color: var(--tom-content-text, var(--tom-color-text)) !important;
+}
+
+.tom-world-map-config .tom-scene-editor-section-body {
+  display: grid;
+  gap: 1rem;
+  padding: 0 1rem 1rem;
+}
+
+.tom-world-map-config [data-world-map-config-section="setup"] > .tom-scene-editor-section-body {
+  gap: 1rem;
+}
+
+.tom-world-map-config .tom-scene-editor-section-body > :last-child {
+  margin-bottom: 0;
+}
+
+.tom-world-map-config__header-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.tom-world-map-config__overlay-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.tom-world-map-config__category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tom-world-map-config__category-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 3.4rem auto;
+  gap: 0.62rem;
+  align-items: center;
+  padding: 0.48rem 0.55rem;
+}
+
+.tom-world-map-config__category-card--simple {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.tom-world-map-config__setup-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.tom-world-map-config__setup-column {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: var(--tom-content-card-radius, 12px);
+  background: color-mix(in srgb, var(--tom-content-card-bg, var(--tom-app-background-solid, #08121f)) 86%, transparent);
+}
+
+.tom-world-map-config__styling-card {
+  padding: 0.95rem;
+}
+
+.tom-world-map-config__fog-panel {
+  gap: 0.95rem;
+}
+
+.tom-world-map-config__fog-panel > .tom-editor-header {
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--tom-content-divider, var(--tom-content-border-2)) 70%, transparent);
+}
+
+.tom-world-map-config__fog-panel > .tom-editor-header h3 {
+  margin-bottom: 0.18rem;
+}
+
+.tom-world-map-config__fog-layout {
+  display: grid;
+  grid-template-columns: minmax(18.5rem, 0.78fr) minmax(28rem, 1.22fr);
+  gap: 0.95rem;
+  align-items: stretch;
+}
+
+.tom-world-map-config__fog-card {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+  padding: 0.95rem;
+  min-width: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tom-content-card-bg, var(--tom-app-background-solid, #08121f)) 92%, transparent), color-mix(in srgb, var(--tom-content-container-bg, var(--tom-app-background-solid, #08121f)) 88%, transparent)) !important;
+}
+
+.tom-world-map-config .tom-world-map-config__fog-card h4 {
+  margin: 0;
+  padding-bottom: 0.42rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--tom-content-divider, var(--tom-content-border-2)) 72%, transparent);
+  color: var(--tom-color-heading-2, var(--tom-content-subheading));
+  font-family: var(--tom-font-family-heading-2, inherit);
+  font-size: var(--tom-font-heading-2);
+  line-height: 1.05;
+}
+
+.tom-world-map-config__fog-enable {
+  min-height: 2.55rem;
+  padding: 0.7rem 0.75rem;
+}
+
+.tom-world-map-config__fog-fields {
+  display: grid;
+  grid-template-columns: minmax(9.5rem, 1fr) minmax(6.4rem, 0.58fr) minmax(7rem, 0.68fr);
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.tom-world-map-config__fog-color {
+  align-items: start;
+  justify-items: start;
+}
+
+.tom-world-map-config__fog-color input[type="color"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: block !important;
+  width: 5.2rem !important;
+  min-width: 5.2rem !important;
+  max-width: 5.2rem !important;
+  height: 3.1rem !important;
+  min-height: 3.1rem !important;
+  padding: 0.18rem !important;
+  line-height: 1 !important;
+  overflow: hidden !important;
+  cursor: pointer;
+  background: var(--tom-color-swatch-value, #ffffff) !important;
+  background-color: var(--tom-color-swatch-value, #ffffff) !important;
+  box-shadow:
+    inset 0 0 0 999px var(--tom-color-swatch-value, #ffffff),
+    inset 0 0 0 2px color-mix(in srgb, var(--tom-content-text, #ffffff) 34%, transparent) !important;
+  border-radius: var(--tom-content-form-radius, 10px) !important;
+}
+
+.tom-world-map-config__fog-color input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0 !important;
+}
+
+.tom-world-map-config__fog-color input[type="color"]::-webkit-color-swatch {
+  border: none !important;
+  background: var(--tom-color-swatch-value, #ffffff) !important;
+  background-color: var(--tom-color-swatch-value, #ffffff) !important;
+  border-radius: calc(var(--tom-content-form-radius, 10px) - 4px) !important;
+}
+
+.tom-world-map-config__fog-color input[type="color"]::-moz-color-swatch {
+  border: none !important;
+  background: var(--tom-color-swatch-value, #ffffff) !important;
+  background-color: var(--tom-color-swatch-value, #ffffff) !important;
+  border-radius: calc(var(--tom-content-form-radius, 10px) - 4px) !important;
+}
+
+.tom-world-map-config__fog-divider {
+  height: 1px;
+  background: color-mix(in srgb, var(--tom-content-divider, var(--tom-content-border-2)) 60%, transparent);
+}
+
+.tom-world-map-config__fog-image-field,
+.tom-world-map-config__fog-tile-field {
+  min-width: 0;
+}
+
+.tom-world-map-config__fog-image-field .tom-input-with-button {
+  grid-template-columns: minmax(0, 1fr) minmax(7rem, auto);
+}
+
+.tom-world-map-config__fog-image-field .notes,
+.tom-world-map-config__fog-tile-field .notes {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.tom-world-map-config__fog-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.8rem;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.tom-world-map-config__fog-range span {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.tom-world-map-config__fog-toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.tom-world-map-config__fog-toggles .tom-scene-config-toggle-card,
+.tom-world-map-config__fog-enable.tom-scene-config-toggle-card {
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tom-world-map-config__fog-toggles .tom-scene-config-toggle-card span,
+.tom-world-map-config__fog-enable.tom-scene-config-toggle-card span {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.18;
+}
+
+.tom-world-map-config__styling-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.tom-world-map-config__styling-grid--double {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tom-world-map-config__styling-grid--triple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tom-world-map-config__styling-subcard {
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.tom-world-map-config__styling-subcard h4 {
+  margin: 0;
+  color: var(--tom-color-heading-2, var(--tom-content-subheading));
+  font-family: var(--tom-font-family-heading-2, inherit);
+  font-size: var(--tom-font-heading-2);
+  line-height: 1.05;
+}
+
+.tom-world-map-config__styling-subgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.tom-world-map-config__tooltip-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.tom-world-map-config__tooltip-foundation {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) minmax(14rem, 1fr);
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.85rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tom-content-card-bg, var(--tom-app-background-solid, #08121f)) 92%, transparent), color-mix(in srgb, var(--tom-content-container-bg, var(--tom-app-background-solid, #08121f)) 88%, transparent)) !important;
+  border: var(--tom-content-border-2-width, 1px) solid var(--tom-content-border-2, rgba(255,255,255,0.16)) !important;
+  border-radius: var(--tom-content-card-radius, 12px);
+}
+
+.tom-world-map-config__tooltip-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  align-items: stretch;
+}
+
+.tom-world-map-config__tooltip-type-card {
+  align-content: start;
+}
+
+.tom-world-map-config__tooltip-font-row {
+  display: grid;
+  grid-template-columns: max-content minmax(5.4rem, 6.6rem);
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.tom-world-map-config__general-style-grid {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.8fr) minmax(24rem, 1.2fr);
+  gap: 0.7rem;
+  align-items: stretch;
+}
+
+.tom-world-map-config__general-style-card {
+  align-content: start;
+}
+
+.tom-world-map-config__pin-list-style-row {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) max-content minmax(5.4rem, 6.6rem);
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.tom-world-map-config__tooltip-color-control,
+.tom-world-map-config__tooltip-size-field,
+.tom-world-map-config__tooltip-opacity {
+  align-items: start;
+  justify-items: start;
+}
+
+.tom-world-map-config__tooltip-size-field input[type="number"],
+.tom-world-map-config__tooltip-opacity input[type="number"] {
+  width: 6.4rem !important;
+  min-width: 6.4rem !important;
+  max-width: 6.4rem !important;
+}
+
+.tom-world-map-config__tooltip-opacity {
+  display: grid;
+  grid-template-columns: auto minmax(5.8rem, 6.4rem);
+  gap: 0.65rem;
+  align-items: center;
+  justify-self: start;
+}
+
+.tom-world-map-config__tooltip-opacity label {
+  margin: 0;
+}
+
+.tom-world-map-config__color-swatch {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: block !important;
+  width: 3.4rem !important;
+  min-width: 3.4rem !important;
+  max-width: 3.4rem !important;
+  height: 2.65rem !important;
+  min-height: 2.65rem !important;
+  padding: 0.18rem !important;
+  overflow: hidden !important;
+  cursor: pointer;
+  background: var(--tom-color-swatch-value, #ffffff) !important;
+  background-color: var(--tom-color-swatch-value, #ffffff) !important;
+  box-shadow:
+    inset 0 0 0 999px var(--tom-color-swatch-value, #ffffff),
+    inset 0 0 0 2px color-mix(in srgb, var(--tom-content-text, #ffffff) 34%, transparent) !important;
+  border-radius: 8px !important;
+}
+
+.tom-world-map-config__color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0 !important;
+}
+
+.tom-world-map-config__color-swatch::-webkit-color-swatch {
+  border: none !important;
+  background: var(--tom-color-swatch-value, #ffffff) !important;
+  background-color: var(--tom-color-swatch-value, #ffffff) !important;
+  border-radius: 5px !important;
+}
+
+.tom-world-map-config__color-swatch::-moz-color-swatch {
+  border: none !important;
+  background: var(--tom-color-swatch-value, #ffffff) !important;
+  background-color: var(--tom-color-swatch-value, #ffffff) !important;
+  border-radius: 5px !important;
+}
+
+.tom-world-map-config__tooltip-toggle {
+  min-height: 2.65rem;
+  align-self: center;
+  justify-self: start;
+  grid-column: 2;
+}
+
+.tom-world-map-config__category-icon-button {
+  width: 2.15rem;
+  min-width: 2.15rem;
+  height: 2.15rem;
+  min-height: 2.15rem;
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--tom-nav-button-border) !important;
+  border-radius: 5px !important;
+  background: var(--tom-nav-button-bg-start, var(--tom-app-background-solid, #08121f)) !important;
+  background-image: none !important;
+  color: var(--tom-nav-text, var(--tom-content-text)) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+}
+
+.tom-world-map-config__category-icon-button:hover,
+.tom-world-map-config__category-icon-button:focus,
+.tom-world-map-config__category-icon-button:focus-visible {
+  border-color: var(--tom-nav-button-hover-border) !important;
+  background: var(--tom-nav-button-hover-bg-start, var(--tom-nav-button-bg-start, var(--tom-app-background-solid, #08121f))) !important;
+  background-image: none !important;
+  color: var(--tom-nav-text, var(--tom-content-text)) !important;
+}
+
+.tom-world-map-config__category-icon-button i {
+  display: block;
+  color: inherit !important;
+  font-size: 0.9rem;
+  line-height: 1;
+  margin: 0 !important;
+  transform: translateY(-0.02em);
+}
+
+.tom-world-map-config__category-name,
+.tom-world-map-config__category-color {
+  margin: 0 !important;
+  min-width: 0;
+}
+
+.tom-world-map-config__category-name input {
+  width: 100%;
+}
+
+.tom-world-map-config__category-color {
+  display: flex;
+  justify-content: center;
+}
+
+.tom-world-map-config__category-color input[type="color"] {
+  width: 3.25rem !important;
+  min-width: 3.25rem !important;
+  height: 1.65rem !important;
+  min-height: 1.65rem !important;
+  padding: 0.12rem !important;
+  border-radius: 5px !important;
+}
+
+.tom-world-map-config__category-color input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0 !important;
+}
+
+.tom-world-map-config__category-color input[type="color"]::-webkit-color-swatch {
+  border-radius: 3px !important;
+  border: none !important;
+}
+
+.tom-world-map-config__category-color input[type="color"]::-moz-color-swatch {
+  border-radius: 3px !important;
+  border: none !important;
+}
+
+.tom-world-map-config__category-delete {
+  width: 2.15rem !important;
+  min-width: 2.15rem !important;
+  height: 2.15rem !important;
+  min-height: 2.15rem !important;
+  padding: 0 !important;
+  border: var(--tom-content-action-delete-border-width, 1px) solid var(--tom-content-action-delete-border, var(--tom-content-border-2)) !important;
+  border-radius: var(--tom-content-action-delete-radius, 5px) !important;
+  background: var(--tom-content-action-delete-bg) !important;
+  color: var(--tom-content-action-delete-icon) !important;
+  box-shadow: none !important;
+}
+
+.tom-world-map-config__category-delete:hover,
+.tom-world-map-config__category-delete:focus,
+.tom-world-map-config__category-delete:focus-visible {
+  border-color: var(--tom-content-action-delete-hover-border, var(--tom-content-action-delete-border, var(--tom-content-border-2))) !important;
+  background: var(--tom-content-action-delete-hover-bg, var(--tom-content-action-delete-bg)) !important;
+  color: var(--tom-content-action-delete-hover-icon, var(--tom-content-action-delete-icon)) !important;
+}
+
+.tom-world-map-config__category-delete i {
+  color: inherit !important;
+  font-size: var(--tom-content-action-delete-icon-size, 1rem);
+  line-height: 1;
+}
+
+.tom-world-map-config__icon-picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.2rem;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--tom-app-background-solid, #08121f) 92%, transparent);
+}
+
+.tom-world-map-config__icon-choice {
+  min-height: 2.2rem;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--tom-nav-button-border) !important;
+  border-radius: 5px !important;
+  background: var(--tom-nav-button-bg-start, var(--tom-app-background-solid, #08121f)) !important;
+  background-image: none !important;
+  color: var(--tom-nav-text, var(--tom-content-text)) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.tom-world-map-config__icon-choice:hover,
+.tom-world-map-config__icon-choice:focus,
+.tom-world-map-config__icon-choice:focus-visible {
+  border-color: var(--tom-nav-button-hover-border) !important;
+  background: var(--tom-nav-button-hover-bg-start, var(--tom-nav-button-bg-start, var(--tom-app-background-solid, #08121f))) !important;
+  background-image: none !important;
+}
+
+.tom-world-map-config__icon-choice i {
+  color: inherit !important;
+}
+
+.tom-world-map-config__overlay-card {
+  padding: 0.85rem;
+}
+
+.tom-world-map-config__overlay-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 180px);
+  gap: 0.6rem;
+}
+
+.tom-world-map-config__overlay-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-top: 0.45rem;
+}
+
+.tom-world-map-config__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
+
+.tom-world-map-config .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+  margin: 0;
+}
+
+.tom-world-map-config .form-group > label,
+.tom-world-map-config .checkbox > span {
+  color: var(--tom-content-label, var(--tom-color-heading-3, var(--tom-color-text))) !important;
+  font-family: var(--tom-font-family-heading-3, inherit);
+  font-size: var(--tom-font-heading-3);
+  letter-spacing: 0.01em;
+}
+
+.tom-world-map-config .notes,
+.tom-world-map-config p {
+  color: var(--tom-color-sub-text, var(--tom-content-muted-text, var(--tom-color-muted))) !important;
+  font-family: var(--tom-font-family-sub-text, inherit);
+  font-size: var(--tom-font-sub-text);
+  line-height: 1.4;
+}
+
+.tom-world-map-config h3 {
+  color: var(--tom-color-heading-2, var(--tom-content-subheading, var(--tom-color-text))) !important;
+  font-family: var(--tom-font-family-heading-2, inherit);
+  font-size: var(--tom-font-heading-2);
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+}
+
+.tom-world-map-config h4 {
+  color: var(--tom-content-label, var(--tom-color-heading-3, var(--tom-color-text))) !important;
+  font-family: var(--tom-font-family-heading-3, inherit);
+  font-size: var(--tom-font-heading-3);
+}
+
+.tom-world-map-config :is(input[type="text"], input[type="number"], select) {
+  min-height: 2.45rem;
+}
+
+.tom-world-map-config .tom-input-with-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0.55rem;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  margin: 0;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .form-group > label,
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .checkbox > span {
+  color: var(--tom-content-label, var(--tom-color-heading-3, var(--tom-color-text))) !important;
+  font-family: var(--tom-font-family-heading-3, inherit);
+  font-size: var(--tom-font-heading-3);
+  letter-spacing: 0.01em;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog h4 {
+  color: var(--tom-content-subheading, var(--tom-color-heading-2, var(--tom-color-text))) !important;
+  font-family: var(--tom-font-family-heading-2, inherit);
+  font-size: var(--tom-font-heading-2);
+  letter-spacing: 0.01em;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog :is(input[type="text"], input[type="number"], input[type="color"], select, textarea) {
+  min-height: 2.45rem;
+}
+
+.dialog.theatre-canvas-drop-dialog,
+.dialog.theatre-canvas-drop-dialog .window-content {
+  background: var(--tom-app-background, var(--tom-app-background-solid, #08121f)) !important;
+}
+
+.dialog.theatre-canvas-drop-dialog .window-header {
+  background: var(--tom-nav-titlebar-bg, linear-gradient(180deg, rgba(10, 23, 39, 0.98), rgba(7, 16, 28, 0.98))) !important;
+  border-bottom: var(--tom-nav-border-1-width, 1px) solid var(--tom-nav-border-1, var(--tom-content-border-1)) !important;
+}
+
+.theatre-canvas-drop-dialog .window-content,
+.theatre-canvas-drop-dialog .dialog-content,
+.theatre-canvas-drop-dialog form,
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog {
+  background: var(--tom-content-surface-bg, var(--tom-app-background, var(--tom-app-background-solid, #08121f))) !important;
+  background-image: none !important;
+  color: var(--tom-content-text, var(--tom-color-text)) !important;
+}
+
+.theatre-canvas-drop-dialog .window-resizable-handle {
+  z-index: 20 !important;
+  pointer-events: auto !important;
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  border-radius: 0.45rem 0 0 0 !important;
+  background: var(--tom-content-card-bg, var(--tom-app-background-solid, #08121f)) !important;
+  border-left: var(--tom-content-border-2-width, 1px) solid var(--tom-content-border-2, rgba(255,255,255,0.16)) !important;
+  border-top: var(--tom-content-border-2-width, 1px) solid var(--tom-content-border-2, rgba(255,255,255,0.16)) !important;
+  box-shadow: none !important;
+  color: var(--tom-content-text, var(--tom-color-text)) !important;
+}
+
+.theatre-canvas-drop-dialog .window-resizable-handle i {
+  color: inherit !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-object-overlay-host {
+  min-height: 22rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-object-overlay-host .window-content {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  padding-bottom: 0.8rem !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-object-overlay-host form {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-object-overlay-host .dialog-content {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  overflow: auto !important;
+  padding: 0.55rem 0.85rem 1.15rem 0.85rem;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-object-overlay-host .dialog-buttons {
+  flex: 0 0 auto !important;
+  margin: 0.55rem 0.85rem 0.85rem !important;
+  padding: 0.35rem 0 0 !important;
+  gap: 0.7rem !important;
+  background: transparent !important;
+  border-top: 1px solid color-mix(in srgb, var(--tom-content-border-2, rgba(255,255,255,0.16)) 72%, transparent) !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-object-overlay-host .dialog-buttons .dialog-button,
+.dialog.theatre-canvas-drop-dialog.tom-world-map-pin-dialog-host .dialog-buttons .dialog-button {
+  min-height: 1.9rem !important;
+  max-height: 2.15rem !important;
+  padding: 0.28rem 0.75rem !important;
+  line-height: 1.15 !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-pin-dialog-host .dialog-buttons {
+  margin: 0.55rem 0.85rem 0.85rem !important;
+  padding: 0.35rem 0 0 !important;
+  gap: 0.7rem !important;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog :is(input[type="text"], input[type="number"], input[type="color"], select, textarea) {
+  background: var(--tom-content-form-bg, var(--tom-content-card-bg, var(--tom-app-background-solid, #08121f))) !important;
+  background-image: none !important;
+  border: var(--tom-content-border-2-width, 1px) solid var(--tom-content-border-2, rgba(255,255,255,0.16)) !important;
+  border-radius: var(--tom-content-form-radius, 12px) !important;
+  box-shadow: none !important;
+  color: var(--tom-color-text, var(--tom-content-text)) !important;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog :is(input[type="text"], input[type="number"], select, textarea)::placeholder {
+  color: var(--tom-color-muted, var(--tom-content-muted-text)) !important;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .tom-theme-card,
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .tom-world-map-config__styling-subcard {
+  background: var(--tom-content-card-bg, var(--tom-content-container-bg, var(--tom-app-background-solid, #08121f))) !important;
+  background-image: none !important;
+  border: var(--tom-content-border-2-width, 1px) solid var(--tom-content-border-2, rgba(255,255,255,0.16)) !important;
+  border-radius: var(--tom-content-container-radius, var(--tom-content-card-radius, 12px)) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .tom-theme-card::before,
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .tom-world-map-config__styling-subcard::before {
+  display: none !important;
+  background-image: none !important;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .checkbox {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  margin: 0;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .tom-input-with-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0.55rem;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .tom-button {
+  border: var(--tom-nav-button-border-width, 1px) solid var(--tom-nav-button-border, var(--tom-content-border-2)) !important;
+  border-radius: var(--tom-nav-tab-radius, 12px) !important;
+  background: var(--tom-nav-button-bg, var(--tom-content-card-bg)) !important;
+  color: var(--tom-nav-text, var(--tom-content-text)) !important;
+  box-shadow: none !important;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .tom-button:is(:hover, :focus, :focus-visible) {
+  border-color: var(--tom-nav-button-hover-border, var(--tom-nav-button-border, var(--tom-content-border-2))) !important;
+  background: var(--tom-nav-button-hover-bg, var(--tom-nav-button-bg, var(--tom-content-card-bg))) !important;
+  color: var(--tom-nav-text, var(--tom-content-text)) !important;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog .tom-world-map-config__styling-subcard {
+  padding: 0.75rem;
+  gap: 0.6rem;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog {
+  gap: 1rem;
+  padding: 0.75rem;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__preview {
+  padding: 1rem;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__preview-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 7.5rem;
+  padding: 1rem;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: 10px;
+  background: var(--tom-content-container-bg, var(--tom-app-background-solid, #08121f));
+  overflow: hidden;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__preview-text {
+  text-align: center;
+  line-height: 1.15;
+  white-space: pre-wrap;
+  font-weight: 600;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid {
+  display: grid;
+  gap: 0.85rem;
+  align-items: end;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--double {
+  grid-template-columns: minmax(0, 1.35fr) minmax(13rem, 0.9fr);
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--triple {
+  grid-template-columns: minmax(8rem, 0.65fr) minmax(8rem, 0.65fr) minmax(0, 1.2fr);
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--general {
+  grid-template-columns: repeat(auto-fit, minmax(7.25rem, 1fr));
+  gap: 0.7rem;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--double-compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--border {
+  grid-template-columns: minmax(5.5rem, 0.75fr) minmax(5rem, 0.55fr) minmax(8rem, 0.9fr);
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__span-2 {
+  grid-column: span 2;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__field--compact :is(input, select) {
+  max-width: 8rem;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--general .tom-world-map-object-overlay-dialog__span-2 {
+  grid-column: 1 / -1;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--general .form-group {
+  min-width: 0;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--general .form-group > label {
+  white-space: normal;
+  line-height: 1.15;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--general :is(input[type="number"], input[type="color"], select) {
+  width: 100%;
+  min-width: 5.5rem;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--general input[name="overlayOpacity"] {
+  min-width: 6rem;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__toggles {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__journal-drop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-height: 6rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px dashed var(--tom-content-border-2);
+  border-radius: 10px;
+  background: var(--tom-content-form-bg, var(--tom-content-container-bg, var(--tom-app-background-solid, #08121f)));
+  background-image: none !important;
+  transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__journal-drop.is-drop-target {
+  border-color: var(--tom-nav-action-create-border, var(--tom-content-border-1));
+  background: color-mix(in srgb, var(--tom-nav-action-create-bg, var(--tom-content-card-bg)) 18%, var(--tom-content-form-bg, var(--tom-content-card-bg, var(--tom-app-background-solid, #08121f))));
+  transform: translateY(-1px);
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__journal-title {
+  color: var(--tom-content-subheading, var(--tom-color-heading-2, var(--tom-color-text))) !important;
+  font-family: var(--tom-font-family-heading-2, inherit);
+  font-size: var(--tom-font-heading-3);
+  line-height: 1.15;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__journal-meta {
+  color: var(--tom-content-muted-text, var(--tom-color-muted, var(--tom-color-text))) !important;
+  font-family: var(--tom-font-family-sub-text, inherit);
+  font-size: var(--tom-font-sub-text);
+  line-height: 1.35;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog :is(
+  p,
+  strong,
+  small,
+  .notes,
+  .hint
+) {
+  color: var(--tom-content-text, var(--tom-color-text)) !important;
+}
+
+.theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__journal-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.2rem;
+}
+
+@media (max-width: 760px) {
+  .theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--double,
+  .theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--triple,
+  .theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--general,
+  .theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--border,
+  .theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__grid--double-compact,
+  .theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__footer-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .theatre-canvas-drop-dialog .tom-world-map-object-overlay-dialog__span-2 {
+    grid-column: span 1;
+  }
+}
+
+.tom-world-map-config__generator {
+  display: flex;
+  align-items: end;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: var(--tom-content-card-radius, 12px);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--tom-content-card-bg, var(--tom-app-background-solid, #08121f)) 94%, transparent), color-mix(in srgb, var(--tom-content-container-bg, var(--tom-app-background-solid, #08121f)) 86%, transparent));
+}
+
+.tom-world-map-config__generator-main {
+  min-width: 180px;
+  flex: 1 1 220px;
+}
+
+@media (max-width: 900px) {
+  .tom-world-map-config__setup-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tom-world-map-config__fog-layout,
+  .tom-world-map-config__fog-fields,
+  .tom-world-map-config__fog-toggles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tom-world-map-config__styling-grid--double,
+  .tom-world-map-config__styling-grid--triple,
+  .tom-world-map-config__styling-subgrid,
+  .tom-world-map-config__tooltip-foundation,
+  .tom-world-map-config__tooltip-type-grid,
+  .tom-world-map-config__general-style-grid,
+  .tom-world-map-config__pin-list-style-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tom-world-map-config__tooltip-toggle {
+    grid-column: auto;
+  }
+}
+
+.tom-world-map-config__status {
+  padding: 0.95rem 1rem;
+  border-radius: var(--tom-content-card-radius, 12px);
+}
+
+.tom-world-map-config__status p {
+  margin: 0.15rem 0;
+}
+
+.tom-world-map-config__progress {
+  position: relative;
+  width: 100%;
+  height: 0.4rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  margin-top: 0.45rem;
+}
+
+.tom-world-map-config__progress-bar {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #4fd1c5, #8df0db);
+}
+
+.tom-world-map-config__toggles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.55rem;
+}
+
+.tom-world-map-config .sheet-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 0.75rem 0.1rem 0.1rem;
+  margin-top: 0.25rem;
+  background:
+    linear-gradient(180deg, transparent, var(--tom-content-surface-bg, var(--tom-app-background-solid, #08121f)) 32%);
+  border-top: 1px solid color-mix(in srgb, var(--tom-content-border-2, rgba(255,255,255,0.16)) 72%, transparent);
+}
+
+.tom-world-map-config .sheet-footer .tom-button {
+  width: 100%;
+  justify-content: center;
+  border: var(--tom-nav-button-border-width, 1px) solid var(--tom-nav-button-border, var(--tom-content-border-2)) !important;
+  border-radius: min(var(--tom-nav-tab-radius, 12px), 6px) !important;
+  background: var(--tom-nav-button-bg, var(--tom-content-card-bg)) !important;
+  color: var(--tom-nav-text, var(--tom-content-text)) !important;
+  box-shadow: none !important;
+}
+
+.tom-world-map-config .sheet-footer .tom-button:hover,
+.tom-world-map-config .sheet-footer .tom-button:focus,
+.tom-world-map-config .sheet-footer .tom-button:focus-visible {
+  border-color: var(--tom-nav-button-hover-border, var(--tom-nav-button-border)) !important;
+  background: var(--tom-nav-button-hover-bg, var(--tom-nav-button-bg, var(--tom-content-card-bg))) !important;
+  color: var(--tom-nav-text, var(--tom-content-text)) !important;
+}
+
+.tom-world-map-config__advanced {
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.tom-world-map-config .tom-editor-header h3,
+.tom-world-map-config__advanced h3 {
+  margin: 0;
+  font-family: var(--tom-font-family-heading-2, inherit);
+  font-size: var(--tom-font-heading-2);
+  color: var(--tom-color-heading-2, var(--tom-content-subheading)) !important;
+  line-height: 1.1;
+}
+
+.tom-world-map-config .tom-editor-header .notes {
+  margin: 0.18rem 0 0;
+  color: var(--tom-color-sub-text, var(--tom-content-muted-text, var(--tom-color-muted))) !important;
+  font-family: var(--tom-font-family-sub-text, inherit);
+  font-size: var(--tom-font-sub-text);
+  line-height: 1.4;
+  opacity: 0.88;
+}
+
+.tom-world-map-config .tom-editor-header:not(.tom-editor-header--toggle) {
+  align-items: flex-start;
+}
+
+.tom-world-map-config .tom-editor-header:not(.tom-editor-header--toggle) > .tom-button {
+  align-self: center;
+}
+
+.tom-world-map-config .tom-editor-header--toggle i {
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  min-height: 1.1rem;
+}
+
+[data-world-map-config-section] {
+  overflow: hidden;
+}
+
+[data-world-map-config-section].is-collapsed > .tom-scene-editor-section-body {
+  display: none;
+}
+
+.tom-world-map-config__warning-list {
+  display: grid;
+  gap: 0.28rem;
+  margin-top: 0.55rem;
+}
+
+.tom-world-map-config__warning-list p {
+  margin: 0;
+}
+
+@media (max-width: 980px) {
+  .tom-world-map__layout,
+  .tom-world-map__layout.is-right-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .tom-world-map__sidebar--right {
+    display: none;
+  }
+
+  .tom-world-map__pin-sidebar-toggle {
+    right: 0.75rem;
+    top: 0.75rem;
+    transform: none;
+  }
+
+  .tom-world-map__canvas {
+    min-height: 460px;
+  }
+}
+
+:is(.footlights-themed-window, .theatre-canvas-drop-dialog) .tom-world-map-config .tom-world-map-config__section-toggle .tom-world-map-config__section-title {
+  color: var(--tom-typography-heading-1-color, var(--tom-content-heading, var(--tom-color-heading-1, var(--tom-content-subheading)))) !important;
+  -webkit-text-fill-color: var(--tom-typography-heading-1-color, var(--tom-content-heading, var(--tom-color-heading-1, var(--tom-content-subheading)))) !important;
+}
+
+/* Final typography repair layer: keep descriptive copy on theme subtext after app-wide overrides. */
+.tom-theme-root :is(.notes, p.notes, small.notes),
+.tom-theme-area--content :is(.notes, p.notes, small.notes),
+.theatre-scene-library :is(.notes, p.notes, small.notes),
+.theatre-scene-config :is(.notes, p.notes, small.notes),
+.theatre-avatar-config :is(.notes, p.notes, small.notes),
+.theatre-mindmap :is(.notes, p.notes, small.notes),
+.theatre-world-map :is(.notes, p.notes, small.notes),
+.theatre-world-map-stage-app :is(.notes, p.notes, small.notes) {
+  color: var(--tom-color-sub-text, var(--tom-content-muted-text, var(--tom-color-muted))) !important;
+  font-family: var(--tom-font-family-sub-text, inherit);
+  font-size: var(--tom-font-sub-text);
+  line-height: 1.4;
+}
+
+.tom-theme-root p:not(.notes),
+.tom-theme-area--content p:not(.notes),
+.theatre-scene-library p:not(.notes),
+.theatre-scene-config p:not(.notes),
+.theatre-avatar-config p:not(.notes),
+.theatre-mindmap p:not(.notes),
+.theatre-world-map p:not(.notes),
+.theatre-world-map-stage-app p:not(.notes) {
+  color: var(--tom-color-body, var(--tom-content-text, var(--tom-color-text))) !important;
+  font-family: var(--tom-font-family-body, inherit);
+  font-size: var(--tom-font-body);
+  line-height: 1.45;
+}
+
+.tom-library-topbar__brand span {
+  color: var(--tom-typography-heading-1-color, var(--tom-content-heading, var(--tom-color-heading-1))) !important;
+  font-family: var(--tom-font-family-heading-1, inherit);
+  font-size: var(--tom-font-heading-1);
+}
+
+.tom-world-map-config :is(
+  button,
+  .tom-button,
+  .tom-button-icon,
+  .tom-world-map-config__category-icon-button,
+  .tom-world-map-config__category-delete
+),
+.theatre-world-map :is(
+  button,
+  .tom-button,
+  .tom-button-icon,
+  .tom-library-action,
+  .tom-world-map__action-button,
+  .tom-world-map__pin-sidebar-toggle
+),
+.theatre-world-map-stage-app :is(
+  button,
+  .tom-button,
+  .tom-button-icon,
+  .tom-library-action,
+  .tom-world-map__action-button,
+  .tom-world-map__pin-sidebar-toggle,
+  .tom-world-map-stage__close
+),
+.theatre-canvas-drop-dialog :is(
+  button,
+  .tom-button,
+  .tom-button-icon,
+  .tom-world-map-config__category-icon-button,
+  .tom-world-map-config__category-delete
+) {
+  border-radius: 8px !important;
+}
+
+.tom-world-map-config input[type="color"].tom-world-map-config__color-swatch,
+.theatre-canvas-drop-dialog .tom-world-map-config__dialog input[type="color"].tom-world-map-config__color-swatch {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 3.4rem !important;
+  min-width: 3.4rem !important;
+  max-width: 3.4rem !important;
+  height: 2.65rem !important;
+  min-height: 2.65rem !important;
+  padding: 0.18rem !important;
+  background: var(--tom-color-swatch-value, #ffffff) !important;
+  background-color: var(--tom-color-swatch-value, #ffffff) !important;
+  box-shadow:
+    inset 0 0 0 999px var(--tom-color-swatch-value, #ffffff),
+    inset 0 0 0 2px color-mix(in srgb, var(--tom-content-text, #ffffff) 34%, transparent) !important;
+}

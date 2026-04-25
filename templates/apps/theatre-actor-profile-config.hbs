@@ -1,0 +1,34 @@
+<form class="tom-actor-profile-config tom-theme-root tom-theme-default" style="{{themeInlineStyle}}">
+  <section class="tom-theme-content-surface">
+    <div class="form-group">
+      <label>{{tr "ACTOR"}}</label>
+      <input type="text" value="{{actor.name}}" disabled />
+    </div>
+
+    <div class="form-group">
+      <label>{{tr "Default Image"}}</label>
+      <div class="tom-input-with-button">
+        <input type="text" name="defaultImage" value="{{profile.defaultImage}}" placeholder="{{tr "path/to/image.webp"}}" />
+        <button
+          type="button"
+          class="tom-button tom-button-ghost"
+          data-action="pick-image"
+          data-target="[name='defaultImage']"
+          aria-label="{{tr "Choose default image"}}"
+        >
+          {{tr "Choose file"}}
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group stacked">
+      <label>{{tr "Moods JSON"}}</label>
+      <p class="notes">{{tr "Object mapping moodKey to imagePath."}}</p>
+      <textarea name="moodsJson" rows="14">{{moodsJson}}</textarea>
+    </div>
+  </section>
+
+  <footer class="sheet-footer flexrow">
+    <button type="submit" class="tom-button tom-button-primary">{{tr "Save"}}</button>
+  </footer>
+</form>

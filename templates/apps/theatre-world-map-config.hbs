@@ -1,0 +1,545 @@
+{{#unless inline}}
+<form class="tom-world-map-config tom-theme-root tom-theme-area--content" style="{{themeInlineStyle}}">
+{{/unless}}
+{{#if inline}}
+<div class="tom-world-map-config tom-world-map-config--inline tom-theme-root tom-theme-area--content" style="{{themeInlineStyle}}">
+{{/if}}
+  <input type="hidden" name="worldMap.id" value="{{map.id}}" />
+  <input type="hidden" name="worldMap.tileRootPath" value="{{map.tileRootPath}}" />
+  <input type="hidden" name="worldMap.tileUrlTemplate" value="{{map.tileUrlTemplate}}" />
+  <input type="hidden" name="worldMap.manifestPath" value="{{map.manifestPath}}" />
+  {{#each overlays}}
+  <input type="hidden" name="worldMap.overlays.{{index}}.id" value="{{id}}" />
+  <input type="hidden" name="worldMap.overlays.{{index}}.tileRootPath" value="{{tileRootPath}}" />
+  <input type="hidden" name="worldMap.overlays.{{index}}.tileUrlTemplate" value="{{tileUrlTemplate}}" />
+  <input type="hidden" name="worldMap.overlays.{{index}}.manifestPath" value="{{manifestPath}}" />
+  {{/each}}
+  {{#each categories}}
+  <input type="hidden" name="worldMap.categories.{{index}}.id" value="{{id}}" />
+  <input type="hidden" name="worldMap.categories.{{index}}.iconClass" value="{{iconClass}}" />
+  {{/each}}
+
+  <section class="tom-world-map-config__surface tom-theme-content-surface {{#if sectionSetupCollapsed}}is-collapsed{{else}}is-expanded{{/if}}" data-world-map-config-section="setup">
+    <button type="button" class="tom-editor-header tom-editor-header--toggle tom-world-map-config__section-toggle" data-action="toggle-map-config-section" data-world-map-config-section-key="setup" aria-expanded="{{#if sectionSetupCollapsed}}false{{else}}true{{/if}}">
+      <span class="tom-world-map-config__section-copy">
+        <strong class="tom-world-map-config__section-title">{{tr "World Map Setup"}}</strong>
+        <small class="tom-world-map-config__section-note">{{tr "Simple workflow: choose a large image, generate tiles, then open the map."}}</small>
+      </span>
+      <i class="fas {{#if sectionSetupCollapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+    </button>
+    <div class="tom-scene-editor-section-body">
+      <div class="tom-world-map-config__setup-columns">
+        <div class="tom-world-map-config__setup-column tom-world-map-config__setup-column--meta">
+          <div class="form-group">
+            <label>{{tr "Name"}}</label>
+            <input type="text" name="worldMap.name" value="{{map.name}}" required />
+          </div>
+          <div class="form-group">
+            <label>{{tr "Description"}}</label>
+            <input type="text" name="worldMap.description" value="{{map.description}}" />
+          </div>
+        </div>
+        <div class="tom-world-map-config__setup-column tom-world-map-config__setup-column--media">
+          <div class="form-group">
+            <label>{{tr "Source image"}}</label>
+            <div class="tom-input-with-button">
+              <input type="text" name="worldMap.sourceImage" value="{{map.sourceImage}}" placeholder="{{tr "Path to PNG/WebP/JPG"}}" />
+              <button type="button" class="tom-button tom-button-ghost tom-button-compact" data-action="pick-image" data-target="[name='worldMap.sourceImage']" data-picker-type="image">{{tr "Choose file"}}</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>{{tr "Thumbnail (optional)"}}</label>
+            <div class="tom-input-with-button">
+              <input type="text" name="worldMap.thumbnail" value="{{map.thumbnail}}" placeholder="{{tr "Path to PNG/WebP/JPG"}}" />
+              <button type="button" class="tom-button tom-button-ghost tom-button-compact" data-action="pick-image" data-target="[name='worldMap.thumbnail']" data-picker-type="image">{{tr "Choose file"}}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <section class="tom-world-map-config__surface tom-theme-card">
+        <header class="tom-editor-header">
+          <div>
+            <h3>{{tr "Overlays"}}</h3>
+            <p class="notes">{{tr "Optional transparent overlays that match the base map dimensions exactly."}}</p>
+          </div>
+          <button type="button" class="tom-button tom-button-ghost tom-button-compact" data-action="add-map-overlay">
+            <i class="fas fa-plus" aria-hidden="true"></i> {{tr "Add overlay"}}
+          </button>
+        </header>
+        {{#if overlays.length}}
+        <div class="tom-world-map-config__overlay-list">
+          {{#each overlays}}
+          <section class="tom-world-map-config__overlay-card tom-theme-card">
+            <div class="tom-world-map-config__overlay-grid">
+              <div class="form-group">
+                <label>{{tr "Overlay name"}}</label>
+                <input type="text" name="worldMap.overlays.{{index}}.name" value="{{name}}" />
+              </div>
+              <div class="form-group">
+                <label>{{tr "Opacity"}}</label>
+                <input type="number" min="0" max="1" step="0.05" name="worldMap.overlays.{{index}}.opacity" value="{{opacity}}" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>{{tr "Overlay image"}}</label>
+              <div class="tom-input-with-button">
+                <input type="text" name="worldMap.overlays.{{index}}.sourceImage" value="{{sourceImage}}" placeholder="{{tr "Path to transparent PNG/WebP"}}" />
+                <button type="button" class="tom-button tom-button-ghost tom-button-compact" data-action="pick-image" data-target="[name='worldMap.overlays.{{index}}.sourceImage']" data-picker-type="image">{{tr "Choose file"}}</button>
+              </div>
+            </div>
+            <div class="tom-world-map-config__overlay-footer">
+              <label class="checkbox tom-scene-config-toggle-card">
+                <input type="checkbox" name="worldMap.overlays.{{index}}.visibleByDefault" {{checked visibleByDefault}} />
+                <span>{{tr "Visible by default"}}</span>
+              </label>
+              <button type="button" class="tom-button tom-button-ghost tom-button-compact" data-action="remove-map-overlay" data-overlay-id="{{id}}">
+                <i class="fas fa-trash-can" aria-hidden="true"></i> {{tr "Remove overlay"}}
+              </button>
+            </div>
+          </section>
+          {{/each}}
+        </div>
+        {{else}}
+        <p class="notes">{{tr "No overlays configured yet."}}</p>
+        {{/if}}
+      </section>
+
+      <section class="tom-world-map-config__surface tom-theme-card tom-world-map-config__fog-panel">
+        <header class="tom-editor-header">
+          <div>
+            <h3>{{tr "Fog of War"}}</h3>
+            <p class="notes">{{tr "Cover the active map with editable fog that GMs can reveal or restore with drawing tools."}}</p>
+          </div>
+        </header>
+        <div class="tom-world-map-config__fog-layout">
+          <section class="tom-world-map-config__fog-card tom-theme-card">
+            <h4>{{tr "Basic fog"}}</h4>
+            <label class="checkbox tom-scene-config-toggle-card tom-world-map-config__fog-enable">
+              <input type="checkbox" name="worldMap.fogSettings.enabled" {{checked map.fogSettings.enabled}} />
+              <span>{{tr "Enable fog of war"}}</span>
+            </label>
+            <div class="tom-world-map-config__fog-fields">
+              <div class="form-group">
+                <label>{{tr "Fog mode"}}</label>
+                <select name="worldMap.fogSettings.mode">
+                  {{selectOptions fogModeOptions selected=map.fogSettings.mode valueAttr="value" labelAttr="label"}}
+                </select>
+              </div>
+              <div class="form-group tom-world-map-config__fog-color">
+                <label>{{tr "Fog color"}}</label>
+                <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.fogSettings.color" value="{{map.fogSettings.color}}" />
+              </div>
+              <div class="form-group">
+                <label>{{tr "Fog opacity"}}</label>
+                <input type="number" min="0" max="1" step="0.05" name="worldMap.fogSettings.opacity" value="{{map.fogSettings.opacity}}" />
+              </div>
+            </div>
+          </section>
+
+          <section class="tom-world-map-config__fog-card tom-theme-card">
+            <h4>{{tr "Image fog"}}</h4>
+            <div class="form-group tom-world-map-config__fog-image-field">
+              <label>{{tr "Fog image"}}</label>
+              <div class="tom-input-with-button">
+                <input type="text" name="worldMap.fogSettings.imagePath" value="{{map.fogSettings.imagePath}}" placeholder="{{tr "Path to PNG/WebP/JPG"}}" />
+                <button type="button" class="tom-button tom-button-ghost tom-button-compact" data-action="pick-image" data-target="[name='worldMap.fogSettings.imagePath']" data-picker-type="image">{{tr "Choose file"}}</button>
+              </div>
+              <p class="notes">{{tr "Images are rendered over the map and masked by the same reveal operations as the color fog."}}</p>
+            </div>
+            <div class="tom-world-map-config__fog-divider" aria-hidden="true"></div>
+            <div class="form-group tom-world-map-config__fog-tile-field">
+              <label>{{tr "Fog image tile size"}}</label>
+              <div class="tom-range-with-value tom-world-map-config__fog-range">
+                <input type="range" min="16" max="2048" step="8" name="worldMap.fogSettings.imageTileSize" value="{{map.fogSettings.imageTileSize}}" data-fog-image-tile-size />
+                <span data-fog-image-tile-size-value>{{map.fogSettings.imageTileSize}} px</span>
+              </div>
+              <p class="notes">{{tr "Controls how large the fog image texture tiles are drawn."}}</p>
+            </div>
+            <div class="tom-world-map-config__fog-toggles">
+              <label class="checkbox tom-scene-config-toggle-card">
+                <input type="checkbox" name="worldMap.fogSettings.imageTileFixedOnZoom" {{checked map.fogSettings.imageTileFixedOnZoom}} />
+                <span>{{tr "Keep fog image tile size while zooming"}}</span>
+              </label>
+              <label class="checkbox tom-scene-config-toggle-card">
+                <input type="checkbox" name="worldMap.fogSettings.imageTileViewportLocked" {{checked map.fogSettings.imageTileViewportLocked}} />
+                <span>{{tr "Lock fog image texture to viewport"}}</span>
+              </label>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <div class="tom-world-map-config__generator">
+        <div class="tom-world-map-config__generator-main">
+          <label>{{tr "Tile size"}}</label>
+          <select name="worldMap.tileSize">
+            {{#each tileSizeOptions}}
+            <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+            {{/each}}
+          </select>
+        </div>
+        <button type="button" class="tom-button tom-library-create-button {{#if tileProgress.running}}is-disabled{{/if}}" data-action="generate-map-tiles" {{#if tileProgress.running}}disabled{{/if}}>
+          {{#if tileProgress.running}}{{tr "Generating..."}}{{else}}{{tr "Generate tiles from image"}}{{/if}}
+        </button>
+      </div>
+
+      <div class="tom-world-map-config__status tom-theme-card">
+        <p><strong>{{tr "Status"}}:</strong> {{#if hasTiles}}{{tr "Ready"}}{{else}}{{tr "Draft"}}{{/if}}</p>
+        <p class="notes">{{tileProgress.message}}</p>
+        <div class="tom-world-map-config__progress">
+          <span class="tom-world-map-config__progress-bar" style="width:{{tileProgress.percent}}%;"></span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="tom-world-map-config__surface tom-theme-content-surface {{#if sectionFullscreenCollapsed}}is-collapsed{{else}}is-expanded{{/if}}" data-world-map-config-section="fullscreen">
+    <button type="button" class="tom-editor-header tom-editor-header--toggle tom-world-map-config__section-toggle" data-action="toggle-map-config-section" data-world-map-config-section-key="fullscreen" aria-expanded="{{#if sectionFullscreenCollapsed}}false{{else}}true{{/if}}">
+      <span class="tom-world-map-config__section-copy">
+        <strong class="tom-world-map-config__section-title">{{tr "Full screen map Setup"}}</strong>
+        <small class="tom-world-map-config__section-note">{{tr "Configure the Theatre-style fullscreen stage variant for this map."}}</small>
+      </span>
+      <i class="fas {{#if sectionFullscreenCollapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+    </button>
+    <div class="tom-scene-editor-section-body">
+      <section class="tom-world-map-config__advanced tom-theme-card">
+        <div class="tom-world-map-config__toggles">
+          <label class="checkbox tom-scene-config-toggle-card">
+            <input type="checkbox" name="worldMap.fullscreenSettings.preserveAspect" {{checked map.fullscreenSettings.preserveAspect}} />
+            <span>{{tr "Preserve map aspect ratio"}}</span>
+          </label>
+          <label class="checkbox tom-scene-config-toggle-card">
+            <input type="checkbox" name="worldMap.fullscreenSettings.uiHidden" {{checked map.fullscreenSettings.uiHidden}} />
+            <span>{{tr "Hide Foundry UI while the fullscreen map is open"}}</span>
+          </label>
+          <label class="checkbox tom-scene-config-toggle-card">
+            <input type="checkbox" name="worldMap.fullscreenSettings.sharedLeftSidebarVisible" {{checked map.fullscreenSettings.sharedLeftSidebarVisible}} />
+            <span>{{tr "Allow left sidebar in fullscreen map"}}</span>
+          </label>
+          <label class="checkbox tom-scene-config-toggle-card">
+            <input type="checkbox" name="worldMap.fullscreenSettings.sharedRightSidebarVisible" {{checked map.fullscreenSettings.sharedRightSidebarVisible}} />
+            <span>{{tr "Allow right sidebar in fullscreen map"}}</span>
+          </label>
+          <label class="checkbox tom-scene-config-toggle-card">
+            <input type="checkbox" name="worldMap.fullscreenSettings.backdropBlurEnabled" {{checked map.fullscreenSettings.backdropBlurEnabled}} />
+            <span>{{tr "Enable blur"}}</span>
+          </label>
+        </div>
+
+        <div class="tom-world-map-config__grid">
+          <div class="form-group">
+            <label>{{tr "Background image"}}</label>
+            <div class="tom-input-with-button">
+              <input type="text" name="worldMap.fullscreenSettings.backdropImage" value="{{map.fullscreenSettings.backdropImage}}" placeholder="{{tr "Path to PNG/WebP/JPG"}}" />
+              <button
+                type="button"
+                class="tom-button tom-button-ghost tom-button-compact"
+                data-action="pick-image"
+                data-target="[name='worldMap.fullscreenSettings.backdropImage']"
+                data-picker-type="image"
+              >
+                {{tr "Choose file"}}
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>{{tr "Image scale"}}</label>
+            <input type="number" min="0.1" max="4" step="0.05" name="worldMap.fullscreenSettings.backdropImageScale" value="{{map.fullscreenSettings.backdropImageScale}}" />
+          </div>
+
+          <div class="form-group">
+            <label>{{tr "Tiling"}}</label>
+            <select name="worldMap.fullscreenSettings.backdropImageRepeat">
+              {{selectOptions backdropRepeatOptions selected=map.fullscreenSettings.backdropImageRepeat valueAttr="value" labelAttr="label"}}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>{{tr "Dim background"}}</label>
+            <input type="number" min="0" max="0.92" step="0.05" name="worldMap.fullscreenSettings.backdropDarkness" value="{{map.fullscreenSettings.backdropDarkness}}" />
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="tom-world-map-config__surface tom-theme-content-surface {{#if sectionCategoriesCollapsed}}is-collapsed{{else}}is-expanded{{/if}}" data-world-map-config-section="categories">
+    <button type="button" class="tom-editor-header tom-editor-header--toggle tom-world-map-config__section-toggle" data-action="toggle-map-config-section" data-world-map-config-section-key="categories" aria-expanded="{{#if sectionCategoriesCollapsed}}false{{else}}true{{/if}}">
+      <span class="tom-world-map-config__section-copy">
+        <strong class="tom-world-map-config__section-title">{{tr "Category Setup"}}</strong>
+        <small class="tom-world-map-config__section-note">{{tr "Manage the shared selectable categories for every map element."}}</small>
+      </span>
+      <i class="fas {{#if sectionCategoriesCollapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+    </button>
+    <div class="tom-scene-editor-section-body">
+      <section class="tom-world-map-config__surface tom-theme-card">
+        <header class="tom-editor-header">
+          <div>
+            <h3>{{tr "Categories"}}</h3>
+            <p class="notes">{{tr "Shared categories for pins, lines, regions, images, and text objects."}}</p>
+          </div>
+          <button type="button" class="tom-button tom-button-ghost tom-button-compact" data-action="add-map-category">
+            <i class="fas fa-plus" aria-hidden="true"></i>
+          </button>
+        </header>
+        <div class="tom-world-map-config__category-list">
+          {{#each categories}}
+          <section class="tom-world-map-config__category-card tom-theme-card">
+            <button type="button" class="tom-world-map-config__category-icon-button" data-action="pick-map-category-icon" data-category-id="{{id}}" title="{{tr "Choose icon"}}">
+              <i class="fas {{iconClass}}" aria-hidden="true"></i>
+            </button>
+            <div class="form-group tom-world-map-config__category-name">
+              <input type="text" name="worldMap.categories.{{index}}.name" value="{{name}}" aria-label="{{tr "Category"}}" />
+            </div>
+            <div class="form-group tom-world-map-config__category-color">
+              <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.categories.{{index}}.color" value="{{color}}" aria-label="{{tr "Color"}}" title="{{tr "Color"}}" />
+            </div>
+            <button type="button" class="tom-world-map-config__category-delete tom-button tom-button-ghost tom-button-compact" data-action="remove-map-category" data-category-id="{{id}}" title="{{tr "Delete"}}" aria-label="{{tr "Delete"}}">
+              <i class="fas fa-trash-can" aria-hidden="true"></i>
+            </button>
+          </section>
+          {{/each}}
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="tom-world-map-config__surface tom-theme-content-surface {{#if sectionStylingCollapsed}}is-collapsed{{else}}is-expanded{{/if}}" data-world-map-config-section="styling">
+    <button type="button" class="tom-editor-header tom-editor-header--toggle tom-world-map-config__section-toggle" data-action="toggle-map-config-section" data-world-map-config-section-key="styling" aria-expanded="{{#if sectionStylingCollapsed}}false{{else}}true{{/if}}">
+      <span class="tom-world-map-config__section-copy">
+        <strong class="tom-world-map-config__section-title">{{tr "Styling"}}</strong>
+        <small class="tom-world-map-config__section-note">{{tr "Customize tooltip, legend, and pin list styling for this map only."}}</small>
+      </span>
+      <i class="fas {{#if sectionStylingCollapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+    </button>
+    <div class="tom-scene-editor-section-body">
+      <section class="tom-world-map-config__styling-card tom-theme-card">
+        <header class="tom-editor-header">
+          <div>
+            <h3>{{tr "Tooltips"}}</h3>
+            <p class="notes">{{tr "Styles active map tooltips, including journal-link info lines."}}</p>
+          </div>
+        </header>
+        <div class="tom-world-map-config__tooltip-panel">
+          <section class="tom-world-map-config__tooltip-foundation tom-theme-card">
+            <div class="form-group tom-world-map-config__tooltip-color-control">
+              <label>{{tr "Background color"}}</label>
+              <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.styling.tooltip.backgroundColor" value="{{map.styling.tooltip.backgroundColor}}" />
+            </div>
+            <div class="form-group tom-world-map-config__tooltip-opacity">
+              <label>{{tr "Background opacity"}}</label>
+              <input type="number" min="0" max="1" step="0.05" name="worldMap.styling.tooltip.backgroundOpacity" value="{{map.styling.tooltip.backgroundOpacity}}" />
+            </div>
+            <label class="checkbox tom-scene-config-toggle-card tom-world-map-config__tooltip-toggle">
+              <input type="checkbox" name="worldMap.styling.tooltip.blurEnabled" {{checked map.styling.tooltip.blurEnabled}} />
+              <span>{{tr "Enable blur"}}</span>
+            </label>
+          </section>
+        </div>
+        <div class="tom-world-map-config__tooltip-type-grid">
+          <section class="tom-world-map-config__styling-subcard tom-world-map-config__tooltip-type-card tom-theme-card">
+            <h4>{{tr "Tooltip heading"}}</h4>
+            <div class="form-group">
+              <label>{{tr "Font Type"}}</label>
+              <select name="worldMap.styling.tooltip.headingFont">
+                {{selectOptions fontOptions selected=map.styling.tooltip.headingFont valueAttr="value" labelAttr="label"}}
+              </select>
+            </div>
+            <div class="tom-world-map-config__tooltip-font-row">
+              <div class="form-group tom-world-map-config__tooltip-color-control">
+                <label>{{tr "Font color"}}</label>
+                <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.styling.tooltip.headingColor" value="{{map.styling.tooltip.headingColor}}" />
+              </div>
+              <div class="form-group tom-world-map-config__tooltip-size-field">
+                <label>{{tr "Font size"}}</label>
+                <input type="number" min="0.5" max="2.4" step="0.05" name="worldMap.styling.tooltip.headingSize" value="{{map.styling.tooltip.headingSize}}" />
+              </div>
+            </div>
+          </section>
+          <section class="tom-world-map-config__styling-subcard tom-world-map-config__tooltip-type-card tom-theme-card">
+            <h4>{{tr "Tooltip text"}}</h4>
+            <div class="form-group">
+              <label>{{tr "Font Type"}}</label>
+              <select name="worldMap.styling.tooltip.textFont">
+                {{selectOptions fontOptions selected=map.styling.tooltip.textFont valueAttr="value" labelAttr="label"}}
+              </select>
+            </div>
+            <div class="tom-world-map-config__tooltip-font-row">
+              <div class="form-group tom-world-map-config__tooltip-color-control">
+                <label>{{tr "Font color"}}</label>
+                <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.styling.tooltip.textColor" value="{{map.styling.tooltip.textColor}}" />
+              </div>
+              <div class="form-group tom-world-map-config__tooltip-size-field">
+                <label>{{tr "Font size"}}</label>
+                <input type="number" min="0.5" max="2.4" step="0.05" name="worldMap.styling.tooltip.textSize" value="{{map.styling.tooltip.textSize}}" />
+              </div>
+            </div>
+          </section>
+          <section class="tom-world-map-config__styling-subcard tom-world-map-config__tooltip-type-card tom-theme-card">
+            <h4>{{tr "Tooltip info"}}</h4>
+            <div class="form-group">
+              <label>{{tr "Font Type"}}</label>
+              <select name="worldMap.styling.tooltip.infoFont">
+                {{selectOptions fontOptions selected=map.styling.tooltip.infoFont valueAttr="value" labelAttr="label"}}
+              </select>
+            </div>
+            <div class="tom-world-map-config__tooltip-font-row">
+              <div class="form-group tom-world-map-config__tooltip-color-control">
+                <label>{{tr "Font color"}}</label>
+                <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.styling.tooltip.infoColor" value="{{map.styling.tooltip.infoColor}}" />
+              </div>
+              <div class="form-group tom-world-map-config__tooltip-size-field">
+                <label>{{tr "Font size"}}</label>
+                <input type="number" min="0.5" max="2.4" step="0.05" name="worldMap.styling.tooltip.infoSize" value="{{map.styling.tooltip.infoSize}}" />
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tom-world-map-config__styling-card tom-theme-card">
+        <header class="tom-editor-header">
+          <div>
+            <h3>{{tr "General"}}</h3>
+            <p class="notes">{{tr "Controls map-local typography for legends and the right sidebar pin list."}}</p>
+          </div>
+        </header>
+        <div class="tom-world-map-config__general-style-grid">
+          <section class="tom-world-map-config__styling-subcard tom-world-map-config__general-style-card tom-theme-card">
+            <h4>{{tr "Map legend"}}</h4>
+            <div class="form-group">
+              <label>{{tr "Font Type"}}</label>
+              <select name="worldMap.styling.general.legendFont">
+                {{selectOptions fontOptions selected=map.styling.general.legendFont valueAttr="value" labelAttr="label"}}
+              </select>
+            </div>
+            <div class="tom-world-map-config__tooltip-font-row">
+              <div class="form-group tom-world-map-config__tooltip-color-control">
+                <label>{{tr "Font color"}}</label>
+                <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.styling.general.legendColor" value="{{map.styling.general.legendColor}}" />
+              </div>
+              <div class="form-group tom-world-map-config__tooltip-size-field">
+                <label>{{tr "Font size"}}</label>
+                <input type="number" min="0.45" max="1.6" step="0.05" name="worldMap.styling.general.legendSize" value="{{map.styling.general.legendSize}}" />
+              </div>
+            </div>
+          </section>
+          <section class="tom-world-map-config__styling-subcard tom-world-map-config__general-style-card tom-theme-card">
+            <h4>{{tr "Pin list"}}</h4>
+            <div class="tom-world-map-config__pin-list-style-row">
+              <div class="form-group">
+                <label>{{tr "Pin list heading font"}}</label>
+                <select name="worldMap.styling.general.pinListHeadingFont">
+                  {{selectOptions fontOptions selected=map.styling.general.pinListHeadingFont valueAttr="value" labelAttr="label"}}
+                </select>
+              </div>
+              <div class="form-group tom-world-map-config__tooltip-color-control">
+                <label>{{tr "Heading color"}}</label>
+                <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.styling.general.pinListHeadingColor" value="{{map.styling.general.pinListHeadingColor}}" />
+              </div>
+              <div class="form-group tom-world-map-config__tooltip-size-field">
+                <label>{{tr "Heading size"}}</label>
+                <input type="number" min="0.5" max="2.4" step="0.05" name="worldMap.styling.general.pinListHeadingSize" value="{{map.styling.general.pinListHeadingSize}}" />
+              </div>
+            </div>
+            <div class="tom-world-map-config__pin-list-style-row">
+              <div class="form-group">
+                <label>{{tr "Pin list text font"}}</label>
+                <select name="worldMap.styling.general.pinListTextFont">
+                  {{selectOptions fontOptions selected=map.styling.general.pinListTextFont valueAttr="value" labelAttr="label"}}
+                </select>
+              </div>
+              <div class="form-group tom-world-map-config__tooltip-color-control">
+                <label>{{tr "Text color"}}</label>
+                <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.styling.general.pinListTextColor" value="{{map.styling.general.pinListTextColor}}" />
+              </div>
+              <div class="form-group tom-world-map-config__tooltip-size-field">
+                <label>{{tr "Text size"}}</label>
+                <input type="number" min="0.5" max="2.4" step="0.05" name="worldMap.styling.general.pinListTextSize" value="{{map.styling.general.pinListTextSize}}" />
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="tom-world-map-config__surface tom-theme-content-surface tom-world-map-config__advanced-shell {{#if sectionAdvancedCollapsed}}is-collapsed{{else}}is-expanded{{/if}}" data-world-map-config-section="advanced">
+    <button type="button" class="tom-editor-header tom-editor-header--toggle tom-world-map-config__section-toggle" data-action="toggle-map-config-section" data-world-map-config-section-key="advanced" aria-expanded="{{#if sectionAdvancedCollapsed}}false{{else}}true{{/if}}">
+      <span class="tom-world-map-config__section-copy">
+        <strong class="tom-world-map-config__section-title">{{tr "Advanced"}}</strong>
+        <small class="tom-world-map-config__section-note">{{tr "Fine-tune map dimensions, zoom limits, and startup behavior."}}</small>
+      </span>
+      <i class="fas {{#if sectionAdvancedCollapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+    </button>
+    <div class="tom-scene-editor-section-body">
+      <section class="tom-world-map-config__advanced tom-theme-card">
+        <div class="tom-world-map-config__grid">
+          <div class="form-group">
+            <label>{{tr "Width"}}</label>
+            <input type="number" min="256" name="worldMap.width" value="{{map.width}}" />
+          </div>
+          <div class="form-group">
+            <label>{{tr "Height"}}</label>
+            <input type="number" min="256" name="worldMap.height" value="{{map.height}}" />
+          </div>
+          <div class="form-group">
+            <label>{{tr "Min zoom"}}</label>
+            <input type="number" min="-8" max="24" step="0.1" name="worldMap.minZoom" value="{{map.minZoom}}" />
+          </div>
+          <div class="form-group">
+            <label>{{tr "Max native zoom"}}</label>
+            <input type="number" min="0" max="24" step="1" name="worldMap.maxNativeZoom" value="{{map.maxNativeZoom}}" />
+          </div>
+          <div class="form-group">
+            <label>{{tr "Max zoom"}}</label>
+            <input type="number" min="-8" max="24" step="0.1" name="worldMap.maxZoom" value="{{map.maxZoom}}" />
+          </div>
+          <div class="form-group">
+            <label>{{tr "Mouse wheel zoom step"}}</label>
+            <input type="number" min="0.1" max="2" step="0.05" name="worldMap.zoomStep" value="{{map.zoomStep}}" />
+          </div>
+        </div>
+        <div class="tom-world-map-config__grid">
+          <div class="form-group">
+            <label>{{tr "Start X"}}</label>
+            <input type="number" name="worldMap.initialView.x" value="{{map.initialView.x}}" />
+          </div>
+          <div class="form-group">
+            <label>{{tr "Start Y"}}</label>
+            <input type="number" name="worldMap.initialView.y" value="{{map.initialView.y}}" />
+          </div>
+          <div class="form-group">
+            <label>{{tr "Start zoom"}}</label>
+            <input type="number" min="-8" max="24" step="0.1" name="worldMap.initialView.zoom" value="{{map.initialView.zoom}}" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>{{tr "Tile URL template"}}</label>
+          <input type="text" name="worldMap.tileUrlTemplatePreview" value="{{map.tileUrlTemplate}}" readonly />
+        </div>
+        <div class="form-group">
+          <label>{{tr "Manifest path"}}</label>
+          <input type="text" name="worldMap.manifestPathPreview" value="{{map.manifestPath}}" readonly />
+        </div>
+      </section>
+    </div>
+  </section>
+
+  {{#unless inline}}
+  <footer class="sheet-footer flexrow">
+    <button type="submit" class="tom-button tom-library-create-button">
+      <i class="fas fa-save" aria-hidden="true"></i> {{tr "Save"}}
+    </button>
+  </footer>
+  {{/unless}}
+{{#unless inline}}
+</form>
+{{/unless}}
+{{#if inline}}
+</div>
+{{/if}}

@@ -1,0 +1,9 @@
+:is(.footlights-themed-window, .theatre-canvas-drop-dialog) input[type="checkbox"] {
+  accent-color: var(--tom-color-accent-strong);
+}
+
+:is(.footlights-themed-window, .theatre-canvas-drop-dialog) .form-group label.checkbox {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+}

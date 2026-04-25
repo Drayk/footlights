@@ -1,0 +1,110 @@
+body.tom-ui-hidden #ui-left,
+body.tom-ui-hidden #ui-middle,
+body.tom-ui-hidden #ui-right,
+body.tom-ui-hidden #players,
+body.tom-ui-hidden #hotbar,
+body.tom-ui-hidden #navigation,
+body.tom-ui-hidden #controls,
+body.tom-ui-hidden #sidebar,
+body.tom-ui-hidden #logo,
+body.tom-ui-hidden #pause,
+body.tom-world-map-stage-ui-hidden #ui-left,
+body.tom-world-map-stage-ui-hidden #ui-middle,
+body.tom-world-map-stage-ui-hidden #ui-right,
+body.tom-world-map-stage-ui-hidden #players,
+body.tom-world-map-stage-ui-hidden #hotbar,
+body.tom-world-map-stage-ui-hidden #navigation,
+body.tom-world-map-stage-ui-hidden #controls,
+body.tom-world-map-stage-ui-hidden #sidebar,
+body.tom-world-map-stage-ui-hidden #logo,
+body.tom-world-map-stage-ui-hidden #pause {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.theatre-overlay-app {
+  inset: 0;
+  position: fixed !important;
+  z-index: 150 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+.theatre-overlay-app.window-app {
+  z-index: 150 !important;
+}
+
+.theatre-mindmap.window-app {
+  background: transparent !important;
+}
+
+.theatre-overlay-app .window-header {
+  display: none;
+}
+
+.theatre-overlay-app .window-content {
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.dialog.theatre-canvas-drop-dialog {
+  color: var(--tom-color-text);
+  background: var(--tom-app-background, var(--tom-app-background-solid, #08121f));
+}
+
+.dialog.theatre-canvas-drop-dialog .window-content,
+.dialog.theatre-canvas-drop-dialog .dialog-content {
+  background: var(--tom-app-background, var(--tom-app-background-solid, #08121f)) !important;
+  color: var(--tom-color-text) !important;
+}
+
+.dialog.theatre-canvas-drop-dialog .dialog-content,
+.dialog.theatre-canvas-drop-dialog .dialog-content p,
+.dialog.theatre-canvas-drop-dialog .dialog-content .notes {
+  color: var(--tom-color-sub-text, var(--tom-content-muted-text, var(--tom-color-muted))) !important;
+  font-family: var(--tom-font-family-sub-text, inherit);
+  font-size: var(--tom-font-sub-text);
+  line-height: 1.4;
+}
+
+:is(.footlights-themed-window, .theatre-canvas-drop-dialog) .window-header {
+  color: var(--tom-nav-text, var(--tom-color-text));
+  background: var(--tom-nav-titlebar-bg, linear-gradient(180deg, rgba(10, 23, 39, 0.98), rgba(7, 16, 28, 0.98)));
+  border-bottom: var(--tom-nav-border-1-width, var(--tom-content-border-1-width)) solid var(--tom-nav-border-1, var(--tom-content-border-1));
+}
+
+.theatre-scene-config.window-app .window-header {
+  background: var(--tom-nav-titlebar-bg, linear-gradient(180deg, rgba(10, 23, 39, 0.98), rgba(7, 16, 28, 0.98))) !important;
+  border-bottom-color: var(--tom-nav-border-1, var(--tom-content-border-1)) !important;
+}
+
+.theatre-scene-config.window-app,
+.app.window-app.theatre-scene-config {
+  background: var(--tom-app-background, var(--tom-app-background-solid, #08121f)) !important;
+  border: var(--tom-nav-border-1-width, var(--tom-content-border-1-width)) solid var(--tom-nav-border-1, var(--tom-content-border-1)) !important;
+  box-shadow: var(--tom-shadow-panel) !important;
+  overflow: hidden !important;
+}
+
+.theatre-scene-library .window-header {
+  background: var(--tom-nav-titlebar-bg, linear-gradient(180deg, rgba(10, 23, 39, 0.98), rgba(7, 16, 28, 0.98))) !important;
+  border-bottom-color: var(--tom-nav-border-1, var(--tom-content-border-1)) !important;
+}
+
+:is(.footlights-themed-window, .theatre-canvas-drop-dialog) :is(.window-title, .header-button) {
+  color: var(--tom-color-heading-3, var(--tom-content-label, var(--tom-color-text)));
+}
+
+:is(.footlights-themed-window, .theatre-canvas-drop-dialog) .window-title {
+  font-size: inherit;
+}
+
+:is(.footlights-themed-window, .theatre-canvas-drop-dialog) .header-button:is(:hover, :focus) {
+  color: color-mix(in srgb, var(--tom-color-heading-3, var(--tom-content-label, var(--tom-color-text))) 84%, white 16%);
+}
+

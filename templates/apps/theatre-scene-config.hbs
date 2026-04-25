@@ -1,0 +1,452 @@
+<form class="tom-scene-config tom-theme-root tom-theme-default" style="{{themeInlineStyle}}">
+  <input type="hidden" name="id" value="{{scene.id}}" />
+
+  <div class="tom-scene-config-layout">
+    <aside class="tom-scene-avatar-sidebar tom-theme-content-surface">
+      <header class="tom-editor-header">
+        <div>
+          <h2>{{tr "Avatar Sidebar"}}</h2>
+          <p class="notes">{{tr "{count} avatar(s) available directly in the scene editor." count=libraryAvatarCount}}</p>
+        </div>
+      </header>
+
+      <div class="tom-scene-avatar-sidebar__list">
+        {{#if avatarSidebarItems.length}}
+          {{#each avatarSidebarItems}}
+          <article class="tom-scene-avatar-sidebar__item tom-theme-card" draggable="true" data-scene-config-avatar="true" data-avatar-id="{{id}}">
+            {{#if thumbnail}}
+            <img src="{{thumbnail}}" alt="{{name}}" class="tom-scene-avatar-sidebar__thumb" />
+            {{else}}
+            <div class="tom-scene-avatar-sidebar__thumb tom-library-thumbnail--placeholder" aria-hidden="true">{{tr "Avatar"}}</div>
+            {{/if}}
+
+            <div class="tom-scene-avatar-sidebar__meta">
+              <strong>{{name}}</strong>
+              <p class="notes">{{actorName}}</p>
+            </div>
+
+            <div class="tom-scene-avatar-sidebar__actions">
+              <button
+                type="button"
+                class="tom-scene-avatar-sidebar__icon tom-button tom-button-ghost"
+                data-action="add-avatar-to-scene"
+                data-avatar-id="{{id}}"
+                aria-label="{{tr "Add to scene"}}"
+                title="{{tr "To scene"}}"
+              >
+                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </article>
+          {{/each}}
+        {{else}}
+        <div class="tom-empty-state tom-theme-card">
+          <p>{{tr "No avatars available."}}</p>
+        </div>
+        {{/if}}
+      </div>
+    </aside>
+
+    <div class="tom-scene-config-main">
+      <section class="tom-theme-content-surface {{#if sectionSetupCollapsed}}is-collapsed{{else}}is-expanded{{/if}}" data-scene-config-section="setup">
+        <div class="tom-editor-header tom-editor-header--toolbar">
+          <div>
+            <h2>{{tr "Scene Setup"}}</h2>
+            <p class="notes">{{tr "Define the stage, title, and overall mood for this scene."}}</p>
+          </div>
+
+          <div class="tom-inline-actions">
+            <button
+              type="submit"
+              class="tom-button tom-button-primary tom-button-icon tom-scene-config-save"
+              aria-label="{{tr "Save scene"}}"
+              title="{{tr "Save"}}"
+            >
+              <i class="fas fa-save" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="tom-editor-header tom-editor-header--toggle tom-editor-header__chevron" data-action="toggle-scene-config-section" data-scene-config-section-key="setup" aria-expanded="{{#if sectionSetupCollapsed}}false{{else}}true{{/if}}">
+              <i class="fas {{#if sectionSetupCollapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="tom-scene-editor-section-body">
+        <div class="tom-scene-config-setup-grid">
+          <div class="tom-scene-config-headings">
+            <div class="form-group tom-scene-config-headings__field">
+              <label>{{tr "Name"}}</label>
+              <input type="text" name="name" value="{{scene.name}}" required />
+            </div>
+
+            <div class="form-group">
+              <label>{{tr "Stage title"}}</label>
+              <input type="text" name="stageTitle" value="{{scene.stageTitle}}" placeholder="{{tr "Chapter 01"}}" />
+            </div>
+
+            <div class="form-group">
+              <label>{{tr "Subtitle"}}</label>
+              <input type="text" name="stageSubtitle" value="{{scene.stageSubtitle}}" placeholder="{{tr "Location, mood, or free text"}}" />
+            </div>
+
+            <div class="form-group">
+              <label>{{tr "Description"}}</label>
+              <textarea name="description" rows="4" placeholder="{{tr "Short description of this scene"}}">{{scene.description}}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label>{{tr "Location"}}</label>
+              <input type="text" name="location" value="{{scene.location}}" placeholder="{{tr "e.g. Frostpeaks Region"}}" />
+            </div>
+
+            <div class="form-group">
+              <label>{{tr "Tags"}}</label>
+              <input type="text" name="tagsInput" value="{{sceneTagsValue}}" placeholder="{{tr "Separate tags with commas"}}" />
+            </div>
+          </div>
+
+          <div class="tom-scene-config-settings-grid">
+            <section class="tom-scene-config-settings-card tom-scene-config-settings-card--background tom-theme-card">
+              <header class="tom-scene-config-settings-card__header">
+                <h3>{{tr "Background"}}</h3>
+                <p class="notes">{{tr "Set the image or video for the active Footlights scene."}}</p>
+              </header>
+
+              <div class="form-group">
+                <label>{{tr "Media path"}}</label>
+                <div class="tom-input-with-button">
+                  <input type="text" name="background" value="{{scene.background}}" placeholder="{{tr "Path to PNG/WebP/JPG/WEBM/MP4"}}" />
+                  <button
+                    type="button"
+                    class="tom-button tom-button-ghost tom-button-compact"
+                    data-action="pick-image"
+                    data-target="[name='background']"
+                    data-picker-type="imagevideo"
+                    aria-label="{{tr "Choose background media"}}"
+                  >
+                    {{tr "Choose file"}}
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>{{tr "Fallback thumbnail"}}</label>
+                <div class="tom-input-with-button">
+                  <input type="text" name="thumbnail" value="{{scene.thumbnail}}" placeholder="{{tr "Path to PNG/WebP/JPG"}}" />
+                  <button
+                    type="button"
+                    class="tom-button tom-button-ghost tom-button-compact"
+                    data-action="pick-image"
+                    data-target="[name='thumbnail']"
+                    data-picker-type="image"
+                    aria-label="{{tr "Choose fallback thumbnail"}}"
+                  >
+                    {{tr "Choose file"}}
+                  </button>
+                </div>
+              </div>
+
+              <div class="tom-scene-config-toggle-list">
+                <label class="checkbox tom-scene-config-toggle-card">
+                  <input type="checkbox" name="settings.preserveBackgroundAspect" {{checked scene.settings.preserveBackgroundAspect}} />
+                  <span>{{tr "Preserve aspect ratio"}}</span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label>{{tr "Cinematic"}}</label>
+                <select name="settings.cinematicBars">
+                  {{selectOptions cinematicOptions selected=scene.settings.cinematicBars}}
+                </select>
+              </div>
+            </section>
+
+            <section class="tom-scene-config-settings-card tom-theme-card">
+              <header class="tom-scene-config-settings-card__header">
+                <h3>{{tr "Gameplay"}}</h3>
+                <p class="notes">{{tr "Controls visibility, mood access, and display behavior for the scene."}}</p>
+              </header>
+
+              <div class="tom-scene-config-toggle-list">
+                <label class="checkbox tom-scene-config-toggle-card">
+                  <input type="checkbox" name="settings.uiHidden" {{checked scene.settings.uiHidden}} />
+                  <span>{{tr "Hide UI for all clients"}}</span>
+                </label>
+
+                <label class="checkbox tom-scene-config-toggle-card">
+                  <input type="checkbox" name="settings.allowPlayerMoodChange" {{checked scene.settings.allowPlayerMoodChange}} />
+                  <span>{{tr "Players may change their own moods"}}</span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label>{{tr "Mood display"}}</label>
+                <select name="settings.moodDisplayMode">
+                  {{selectOptions moodDisplayModes selected=scene.settings.moodDisplayMode}}
+                </select>
+              </div>
+            </section>
+
+            <section class="tom-scene-config-settings-card tom-theme-card">
+              <header class="tom-scene-config-settings-card__header">
+                <h3>{{tr "Client sidebars"}}</h3>
+                <p class="notes">{{tr "Permissions for the left and right sidebar during the active scene."}}</p>
+              </header>
+
+              <div class="tom-scene-config-toggle-list">
+                <label class="checkbox tom-scene-config-toggle-card">
+                  <input type="checkbox" name="settings.sharedLeftSidebarVisible" {{checked scene.settings.sharedLeftSidebarVisible}} />
+                  <span>{{tr "Allow left sidebar for all clients"}}</span>
+                </label>
+
+                <label class="checkbox tom-scene-config-toggle-card">
+                  <input type="checkbox" name="settings.sharedRightSidebarVisible" {{checked scene.settings.sharedRightSidebarVisible}} />
+                  <span>{{tr "Allow right sidebar for all clients"}}</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="tom-scene-config-settings-card tom-theme-card">
+              <header class="tom-scene-config-settings-card__header">
+                <h3>{{tr "Sound Playlists"}}</h3>
+                <p class="notes">{{tr "Choose the sound playlists that should be available for this scene in the active Footlights scene."}}</p>
+              </header>
+
+              <div class="tom-scene-config-toggle-list">
+                {{#if soundPlaylistRows.length}}
+                  {{#each soundPlaylistRows}}
+                  <label class="checkbox tom-scene-config-toggle-card">
+                    <input type="checkbox" name="soundPlaylistAssignments" value="{{id}}" {{checked isAssigned}} />
+                    <span>{{name}} <small class="notes">({{tr "{trackCount} tracks, {soundboardCount} sounds" trackCount=trackCount soundboardCount=soundboardCount}})</small></span>
+                  </label>
+                  {{/each}}
+                {{else}}
+                <div class="tom-empty-state tom-theme-card">
+                  <p>{{tr "No sound playlists available yet."}}</p>
+                </div>
+                {{/if}}
+              </div>
+            </section>
+          </div>
+        </div>
+        </div>
+      </section>
+
+      <section class="tom-theme-content-surface tom-scene-background-surface {{#if sectionBackgroundCollapsed}}is-collapsed{{else}}is-expanded{{/if}}" data-scene-config-section="background">
+        <button type="button" class="tom-editor-header tom-editor-header--toggle" data-action="toggle-scene-config-section" data-scene-config-section-key="background" aria-expanded="{{#if sectionBackgroundCollapsed}}false{{else}}true{{/if}}">
+          <div>
+            <h2>{{tr "Background Setup"}}</h2>
+            <p class="notes">{{tr "Controls the large backdrop area behind the stage for GM and players."}}</p>
+          </div>
+          <i class="fas {{#if sectionBackgroundCollapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+        </button>
+
+        <div class="tom-scene-editor-section-body tom-scene-transition-grid tom-scene-transition-grid--stacked">
+          <section class="tom-scene-config-settings-card tom-theme-card tom-scene-config-settings-card--background">
+            <header class="tom-scene-config-settings-card__header">
+              <h3>{{tr "Backdrop"}}</h3>
+              <p class="notes">{{tr "Optional background image behind the stage with blur, tiling, and dimming options."}}</p>
+            </header>
+
+            <div class="tom-scene-config-toggle-list">
+              <label class="checkbox tom-scene-config-toggle-card">
+                <input type="checkbox" name="settings.backdropBlurEnabled" {{checked scene.settings.backdropBlurEnabled}} />
+                <span>{{tr "Enable blur"}}</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label>{{tr "Background image"}}</label>
+              <div class="tom-input-with-button">
+                <input type="text" name="settings.backdropImage" value="{{scene.settings.backdropImage}}" placeholder="{{tr "Path to PNG/WebP/JPG"}}" />
+                <button
+                  type="button"
+                  class="tom-button tom-button-ghost tom-button-compact"
+                  data-action="pick-image"
+                  data-target="[name='settings.backdropImage']"
+                  data-picker-type="image"
+                  aria-label="{{tr "Choose backdrop image"}}"
+                >
+                  {{tr "Choose file"}}
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>{{tr "Image scale"}}</label>
+              <div class="tom-range-with-value">
+                <input type="range" min="0.1" max="4" step="0.05" name="settings.backdropImageScale" value="{{scene.settings.backdropImageScale}}" />
+                <span>{{scene.settings.backdropImageScale}}x</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>{{tr "Tiling"}}</label>
+              <select name="settings.backdropImageRepeat">
+                {{selectOptions themeImageRepeatOptions selected=scene.settings.backdropImageRepeat}}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>{{tr "Dim"}}</label>
+              <div class="tom-range-with-value">
+                <input type="range" min="0" max="0.92" step="0.02" name="settings.backdropDarkness" value="{{scene.settings.backdropDarkness}}" />
+                <span>{{scene.settings.backdropDarkness}}</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tom-theme-content-surface tom-scene-transition-surface {{#if sectionTransitionCollapsed}}is-collapsed{{else}}is-expanded{{/if}}" data-scene-config-section="transition">
+        <button type="button" class="tom-editor-header tom-editor-header--toggle" data-action="toggle-scene-config-section" data-scene-config-section-key="transition" aria-expanded="{{#if sectionTransitionCollapsed}}false{{else}}true{{/if}}">
+          <div>
+            <h2>{{tr "Transition Effects"}}</h2>
+            <p class="notes">{{tr "Define for each scene how the transition to the next active Footlights scene should be staged."}}</p>
+          </div>
+          <i class="fas {{#if sectionTransitionCollapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+        </button>
+
+        <div class="tom-scene-editor-section-body tom-scene-transition-grid">
+          <section class="tom-scene-config-settings-card tom-theme-card">
+            <header class="tom-scene-config-settings-card__header">
+              <h3>{{tr "Effect"}}</h3>
+              <p class="notes">{{selectedTransitionOption.description}}</p>
+            </header>
+
+            <div class="form-group">
+              <label>{{tr "Transition type"}}</label>
+              <select name="settings.transitionEffect">
+                {{selectOptions transitionOptions selected=scene.settings.transitionEffect}}
+              </select>
+            </div>
+          </section>
+
+          <section class="tom-scene-config-settings-card tom-theme-card">
+            <header class="tom-scene-config-settings-card__header">
+              <h3>{{tr "Duration"}}</h3>
+              <p class="notes">{{tr "How long the overall transition should take."}}</p>
+            </header>
+
+            <div class="form-group">
+              <label>{{tr "Duration"}}</label>
+              <div class="tom-range-with-value">
+                <input type="range" min="0.3" max="2.8" step="0.05" name="settings.transitionDuration" value="{{scene.settings.transitionDuration}}" />
+                <span>{{scene.settings.transitionDuration}}s</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="tom-scene-config-settings-card tom-theme-card">
+            <header class="tom-scene-config-settings-card__header">
+              <h3>{{tr "Intensity"}}</h3>
+              <p class="notes">{{tr "Controls zoom, blur, and the intensity of the glitch distortion."}}</p>
+            </header>
+
+            <div class="form-group">
+              <label>{{tr "Intensity"}}</label>
+              <div class="tom-range-with-value">
+                <input type="range" min="0.6" max="1.8" step="0.05" name="settings.transitionIntensity" value="{{scene.settings.transitionIntensity}}" />
+                <span>{{scene.settings.transitionIntensity}}</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+    <section class="tom-theme-content-surface {{#if sectionActorsCollapsed}}is-collapsed{{else}}is-expanded{{/if}}" data-scene-config-section="actors">
+      <button type="button" class="tom-editor-header tom-editor-header--toggle" data-action="toggle-scene-config-section" data-scene-config-section-key="actors" aria-expanded="{{#if sectionActorsCollapsed}}false{{else}}true{{/if}}">
+        <div>
+          <h2>{{tr "Scene actors"}}</h2>
+          <p class="notes">{{tr "Drag avatars from the left sidebar here or add them immediately with the arrow icon."}}</p>
+        </div>
+        <i class="fas {{#if sectionActorsCollapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+      </button>
+
+      <div class="tom-scene-editor-section-body">
+      <section class="tom-scene-dropzone tom-theme-card {{#if isDropzoneActive}}is-dragover{{/if}}" data-dropzone="scene-avatars">
+        <strong>{{tr "Drag avatar here"}}</strong>
+        <p class="notes">
+          {{#if hasAvatars}}
+          {{tr "A new actor entry is created with this avatar when dropped."}}
+          {{else}}
+          {{tr "Create an avatar in the Avatar Library first."}}
+          {{/if}}
+        </p>
+      </section>
+
+    <div class="tom-scene-actor-list">
+        {{#if sceneActors.length}}
+          {{#each sceneActors}}
+          <article class="tom-scene-actor-row tom-theme-card {{#if isDragOver}}is-dragover{{/if}}" data-scene-actor-index="{{index}}">
+            <input type="hidden" name="actors.{{index}}.sceneActorId" value="{{sceneActorId}}" />
+            <input type="hidden" name="actors.{{index}}.name" value="{{actorName}}" />
+            <input type="hidden" name="actors.{{index}}.actorId" value="{{actorId}}" />
+            <input type="hidden" name="actors.{{index}}.avatarId" value="{{avatarId}}" />
+            <input type="hidden" name="actors.{{index}}.position" value="{{position}}" />
+            <input type="hidden" name="actors.{{index}}.scale" value="{{scale}}" />
+            <input type="hidden" name="actors.{{index}}.activeScale" value="{{activeScale}}" />
+            <input type="hidden" name="actors.{{index}}.imageOverride" value="{{imageOverride}}" />
+            <input type="hidden" name="actors.{{index}}.disableMoods" value="{{disableMoods}}" />
+            <input type="hidden" name="actors.{{index}}.useCircularCrop" value="{{useCircularCrop}}" />
+            <input type="hidden" name="actors.{{index}}.frameImage" value="{{frameImage}}" />
+            <input type="hidden" name="actors.{{index}}.showBackdrop" value="{{showBackdrop}}" />
+            <input type="hidden" name="actors.{{index}}.mirrored" value="{{mirrored}}" />
+            <input type="hidden" name="actors.{{index}}.showName" value="{{showName}}" />
+            <input type="hidden" name="actors.{{index}}.isVisible" value="{{isVisible}}" />
+            <input type="hidden" name="actors.{{index}}.offsetX" value="{{offsetX}}" />
+            <input type="hidden" name="actors.{{index}}.offsetY" value="{{offsetY}}" />
+            <div class="tom-scene-actor-preview">
+              {{#if previewImage}}
+              <img src="{{previewImage}}" alt="{{actorName}}" class="tom-scene-actor-thumbnail" />
+              {{/if}}
+              <div>
+                <strong>{{actorName}}</strong>
+              </div>
+            </div>
+
+            <div class="tom-scene-actor-fields">
+              <div class="form-group">
+                <label>{{tr "Initial mood"}}</label>
+                <select name="actors.{{index}}.initialMood">
+                  {{selectOptions ../moodPresets selected=initialMood}}
+                </select>
+              </div>
+            </div>
+
+            <div class="tom-scene-actor-actions">
+              {{#unless hasLibraryAvatar}}
+              <button
+                type="button"
+                data-action="create-scene-actor-avatar"
+                data-index="{{index}}"
+                class="tom-button tom-button-ghost tom-button-icon"
+                aria-label="{{tr "Create avatar from placeholder"}}"
+                title="{{tr "Create avatar from placeholder"}}"
+              >
+                <i class="fas fa-user-plus" aria-hidden="true"></i>
+              </button>
+              {{/unless}}
+              <button
+                type="button"
+                data-action="remove-actor"
+                data-index="{{index}}"
+                class="tom-button tom-button-ghost tom-button-icon tom-library-action tom-library-action--delete"
+                aria-label="{{tr "Remove actor from scene"}}"
+                title="{{tr "Remove"}}"
+              >
+                <i class="fas fa-trash-can" aria-hidden="true"></i>
+              </button>
+            </div>
+          </article>
+          {{/each}}
+        {{else}}
+        <div class="tom-empty-state tom-theme-card">
+          <p>{{tr "No actors in this Footlights scene yet."}}</p>
+        </div>
+      {{/if}}
+    </div>
+    </div>
+    </section>
+    </div>
+  </div>
+</form>

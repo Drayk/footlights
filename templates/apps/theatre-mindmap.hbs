@@ -1,0 +1,773 @@
+<section class="tom-mindmap tom-theme-root tom-theme-default" style="{{themeInlineStyle}}">
+  <header class="tom-editor-header tom-theme-content-surface">
+    <div>
+      <h2>{{plannerName}}</h2>
+      <p class="notes">{{tr "Drag Footlights scenes, actors, journals, items, roll tables, macros, or Foundry scenes onto the board and connect them."}}</p>
+    </div>
+  </header>
+
+  <div class="tom-mindmap-layout {{#if isSourceSidebarCollapsed}}is-source-collapsed{{/if}} {{#if isInspectorCollapsed}}is-inspector-collapsed{{/if}}">
+    <aside class="tom-mindmap-sources tom-panel tom-theme-container">
+      <div class="tom-mindmap-sources__header">
+        <h3>{{tr "Footlights Sources"}}</h3>
+      </div>
+
+      <div class="tom-mindmap-sources__sections">
+        <section class="tom-mindmap-source-section tom-theme-container">
+          <button
+            type="button"
+            class="tom-mindmap-source-section__header"
+            data-action="toggle-source-section"
+            data-source-section="scenes"
+            aria-expanded="{{#if isSourceScenesExpanded}}true{{else}}false{{/if}}"
+          >
+            <span>{{tr "Scenes"}}</span>
+            <i class="fas {{#if isSourceScenesExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i>
+          </button>
+
+          <div class="tom-mindmap-source-section__content {{#if isSourceScenesExpanded}}is-expanded{{/if}}">
+          <div class="tom-mindmap-source-section__list">
+            {{#each sourceScenes}}
+            <article class="tom-mindmap-source-item tom-theme-card">
+              <div class="tom-mindmap-source-item__thumb">
+                {{#if thumbnail}}
+                <img src="{{thumbnail}}" alt="{{name}}" class="tom-mindmap-source-item__image" />
+                {{else}}
+                <div class="tom-mindmap-source-item__image tom-library-thumbnail--placeholder" aria-hidden="true">
+                  <i class="{{placeholderIconClass}}"></i>
+                </div>
+                {{/if}}
+              </div>
+              <div class="tom-mindmap-source-item__body">
+                <strong class="tom-mindmap-source-item__label">{{name}}</strong>
+              </div>
+              <button
+                type="button"
+                class="tom-mindmap-source-item__drag"
+                data-drag-planner-scene="true"
+                data-scene-id="{{id}}"
+                draggable="true"
+                title="{{tr "Drag onto board"}}"
+                aria-label="{{tr "Drag onto board"}}"
+              >
+                <span class="tom-mindmap-node__drag-dots" aria-hidden="true">
+                  <i></i><i></i>
+                  <i></i><i></i>
+                  <i></i><i></i>
+                </span>
+              </button>
+            </article>
+            {{/each}}
+          </div>
+          </div>
+        </section>
+
+        <section class="tom-mindmap-source-section tom-theme-container">
+          <button
+            type="button"
+            class="tom-mindmap-source-section__header"
+            data-action="toggle-source-section"
+            data-source-section="maps"
+            aria-expanded="{{#if isSourceMapsExpanded}}true{{else}}false{{/if}}"
+          >
+            <span>{{tr "Maps"}}</span>
+            <i class="fas {{#if isSourceMapsExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i>
+          </button>
+
+          <div class="tom-mindmap-source-section__content {{#if isSourceMapsExpanded}}is-expanded{{/if}}">
+          <div class="tom-mindmap-source-section__list">
+            {{#each sourceMaps}}
+            <article class="tom-mindmap-source-item tom-theme-card">
+              <div class="tom-mindmap-source-item__thumb">
+                {{#if thumbnail}}
+                <img src="{{thumbnail}}" alt="{{name}}" class="tom-mindmap-source-item__image" />
+                {{else}}
+                <div class="tom-mindmap-source-item__image tom-library-thumbnail--placeholder" aria-hidden="true">
+                  <i class="{{placeholderIconClass}}"></i>
+                </div>
+                {{/if}}
+              </div>
+              <div class="tom-mindmap-source-item__body">
+                <strong class="tom-mindmap-source-item__label">{{name}}</strong>
+              </div>
+              <button
+                type="button"
+                class="tom-mindmap-source-item__drag"
+                data-drag-planner-map="true"
+                data-map-id="{{id}}"
+                draggable="true"
+                title="{{tr "Drag onto board"}}"
+                aria-label="{{tr "Drag onto board"}}"
+              >
+                <span class="tom-mindmap-node__drag-dots" aria-hidden="true">
+                  <i></i><i></i>
+                  <i></i><i></i>
+                  <i></i><i></i>
+                </span>
+              </button>
+            </article>
+            {{/each}}
+          </div>
+          </div>
+        </section>
+
+        <section class="tom-mindmap-source-section tom-theme-container">
+          <button
+            type="button"
+            class="tom-mindmap-source-section__header"
+            data-action="toggle-source-section"
+            data-source-section="avatars"
+            aria-expanded="{{#if isSourceAvatarsExpanded}}true{{else}}false{{/if}}"
+          >
+            <span>{{tr "Avatars"}}</span>
+            <i class="fas {{#if isSourceAvatarsExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i>
+          </button>
+
+          <div class="tom-mindmap-source-section__content {{#if isSourceAvatarsExpanded}}is-expanded{{/if}}">
+          <div class="tom-mindmap-source-section__list">
+            {{#each sourceAvatars}}
+            <article class="tom-mindmap-source-item tom-theme-card">
+              <div class="tom-mindmap-source-item__thumb">
+                {{#if thumbnail}}
+                <img src="{{thumbnail}}" alt="{{name}}" class="tom-mindmap-source-item__image" />
+                {{else}}
+                <div class="tom-mindmap-source-item__image tom-library-thumbnail--placeholder" aria-hidden="true">
+                  <i class="fas fa-user-circle"></i>
+                </div>
+                {{/if}}
+              </div>
+              <div class="tom-mindmap-source-item__body">
+                <strong class="tom-mindmap-source-item__label">{{name}}</strong>
+              </div>
+              <button
+                type="button"
+                class="tom-mindmap-source-item__drag"
+                data-drag-planner-avatar="true"
+                data-avatar-id="{{id}}"
+                draggable="true"
+                title="{{tr "Drag onto board"}}"
+                aria-label="{{tr "Drag onto board"}}"
+              >
+                <span class="tom-mindmap-node__drag-dots" aria-hidden="true">
+                  <i></i><i></i>
+                  <i></i><i></i>
+                  <i></i><i></i>
+                </span>
+              </button>
+            </article>
+            {{/each}}
+          </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <div class="tom-mindmap-board-pane">
+      <div class="tom-mindmap-board-viewport tom-panel tom-theme-container" data-mindmap-board="true">
+        <div class="tom-mindmap-board-stage" style="{{boardStageStyle}}">
+          <div class="tom-mindmap-board" style="{{boardStyle}}">
+          <svg class="tom-mindmap-edges" width="100%" height="100%" aria-hidden="true">
+            {{#each edges}}
+            <g class="tom-mindmap-edge-group">
+              <path
+                d="{{path}}"
+                class="tom-mindmap-edge-hit"
+                data-action="delete-edge"
+                data-edge-id="{{id}}"
+                style="{{edgeStyle}}"
+              />
+              <path
+                d="{{path}}"
+                class="tom-mindmap-edge tom-mindmap-edge--{{style}}"
+                data-action="delete-edge"
+                data-edge-id="{{id}}"
+                style="{{edgeStyle}}"
+              />
+            </g>
+            {{/each}}
+            {{#if tempEdge}}
+            <path d="{{tempEdge.path}}" class="tom-mindmap-edge tom-mindmap-edge--preview" />
+            <circle cx="{{tempEdge.startX}}" cy="{{tempEdge.startY}}" r="3.5" class="tom-mindmap-edge-preview-dot tom-mindmap-edge-preview-dot--start" />
+            <circle cx="{{tempEdge.endX}}" cy="{{tempEdge.endY}}" r="3.5" class="tom-mindmap-edge-preview-dot tom-mindmap-edge-preview-dot--end" />
+            {{/if}}
+          </svg>
+
+          {{#each nodes}}
+            <article
+            class="tom-mindmap-node tom-theme-card {{#if isGroupNode}}is-group-node{{/if}} {{#if isSelected}}is-selected{{/if}} {{#if isInStageGoblin}}is-stage-goblin{{/if}}"
+            data-mindmap-node-id="{{id}}"
+            {{#if isGroupNode}}data-action="select-node"{{/if}}
+            style="{{style}}"
+          >
+            {{#unless isGroupNode}}
+            <button type="button" class="tom-mindmap-node__port tom-mindmap-node__port--top" data-action="start-edge-port" data-side="top" aria-label="{{tr "Start top connection"}}" style="{{portStyles.top}}"></button>
+            <button type="button" class="tom-mindmap-node__port tom-mindmap-node__port--right" data-action="start-edge-port" data-side="right" aria-label="{{tr "Start right connection"}}" style="{{portStyles.right}}"></button>
+            <button type="button" class="tom-mindmap-node__port tom-mindmap-node__port--bottom" data-action="start-edge-port" data-side="bottom" aria-label="{{tr "Start bottom connection"}}" style="{{portStyles.bottom}}"></button>
+            <button type="button" class="tom-mindmap-node__port tom-mindmap-node__port--left" data-action="start-edge-port" data-side="left" aria-label="{{tr "Start left connection"}}" style="{{portStyles.left}}"></button>
+            {{/unless}}
+
+            {{#if isGroupNode}}
+            <div class="tom-mindmap-group__header">
+              <span class="tom-mindmap-node__drag-dots tom-mindmap-group__drag-dots" data-action="drag-node" aria-label="{{tr "Move group"}}" title="{{tr "Move group"}}" aria-hidden="true">
+                <i></i><i></i>
+                <i></i><i></i>
+                <i></i><i></i>
+              </span>
+              <div class="tom-mindmap-group__title" data-action="select-node">
+                {{#if isEditingTitle}}
+                <input
+                  type="text"
+                  class="tom-mindmap-node__title-input"
+                  style="{{titleInputStyle}}{{titlePlaceholderStyle}}"
+                  value="{{label}}"
+                  data-action="save-inline-title"
+                  data-inline-title-node-id="{{id}}"
+                />
+                {{else}}
+                <button type="button" class="tom-mindmap-node__title-button" data-action="start-inline-title-edit" title="{{tr "Edit title"}}">
+                <strong class="tom-mindmap-group__label" style="{{titleTextStyle}}">{{label}}</strong>
+                </button>
+                {{/if}}
+              </div>
+            </div>
+
+            <div class="tom-mindmap-group__body" data-action="select-node">
+              {{#if tags.length}}
+              <div class="tom-mindmap-node__tags">
+                {{#each tags}}
+                <span class="tom-tag-chip" style="{{../tagTextStyle}}">{{this}}</span>
+                {{/each}}
+              </div>
+              {{/if}}
+              <div class="tom-mindmap-node__note-region {{#if isNoteExpanded}}is-expanded{{/if}} {{#unless hasNoteDisplay}}is-empty{{/unless}}">
+                <p class="tom-mindmap-node__note" style="{{noteTextStyle}}">{{notePreview}}</p>
+              </div>
+            </div>
+            {{else}}
+            <div class="tom-mindmap-node__drag-rail" data-action="drag-node" aria-label="{{tr "Move node"}}" title="{{tr "Move node"}}">
+              <span class="tom-mindmap-node__drag-dots" aria-hidden="true">
+                <i></i><i></i>
+                <i></i><i></i>
+                <i></i><i></i>
+              </span>
+            </div>
+
+            <div class="tom-mindmap-node__content" data-action="select-node">
+              {{#if isNoteNode}}
+              <div class="tom-mindmap-node__body tom-mindmap-node__body--note">
+                <div class="tom-mindmap-node__note-title-row">
+                  <i class="fas fa-note-sticky tom-mindmap-node__note-title-icon" style="{{noteIconStyle}}" aria-hidden="true"></i>
+                  {{#if isEditingTitle}}
+                  <input
+                    type="text"
+                    class="tom-mindmap-node__title-input tom-mindmap-node__title-input--note"
+                    style="{{titleInputStyle}}{{titlePlaceholderStyle}}"
+                    value="{{label}}"
+                    data-action="save-inline-title"
+                    data-inline-title-node-id="{{id}}"
+                  />
+                  {{else}}
+                  <button type="button" class="tom-mindmap-node__title-button tom-mindmap-node__title-button--note" data-action="start-inline-title-edit" title="{{tr "Edit title"}}">
+                    <strong class="tom-mindmap-node__label tom-mindmap-node__label--note" style="{{titleTextStyle}}">{{label}}</strong>
+                  </button>
+                  {{/if}}
+                </div>
+                {{#if tags.length}}
+                <div class="tom-mindmap-node__tags">
+                  {{#each tags}}
+                  <span class="tom-tag-chip" style="{{../tagTextStyle}}">{{this}}</span>
+                  {{/each}}
+                </div>
+                {{/if}}
+                <div class="tom-mindmap-node__note-region tom-mindmap-node__note-region--note {{#if isNoteExpanded}}is-expanded{{/if}} {{#unless hasNoteDisplay}}is-empty{{/unless}}">
+                  <p class="tom-mindmap-node__note tom-mindmap-node__note--note" style="{{noteTextStyle}}">{{notePreview}}</p>
+                </div>
+              </div>
+              {{else}}
+              <div class="tom-mindmap-node__thumb">
+                {{#if thumbnail}}
+                <img src="{{thumbnail}}" alt="{{label}}" class="tom-mindmap-node__image" />
+                {{else}}
+                <div class="tom-mindmap-node__image tom-library-thumbnail--placeholder" style="{{noteIconStyle}}" aria-hidden="true">
+                  <i class="{{iconClass}}"></i>
+                </div>
+                {{/if}}
+              </div>
+
+              <div class="tom-mindmap-node__body">
+                <span class="tom-mindmap-node__type" style="{{typeTextStyle}}">{{displayType}}</span>
+                {{#if isEditingTitle}}
+                <input
+                  type="text"
+                  class="tom-mindmap-node__title-input"
+                  style="{{titleInputStyle}}{{titlePlaceholderStyle}}"
+                  value="{{label}}"
+                  data-action="save-inline-title"
+                  data-inline-title-node-id="{{id}}"
+                />
+                {{else}}
+                <button type="button" class="tom-mindmap-node__title-button" data-action="start-inline-title-edit" title="{{tr "Edit title"}}">
+                <strong class="tom-mindmap-node__label" style="{{titleTextStyle}}">{{label}}</strong>
+                </button>
+                {{/if}}
+                {{#if tags.length}}
+                <div class="tom-mindmap-node__tags">
+                  {{#each tags}}
+                  <span class="tom-tag-chip" style="{{../tagTextStyle}}">{{this}}</span>
+                  {{/each}}
+                </div>
+                {{/if}}
+                <div class="tom-mindmap-node__note-region {{#if isNoteExpanded}}is-expanded{{/if}} {{#unless hasNoteDisplay}}is-empty{{/unless}}">
+                  <p class="tom-mindmap-node__note" style="{{noteTextStyle}}">{{notePreview}}</p>
+                </div>
+              </div>
+              {{/if}}
+            </div>
+            {{/if}}
+
+            <div class="tom-mindmap-node__tools">
+              <button type="button" class="tom-mindmap-node__delete" data-action="delete-node" title="{{tr "Delete node"}}" aria-label="{{tr "Delete node"}}">
+                <i class="fas fa-trash-can" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            {{#if showInlineColorPopover}}
+            <div class="tom-mindmap-node__color-popover">
+              <div class="tom-color-palette tom-color-palette--inline">
+                {{#each inlineColorPalette}}
+                <button
+                  type="button"
+                  class="tom-color-swatch tom-color-swatch--inline {{#if isActive}}is-active{{/if}}"
+                  data-action="set-node-color"
+                  data-node-id="{{../id}}"
+                  data-color="{{value}}"
+                  title="{{label}}"
+                  aria-label="{{label}}"
+                  style="--tom-swatch-color: {{swatch}};"
+                ></button>
+                {{/each}}
+              </div>
+
+              <div class="tom-color-alpha tom-color-alpha--inline">
+                <input
+                  type="range"
+                  min="1"
+                  max="80"
+                  step="1"
+                  value="{{inlineAlphaPercent}}"
+                  data-action="save-node-alpha"
+                  data-node-id="{{id}}"
+                />
+                <span class="tom-color-alpha__value">{{inlineAlphaPercent}}%</span>
+              </div>
+            </div>
+            {{/if}}
+
+            {{#if hasBottomActionBar}}
+            <div class="tom-mindmap-node__action-bar">
+              {{#if hasNoteDisplay}}
+              <button
+                type="button"
+                class="tom-mindmap-node__note-toggle {{#if isNoteExpanded}}is-expanded{{/if}}"
+                data-action="toggle-node-note"
+                title="{{noteToggleLabel}}"
+                aria-label="{{noteToggleLabel}}"
+              >
+                <i class="fas {{#if isNoteExpanded}}fa-angle-up{{else}}fa-angle-down{{/if}}" aria-hidden="true"></i>
+              </button>
+              {{/if}}
+
+              {{#if hasInlineOpenAction}}
+              <button
+                type="button"
+                class="tom-mindmap-node__open tom-mindmap-node__action-bar-button tom-mindmap-node__open--inline"
+                data-action="open-node"
+                title="{{tr "Open node"}}"
+                aria-label="{{tr "Open node"}}"
+              >
+                <i class="fas fa-up-right-from-square" aria-hidden="true"></i>
+              </button>
+              {{/if}}
+
+              {{#if canToggleStageGoblin}}
+              <button
+                type="button"
+                class="tom-mindmap-node__stage-goblin-toggle {{#if isInStageGoblin}}is-active{{/if}}"
+                data-action="toggle-stage-goblin-node"
+                title="{{#if isInStageGoblin}}{{tr "Remove from StageGoblin"}}{{else}}{{tr "Add to StageGoblin"}}{{/if}}"
+                aria-label="{{#if isInStageGoblin}}{{tr "Remove from StageGoblin"}}{{else}}{{tr "Add to StageGoblin"}}{{/if}}"
+              >
+                <i class="fas fa-thumbtack" aria-hidden="true"></i>
+              </button>
+              {{/if}}
+
+              {{#unless isGroupNode}}
+              {{#if isSceneLaunchNode}}
+              <button
+                type="button"
+                class="tom-mindmap-node__open tom-mindmap-node__action-bar-button tom-mindmap-node__open--scene"
+                data-action="open-node"
+                title="{{tr "Start scene"}}"
+                aria-label="{{tr "Start scene"}}"
+              >
+                <i class="fas fa-play" aria-hidden="true"></i>
+              </button>
+              {{/if}}
+
+              {{#if isMapLaunchNode}}
+              <button
+                type="button"
+                class="tom-mindmap-node__open tom-mindmap-node__action-bar-button tom-mindmap-node__open--scene"
+                data-action="open-node"
+                title="{{tr "Start map"}}"
+                aria-label="{{tr "Start map"}}"
+              >
+                <i class="fas fa-play" aria-hidden="true"></i>
+              </button>
+              {{/if}}
+
+              {{#if isJournalNode}}
+              <button
+                type="button"
+                class="tom-mindmap-node__open tom-mindmap-node__action-bar-button tom-mindmap-node__open--journal"
+                data-action="open-node"
+                title="{{tr "Open journal"}}"
+                aria-label="{{tr "Open journal"}}"
+              >
+                <i class="fas fa-book-open" aria-hidden="true"></i>
+              </button>
+              {{/if}}
+
+              {{#if isRollTableNode}}
+              <button
+                type="button"
+                class="tom-mindmap-node__open tom-mindmap-node__action-bar-button tom-mindmap-node__open--scene"
+                data-action="rolltable-node"
+                title="{{tr "Trigger roll table"}}"
+                aria-label="{{tr "Trigger roll table"}}"
+              >
+                <i class="fas fa-play" aria-hidden="true"></i>
+              </button>
+              {{/if}}
+
+              {{#if isMacroNode}}
+              <button
+                type="button"
+                class="tom-mindmap-node__open tom-mindmap-node__action-bar-button tom-mindmap-node__open--scene"
+                data-action="run-macro-node"
+                title="{{tr "Run macro"}}"
+                aria-label="{{tr "Run macro"}}"
+              >
+                <i class="fas fa-play" aria-hidden="true"></i>
+              </button>
+              {{/if}}
+
+              {{#if isActorDocumentNode}}
+              <button
+                type="button"
+                class="tom-mindmap-node__drag-to-scene tom-mindmap-node__action-bar-button"
+                data-action="drag-actor-to-scene"
+                draggable="true"
+                title="{{tr "Drag into Foundry scene"}}"
+                aria-label="{{tr "Drag into Foundry scene"}}"
+              >
+                <i class="fas fa-hand" aria-hidden="true"></i>
+              </button>
+              {{/if}}
+              {{/unless}}
+            </div>
+            {{/if}}
+
+            <button type="button" class="tom-mindmap-node__resize-edge tom-mindmap-node__resize-edge--right" data-action="resize-node-edge" data-resize-edge="right" aria-label="{{tr "Resize width"}}" title="{{tr "Resize width"}}"></button>
+            <button type="button" class="tom-mindmap-node__resize-edge tom-mindmap-node__resize-edge--left" data-action="resize-node-edge" data-resize-edge="left" aria-label="{{tr "Resize left width"}}" title="{{tr "Resize left width"}}"></button>
+            <button type="button" class="tom-mindmap-node__resize-edge tom-mindmap-node__resize-edge--bottom" data-action="resize-node-edge" data-resize-edge="bottom" aria-label="{{tr "Resize height"}}" title="{{tr "Resize height"}}"></button>
+            <button type="button" class="tom-mindmap-node__resize-edge tom-mindmap-node__resize-edge--top" data-action="resize-node-edge" data-resize-edge="top" aria-label="{{tr "Resize top height"}}" title="{{tr "Resize top height"}}"></button>
+            <button type="button" class="tom-mindmap-node__resize-edge tom-mindmap-node__resize-edge--corner" data-action="resize-node-edge" data-resize-edge="corner" aria-label="{{tr "Resize"}}" title="{{tr "Resize"}}"></button>
+          </article>
+          {{/each}}
+          </div>
+        </div>
+        {{#if boardCreateMenu}}
+        <div class="tom-mindmap-create-menu tom-theme-container" style="{{boardCreateMenu.style}}">
+          <button type="button" class="tom-mindmap-create-menu__item" data-action="create-board-node" data-create-kind="note">
+            <i class="fas fa-note-sticky" aria-hidden="true"></i>
+            <span>{{tr "Note"}}</span>
+          </button>
+          <button type="button" class="tom-mindmap-create-menu__item" data-action="create-board-node" data-create-kind="group">
+            <i class="fas fa-object-group" aria-hidden="true"></i>
+            <span>{{tr "Group"}}</span>
+          </button>
+        </div>
+        {{/if}}
+      </div>
+      <div class="tom-mindmap-help tom-mindmap-help--overlay">
+        <span>{{tr "Click: Select"}}</span>
+        <span>{{tr "Double-click: Note/Group"}}</span>
+        <span>{{tr "Right click: Board navigation"}}</span>
+        <span>{{tr "Mouse wheel: Zoom"}}</span>
+        <span>{{tr "Click line: Delete"}}</span>
+      </div>
+      <span class="tom-mindmap-zoom tom-mindmap-zoom--overlay">{{zoomPercent}}%</span>
+      <button
+        type="button"
+        class="tom-mindmap-source-toggle tom-button-icon"
+        data-action="toggle-source-sidebar"
+        title="{{#if isSourceSidebarCollapsed}}{{tr "Show Footlights Sources"}}{{else}}{{tr "Hide Footlights Sources"}}{{/if}}"
+        aria-label="{{#if isSourceSidebarCollapsed}}{{tr "Show Footlights Sources"}}{{else}}{{tr "Hide Footlights Sources"}}{{/if}}"
+      >
+        <i class="fas {{#if isSourceSidebarCollapsed}}fa-angle-right{{else}}fa-angle-left{{/if}}" aria-hidden="true"></i>
+      </button>
+      <button
+        type="button"
+        class="tom-mindmap-inspector-toggle tom-button-icon"
+        data-action="toggle-inspector"
+        title="{{#if isInspectorCollapsed}}{{tr "Show details"}}{{else}}{{tr "Hide details"}}{{/if}}"
+        aria-label="{{#if isInspectorCollapsed}}{{tr "Show details"}}{{else}}{{tr "Hide details"}}{{/if}}"
+      >
+        <i class="fas {{#if isInspectorCollapsed}}fa-angle-left{{else}}fa-angle-right{{/if}}" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <aside class="tom-mindmap-inspector tom-theme-container">
+      {{#if selectedNode}}
+      <section class="tom-mindmap-inspector__panel tom-panel tom-theme-container">
+      <header class="tom-mindmap-inspector__header">
+        <div>
+          <div class="tom-mindmap-inspector__panel-title" style="{{inspectorHeading2Style}}">{{tr "Details"}}</div>
+          <p class="notes tom-mindmap-inspector__node-meta" style="{{inspectorBodyStyle}}">{{selectedNode.displayType}}</p>
+        </div>
+      </header>
+
+      <div class="tom-mindmap-inspector__fields">
+        <div class="form-group">
+          <label>{{tr "Title"}}</label>
+          <input type="text" value="{{selectedNode.label}}" data-action="save-node-details" data-node-id="{{selectedNode.id}}" data-node-field="label" />
+        </div>
+
+        <div class="form-group">
+          <label>{{tr "Tags"}}</label>
+          <input type="text" value="{{selectedNode.tags}}" placeholder="{{tr "e.g. NPC, clue, scene"}}" data-action="save-node-details" data-node-id="{{selectedNode.id}}" data-node-field="tags" />
+        </div>
+
+        <div class="form-group stacked">
+          <label>{{tr "Note"}}</label>
+          <textarea rows="8" placeholder="{{tr "Planning, staging notes, connections ..."}}" data-action="save-node-details" data-node-id="{{selectedNode.id}}" data-node-field="noteContent">{{selectedNode.noteContent}}</textarea>
+        </div>
+      </div>
+      </section>
+
+      <section class="tom-mindmap-inspector__panel tom-mindmap-inspector__design-section tom-panel tom-theme-container">
+        <header class="tom-mindmap-inspector__design-header">
+          <div class="tom-mindmap-inspector__panel-title tom-mindmap-inspector__panel-title--design" style="{{inspectorHeading2Style}}">{{tr "Node Design"}}</div>
+        </header>
+        <div class="tom-mindmap-inspector__fields">
+        <section class="tom-mindmap-source-section tom-mindmap-inspector__section" data-node-design-section-root="true">
+          <button
+            type="button"
+            class="tom-mindmap-source-section__header tom-mindmap-inspector__section-toggle"
+            data-action="toggle-node-design-section"
+            data-node-design-section="presets"
+            aria-expanded="{{#if isNodeDesignPresetsExpanded}}true{{else}}false{{/if}}"
+          >
+            <span class="tom-mindmap-inspector__accordion-title" style="{{inspectorHeading3Style}}">{{tr "Presets"}}</span>
+            <i class="fas {{#if isNodeDesignPresetsExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}" style="color:{{nodeDesignSectionToggleColor}} !important;" aria-hidden="true"></i>
+          </button>
+          <div class="tom-mindmap-source-section__content tom-mindmap-inspector__section-content {{#if isNodeDesignPresetsExpanded}}is-expanded{{/if}}" data-node-design-section-content="true">
+          <div class="tom-mindmap-source-section__list tom-mindmap-inspector__section-body">
+          <div class="tom-node-design-presets__list">
+            {{#each selectedNodeDesignPresets}}
+            <article class="tom-node-design-preset {{#if isActive}}is-active{{/if}}" style="{{style}}">
+              <button
+                type="button"
+                class="tom-node-design-preset__apply"
+                data-action="apply-node-design-preset"
+                data-preset-id="{{id}}"
+                title="{{tr "Apply {name}" name=name}}"
+                aria-label="{{tr "Apply {name}" name=name}}"
+              ></button>
+              <div class="tom-node-design-preset__sample">
+                {{#if sampleTypeIconClass}}
+                <span class="tom-node-design-preset__type tom-node-design-preset__type--icon" style="{{sampleTypeStyle}}">
+                  <i class="{{sampleTypeIconClass}}" aria-hidden="true"></i>
+                </span>
+                {{else if sampleType}}
+                <span class="tom-node-design-preset__type" style="{{sampleTypeStyle}}">{{sampleType}}</span>
+                {{/if}}
+                <strong class="tom-node-design-preset__title" style="{{sampleTitleStyle}}">{{sampleTitle}}</strong>
+                <p class="tom-node-design-preset__text" style="{{sampleTextStyle}}">{{sampleText}}</p>
+              </div>
+              <div class="tom-node-design-preset__meta">
+                <span class="tom-node-design-preset__name">{{name}}</span>
+              </div>
+              <div class="tom-node-design-preset__overlay">
+                <button
+                  type="button"
+                  class="tom-node-design-preset__icon"
+                  data-action="overwrite-node-design-preset"
+                  data-preset-id="{{id}}"
+                  title="{{tr "Overwrite with current settings"}}"
+                  aria-label="{{tr "Overwrite with current settings"}}"
+                >
+                  <i class="fas fa-rotate" aria-hidden="true"></i>
+                </button>
+                <button
+                  type="button"
+                  class="tom-node-design-preset__icon tom-node-design-preset__icon--delete"
+                  data-action="delete-node-design-preset"
+                  data-preset-id="{{id}}"
+                  title="{{tr "Delete preset"}}"
+                  aria-label="{{tr "Delete preset"}}"
+                >
+                  <i class="fas fa-trash-can" aria-hidden="true"></i>
+                </button>
+              </div>
+            </article>
+            {{/each}}
+            {{#if canCreateNodeDesignPreset}}
+            <button
+              type="button"
+              class="tom-node-design-preset tom-node-design-preset--create"
+              data-action="create-node-design-preset"
+              title="{{tr "Create preset from current node"}}"
+              aria-label="{{tr "Create preset from current node"}}"
+            >
+              <i class="fas fa-plus" aria-hidden="true"></i>
+              <span>{{tr "Create preset"}}</span>
+            </button>
+            {{/if}}
+          </div>
+          </div>
+          </div>
+        </section>
+        {{#each selectedNodeColorSections}}
+        <section class="tom-mindmap-source-section tom-mindmap-inspector__section" data-node-design-section-root="true">
+          <button
+            type="button"
+            class="tom-mindmap-source-section__header tom-mindmap-inspector__section-toggle"
+            data-action="toggle-node-design-section"
+            data-node-design-section="{{key}}"
+            aria-expanded="{{#if isExpanded}}true{{else}}false{{/if}}"
+          >
+            <span class="tom-mindmap-inspector__accordion-title" style="{{../inspectorHeading3Style}}">{{title}}</span>
+            <i class="fas {{#if isExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}" style="color:{{../nodeDesignSectionToggleColor}} !important;" aria-hidden="true"></i>
+          </button>
+          <div class="tom-mindmap-source-section__content tom-mindmap-inspector__section-content {{#if isExpanded}}is-expanded{{/if}}" data-node-design-section-content="true">
+          <div class="tom-mindmap-source-section__list tom-mindmap-inspector__section-body">
+          {{#each controls}}
+          <div
+            class="tom-theme-control-row"
+            data-node-color-control="true"
+            data-node-color-field="{{field}}"
+            data-node-alpha-field="{{alphaField}}"
+            data-min-alpha-percent="{{minAlphaPercent}}"
+            data-max-alpha-percent="{{maxAlphaPercent}}"
+          >
+            <label>{{label}}</label>
+            <div class="tom-theme-control-row__fields">
+              <input type="color" value="{{color}}" data-action="node-color-control" data-node-color-input="true" />
+              <input type="range" min="{{minAlphaPercent}}" max="{{maxAlphaPercent}}" step="1" value="{{alpha}}" data-action="node-color-control" data-node-alpha-input="true" />
+              <span data-node-alpha-display="true">{{alpha}}%</span>
+            </div>
+            {{#if sizeControl}}
+            <label class="tom-theme-control-row__sub-label">{{sizeControl.label}}</label>
+            <div
+              class="tom-theme-control-row__fields tom-theme-control-row__fields--size"
+              data-node-size-control="true"
+              data-node-size-field="{{sizeControl.field}}"
+              data-min-size-rem="{{sizeControl.minRem}}"
+              data-max-size-rem="{{sizeControl.maxRem}}"
+            >
+              <input type="range" min="{{sizeControl.minRem}}" max="{{sizeControl.maxRem}}" step="{{sizeControl.stepRem}}" value="{{sizeControl.value}}" data-action="node-size-control" data-node-size-input="true" />
+              <span data-node-size-display="true">{{sizeControl.display}}</span>
+            </div>
+            {{/if}}
+          </div>
+          {{/each}}
+          </div>
+          </div>
+        </section>
+        {{/each}}
+        </div>
+      </section>
+      {{else if hasMultiSelection}}
+      <section class="tom-mindmap-inspector__panel tom-panel tom-theme-container">
+      <header class="tom-mindmap-inspector__header">
+        <div>
+          <div class="tom-mindmap-inspector__panel-title" style="{{inspectorHeading2Style}}">{{tr "Multiple selection"}}</div>
+          <p class="notes tom-mindmap-inspector__node-meta" style="{{inspectorBodyStyle}}">{{selectedCount}} {{tr "nodes selected"}}</p>
+        </div>
+      </header>
+
+      <div class="tom-mindmap-inspector__fields">
+        <div class="form-group">
+          <label>{{tr "Tags"}}</label>
+          <input type="text" value="{{selectedBatchTags}}" placeholder="{{tr "Shared tags, comma-separated"}}" data-action="save-node-details" data-node-field="tags" />
+        </div>
+        {{#if canCreateGroupFromSelection}}
+        <div class="form-group">
+          <button type="button" class="tom-button tom-button-ghost" data-action="create-group-from-selection">{{tr "Create group from selection"}}</button>
+        </div>
+        {{/if}}
+      </div>
+      </section>
+
+      <section class="tom-mindmap-inspector__panel tom-mindmap-inspector__design-section tom-panel tom-theme-container">
+        <header class="tom-mindmap-inspector__design-header">
+          <div class="tom-mindmap-inspector__panel-title tom-mindmap-inspector__panel-title--design" style="{{inspectorHeading2Style}}">{{tr "Node Design"}}</div>
+        </header>
+        <div class="tom-mindmap-inspector__fields">
+        {{#each selectedBatchColorSections}}
+        <section class="tom-mindmap-source-section tom-mindmap-inspector__section" data-node-design-section-root="true">
+          <button
+            type="button"
+            class="tom-mindmap-source-section__header tom-mindmap-inspector__section-toggle"
+            data-action="toggle-node-design-section"
+            data-node-design-section="{{key}}"
+            aria-expanded="{{#if isExpanded}}true{{else}}false{{/if}}"
+          >
+            <span class="tom-mindmap-inspector__accordion-title" style="{{../inspectorHeading3Style}}">{{title}}</span>
+            <i class="fas {{#if isExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}" style="color:{{../nodeDesignSectionToggleColor}} !important;" aria-hidden="true"></i>
+          </button>
+          <div class="tom-mindmap-source-section__content tom-mindmap-inspector__section-content {{#if isExpanded}}is-expanded{{/if}}" data-node-design-section-content="true">
+          <div class="tom-mindmap-source-section__list tom-mindmap-inspector__section-body">
+          {{#each controls}}
+          <div
+            class="tom-theme-control-row"
+            data-node-color-control="true"
+            data-node-color-field="{{field}}"
+            data-node-alpha-field="{{alphaField}}"
+            data-min-alpha-percent="{{minAlphaPercent}}"
+            data-max-alpha-percent="{{maxAlphaPercent}}"
+          >
+            <label>{{label}}</label>
+            <div class="tom-theme-control-row__fields">
+              <input type="color" value="{{color}}" data-action="node-color-control" data-node-color-input="true" />
+              <input type="range" min="{{minAlphaPercent}}" max="{{maxAlphaPercent}}" step="1" value="{{alpha}}" data-action="node-color-control" data-node-alpha-input="true" />
+              <span data-node-alpha-display="true">{{alpha}}%</span>
+            </div>
+            {{#if sizeControl}}
+            <label class="tom-theme-control-row__sub-label">{{sizeControl.label}}</label>
+            <div
+              class="tom-theme-control-row__fields tom-theme-control-row__fields--size"
+              data-node-size-control="true"
+              data-node-size-field="{{sizeControl.field}}"
+              data-min-size-rem="{{sizeControl.minRem}}"
+              data-max-size-rem="{{sizeControl.maxRem}}"
+            >
+              <input type="range" min="{{sizeControl.minRem}}" max="{{sizeControl.maxRem}}" step="{{sizeControl.stepRem}}" value="{{sizeControl.value}}" data-action="node-size-control" data-node-size-input="true" />
+              <span data-node-size-display="true">{{sizeControl.display}}</span>
+            </div>
+            {{/if}}
+          </div>
+          {{/each}}
+          </div>
+          </div>
+        </section>
+        {{/each}}
+        </div>
+      </section>
+
+      {{/if}}
+    </aside>
+  </div>
+</section>

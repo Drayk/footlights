@@ -1,0 +1,307 @@
+<section class="tom-world-map tom-theme-root tom-theme-default" style="{{themeInlineStyle}}">
+  {{#if hasMap}}
+  <div class="tom-world-map__layout {{#if isRightSidebarCollapsed}}is-right-collapsed{{/if}}">
+    <div class="tom-world-map__viewport tom-theme-container">
+      <div class="tom-world-map__map-actions">
+        <button type="button" class="tom-world-map__action-button" data-action="fit-world-map" title="{{tr "Fit map"}}" aria-label="{{tr "Fit map"}}">
+          <i class="fas fa-fw fa-expand" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="tom-world-map__action-button {{#if arePinsVisible}}is-active{{/if}}" data-action="toggle-map-pin-visibility" title="{{tr "Pins"}}" aria-label="{{tr "Pins"}}">
+          <i class="fas fa-fw {{#if arePinsVisible}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="tom-world-map__action-button {{#if areObjectOverlaysVisible}}is-active{{/if}}" data-action="toggle-map-object-overlay-visibility" title="{{tr "Object overlays"}}" aria-label="{{tr "Object overlays"}}">
+          <i class="fas fa-fw fa-layer-group" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="tom-world-map__action-button {{#if areRegionsVisible}}is-active{{/if}}" data-action="toggle-map-region-visibility" title="{{tr "Regions"}}" aria-label="{{tr "Regions"}}">
+          <i class="fas fa-fw fa-vector-square" aria-hidden="true"></i>
+        </button>
+        {{#if fogEnabled}}
+        {{#if canEditPins}}
+        <button type="button" class="tom-world-map__action-button {{#if isFogToolbarOpen}}is-active{{/if}}" data-action="toggle-map-fog-toolbar" title="{{tr "Fog of War"}}" aria-label="{{tr "Fog of War"}}">
+          <i class="fas fa-fw fa-cloud" aria-hidden="true"></i>
+        </button>
+        {{/if}}
+        {{/if}}
+      </div>
+      {{#if canEditPins}}
+      <div class="tom-world-map__map-actions tom-world-map__map-actions--gm">
+        <button type="button" class="tom-world-map__action-button" data-action="save-world-map-view" title="{{tr "Save start view"}}" aria-label="{{tr "Save start view"}}">
+          <i class="fas fa-fw fa-floppy-disk" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="tom-world-map__action-button {{#unless hasForcedPlayerMapOpen}}is-awaiting-share{{/unless}}" data-action="force-world-map-window" title="{{tr "Force Player Map Window"}}" aria-label="{{tr "Force Player Map Window"}}">
+          <i class="fas fa-fw fa-window-restore" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="tom-world-map__action-button {{#unless hasForcedPlayerMapOpen}}is-awaiting-share{{/unless}}" data-action="force-world-map-stage" title="{{tr "Force Player Map Fullscreen"}}" aria-label="{{tr "Force Player Map Fullscreen"}}">
+          <i class="fas fa-fw fa-display" aria-hidden="true"></i>
+        </button>
+      </div>
+      {{/if}}
+      {{#if isFogToolbarOpen}}
+      <div class="tom-world-map__fog-toolbar">
+        <div class="tom-world-map__fog-toolbar-group">
+          <button type="button" class="tom-world-map__fog-button {{#if isFogBrushTool}}is-active{{/if}}" data-action="set-map-fog-tool" data-fog-tool="brush">
+            <i class="fas fa-paintbrush" aria-hidden="true"></i>
+            <span>{{tr "Brush"}}</span>
+          </button>
+          <button type="button" class="tom-world-map__fog-button {{#if isFogPolygonTool}}is-active{{/if}}" data-action="set-map-fog-tool" data-fog-tool="polygon">
+            <i class="fas fa-draw-polygon" aria-hidden="true"></i>
+            <span>{{tr "Polygon"}}</span>
+          </button>
+        </div>
+        <div class="tom-world-map__fog-toolbar-group">
+          <button type="button" class="tom-world-map__fog-button {{#if isFogRevealAction}}is-active{{/if}}" data-action="set-map-fog-action" data-fog-action="reveal">{{tr "Reveal"}}</button>
+          <button type="button" class="tom-world-map__fog-button {{#if isFogRestoreAction}}is-active{{/if}}" data-action="set-map-fog-action" data-fog-action="restore">{{tr "Restore"}}</button>
+        </div>
+        <button type="button" class="tom-world-map__fog-button {{#if isFogGmPreviewTransparent}}is-active{{/if}}" data-action="toggle-map-fog-gm-preview">
+          <i class="fas fa-eye-low-vision" aria-hidden="true"></i>
+          <span>{{tr "GM fog preview"}}</span>
+        </button>
+        <label class="tom-world-map__fog-field">
+          <span>{{tr "Size"}}</span>
+          <input type="range" min="8" max="512" step="4" value="{{fogBrushSize}}" data-fog-control="brush-size" />
+          <strong>{{fogBrushSize}}</strong>
+        </label>
+        <label class="tom-world-map__fog-field">
+          <span>{{tr "Soft edge"}}</span>
+          <input type="range" min="0" max="256" step="2" value="{{fogFeather}}" data-fog-control="feather" />
+          <strong>{{fogFeather}}</strong>
+        </label>
+        {{#if isFogPolygonTool}}
+        <div class="tom-world-map__fog-toolbar-group">
+          <button type="button" class="tom-world-map__fog-button" data-action="finish-map-fog-polygon" {{#unless canFinishFogPolygon}}disabled{{/unless}}>{{tr "Apply"}}</button>
+          <button type="button" class="tom-world-map__fog-button" data-action="cancel-map-fog-polygon">{{tr "Cancel"}}</button>
+        </div>
+        {{/if}}
+        <button type="button" class="tom-world-map__fog-button tom-world-map__fog-button--danger" data-action="clear-map-fog">{{tr "Reset fog edits"}}</button>
+      </div>
+      {{/if}}
+      {{#if isRegionEditMode}}
+      <div class="tom-world-map__region-draw-bar tom-world-map__region-draw-bar--edit">
+        <span class="tom-world-map__region-draw-note">{{tr "Edit region points: drag handles to move points. Right-click a handle to remove it."}} {{editingRegionName}}</span>
+        <div class="tom-world-map__region-edit-actions">
+          <button type="button" class="tom-world-map__overlay-button {{#if isRegionSnapEnabled}}is-active{{/if}}" data-action="toggle-region-snap">{{tr "Snap"}}</button>
+          <button type="button" class="tom-world-map__overlay-button" data-action="style-region-edit">{{tr "Edit region"}}</button>
+          <button type="button" class="tom-world-map__overlay-button" data-action="save-region-edit">{{tr "Save"}}</button>
+          <button type="button" class="tom-world-map__overlay-button" data-action="cancel-region-edit">{{tr "Cancel"}}</button>
+        </div>
+      </div>
+      {{else if isRegionDrawMode}}
+      <div class="tom-world-map__region-draw-bar">
+        <span class="tom-world-map__region-draw-note">{{tr "Region draw mode: click the map to add points."}} {{tr "{count} point(s)" count=pendingRegionPointCount}}</span>
+        <div class="tom-world-map__region-draw-actions">
+          <button type="button" class="tom-world-map__overlay-button {{#if isRegionSnapEnabled}}is-active{{/if}}" data-action="toggle-region-snap">{{tr "Snap"}}</button>
+          <button type="button" class="tom-world-map__overlay-button" data-action="finish-region-draw" {{#unless canFinishRegion}}disabled{{/unless}}>{{tr "Finish region"}}</button>
+          <button type="button" class="tom-world-map__overlay-button" data-action="cancel-region-draw">{{tr "Cancel region"}}</button>
+        </div>
+      </div>
+      {{/if}}
+      {{#if isLineDrawMode}}
+      <div class="tom-world-map__region-draw-bar tom-world-map__region-draw-bar--line">
+        <span class="tom-world-map__region-draw-note">{{tr "Line draw mode: click the map to add points."}} {{tr "{count} point(s)" count=pendingLinePointCount}}</span>
+        <div class="tom-world-map__region-draw-actions">
+          <button type="button" class="tom-world-map__overlay-button {{#if isLineSnapEnabled}}is-active{{/if}}" data-action="toggle-line-snap">{{tr "Snap"}}</button>
+          <button type="button" class="tom-world-map__overlay-button" data-action="finish-line-draw" {{#unless canFinishLine}}disabled{{/unless}}>{{tr "Finish line"}}</button>
+          <button type="button" class="tom-world-map__overlay-button" data-action="cancel-line-draw">{{tr "Cancel line"}}</button>
+        </div>
+      </div>
+      {{/if}}
+      {{#if isLineEditMode}}
+      <div class="tom-world-map__region-draw-bar tom-world-map__region-draw-bar--edit tom-world-map__region-draw-bar--line">
+        <span class="tom-world-map__region-draw-note">{{tr "Edit line points: drag handles to move points. Right-click a handle to remove it."}} {{editingLineName}}</span>
+        <div class="tom-world-map__region-edit-actions">
+          <button type="button" class="tom-world-map__overlay-button {{#if isLineSnapEnabled}}is-active{{/if}}" data-action="toggle-line-snap">{{tr "Snap"}}</button>
+          <button type="button" class="tom-world-map__overlay-button" data-action="style-line-edit">{{tr "Edit line"}}</button>
+          <button type="button" class="tom-world-map__overlay-button" data-action="save-line-edit">{{tr "Save"}}</button>
+          <button type="button" class="tom-world-map__overlay-button" data-action="cancel-line-edit">{{tr "Cancel"}}</button>
+        </div>
+      </div>
+      {{/if}}
+      {{#if overlays.length}}
+      <div class="tom-world-map__overlay-actions">
+        {{#each overlays}}
+        <button
+          type="button"
+          class="tom-world-map__overlay-button {{#if isActive}}is-active{{/if}}"
+          data-action="toggle-map-overlay"
+          data-overlay-id="{{id}}"
+          title="{{name}}"
+          aria-label="{{name}}"
+        >
+          {{name}}
+        </button>
+        {{/each}}
+      </div>
+      {{/if}}
+      <div class="tom-world-map__legend-stack">
+        {{#if categoryLegend.length}}
+        <div class="tom-world-map__legend">
+          <div class="tom-world-map__legend-list">
+            {{#each categoryLegend}}
+            <button
+              type="button"
+              class="tom-world-map__legend-item {{#unless isHidden}}is-active{{/unless}}"
+              data-action="toggle-category-visibility"
+              data-category-id="{{id}}"
+              title="{{label}}"
+              aria-label="{{label}}"
+              style="--tom-category-color: {{color}};"
+            >
+              <span class="tom-world-map__legend-icon">
+                <i class="fas {{iconClass}}" aria-hidden="true"></i>
+              </span>
+              <span class="tom-world-map__legend-label">{{label}}</span>
+              {{#if ../canLockCategories}}
+              <span
+                class="tom-world-map__legend-lock {{#if isLocked}}is-locked{{/if}}"
+                data-action="toggle-category-lock"
+                data-category-id="{{id}}"
+                title="{{#if isLocked}}{{tr "Unlock category movement"}}{{else}}{{tr "Lock category movement"}}{{/if}}"
+                aria-label="{{#if isLocked}}{{tr "Unlock category movement"}}{{else}}{{tr "Lock category movement"}}{{/if}}"
+              >
+                <i class="fas {{#if isLocked}}fa-lock{{else}}fa-lock-open{{/if}}" aria-hidden="true"></i>
+              </span>
+              {{/if}}
+            </button>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+      </div>
+      <button
+        type="button"
+        class="tom-world-map__pin-sidebar-toggle tom-button tom-button-icon"
+        data-action="toggle-map-right-sidebar"
+        title="{{#if isRightSidebarCollapsed}}{{tr "Show pins"}}{{else}}{{tr "Hide pins"}}{{/if}}"
+        aria-label="{{#if isRightSidebarCollapsed}}{{tr "Show pins"}}{{else}}{{tr "Hide pins"}}{{/if}}"
+      >
+        <i class="fas {{#if isRightSidebarCollapsed}}fa-chevron-left{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i>
+      </button>
+      <div class="tom-world-map__context-menu">
+        <div class="tom-world-map__context-group tom-world-map__context-group--create">
+          <button type="button" class="tom-world-map__context-action" data-action="create-map-image-at-context">{{tr "Create image overlay"}}</button>
+          <button type="button" class="tom-world-map__context-action" data-action="create-map-text-at-context">{{tr "Create text overlay"}}</button>
+          <button type="button" class="tom-world-map__context-action" data-action="start-map-region-at-context">{{tr "Draw region"}}</button>
+          <button type="button" class="tom-world-map__context-action" data-action="start-map-line-at-context">{{tr "Draw line"}}</button>
+          <button type="button" class="tom-world-map__context-action" data-action="create-map-pin-at-context">{{tr "Create pin"}}</button>
+        </div>
+        <div class="tom-world-map__context-group tom-world-map__context-group--edit">
+          <button type="button" class="tom-world-map__context-action" data-action="edit-map-context-target">{{tr "Edit"}}</button>
+        </div>
+      </div>
+      <div class="tom-world-map__canvas" data-world-map-canvas="true"></div>
+    </div>
+
+    <aside class="tom-world-map__sidebar tom-world-map__sidebar--right tom-theme-container">
+      <h3>{{tr "Pins"}}</h3>
+      <p class="notes">{{tr "Double-click on the map to create a new pin."}}</p>
+      <p class="notes">{{tr "Drag a journal entry onto the map to create a linked pin."}}</p>
+      <div class="tom-world-map__pin-filters">
+        <input type="search" data-world-map-pin-filter="search" placeholder="{{tr "Search pins"}}" aria-label="{{tr "Search pins"}}" />
+        <select data-world-map-pin-filter="category" aria-label="{{tr "Filter pins by category"}}">
+          <option value="">{{tr "All categories"}}</option>
+          {{#each categoryLegend}}
+          <option value="{{id}}">{{label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      {{#if pins.length}}
+      <ul class="tom-world-map__pin-list">
+        {{#each pins}}
+        <li class="tom-world-map__pin-item {{#if isSelected}}is-selected{{/if}}" data-pin-label="{{label}}" data-pin-category="{{type}}">
+          <button type="button" class="tom-world-map__pin-jump" data-action="jump-to-pin" data-pin-id="{{id}}" {{#if sidebarTooltip}}data-world-map-sidebar-tooltip="{{sidebarTooltip}}"{{/if}}>
+            <span class="tom-world-map__pin-icon" style="color:{{color}}; font-size:{{iconSizeRem}}rem; {{iconBorderStyle}} {{iconShadowStyle}}">
+              <i class="fas {{iconClass}}" aria-hidden="true"></i>
+            </span>
+            <span class="tom-world-map__pin-meta">
+              <span class="tom-world-map__pin-label">{{label}}</span>
+            </span>
+          </button>
+          {{#if ../canEditPins}}
+          <button type="button" class="tom-button tom-button-icon tom-library-action tom-library-action--delete" data-action="remove-map-pin" data-pin-id="{{id}}" title="{{tr "Delete pin"}}" aria-label="{{tr "Delete pin"}}">
+            <i class="fas fa-trash-can" aria-hidden="true"></i>
+          </button>
+          {{/if}}
+        </li>
+        {{/each}}
+      </ul>
+      {{else}}
+      <p class="notes">{{tr "No pins placed yet."}}</p>
+      {{/if}}
+      {{#if canEditPins}}
+      <div class="tom-world-map__object-section">
+        <h3>{{tr "Object overlays"}}</h3>
+        {{#if objectOverlays.length}}
+        <ul class="tom-world-map__object-list">
+          {{#each objectOverlays}}
+          <li class="tom-world-map__object-item">
+            <button type="button" class="tom-world-map__object-jump" data-action="edit-map-object-overlay" data-object-id="{{id}}" data-world-map-sidebar-tooltip="{{tooltip}}">
+              <span class="tom-world-map__object-type-icon"><i class="fas {{#if isImage}}fa-image{{else}}fa-font{{/if}}" aria-hidden="true"></i></span>
+              <span class="tom-world-map__object-meta">
+                <span class="tom-world-map__object-label">{{name}}</span>
+              </span>
+            </button>
+            <button type="button" class="tom-button tom-button-icon tom-library-action tom-library-action--delete" data-action="remove-map-object-overlay" data-object-id="{{id}}" title="{{tr "Delete object overlay"}}" aria-label="{{tr "Delete object overlay"}}">
+              <i class="fas fa-trash-can" aria-hidden="true"></i>
+            </button>
+          </li>
+          {{/each}}
+        </ul>
+        {{else}}
+        <p class="notes">{{tr "No object overlays placed yet."}}</p>
+        {{/if}}
+      </div>
+      <div class="tom-world-map__object-section">
+        <h3>{{tr "Regions"}}</h3>
+        {{#if regions.length}}
+        <ul class="tom-world-map__object-list">
+          {{#each regions}}
+          <li class="tom-world-map__object-item">
+            <button type="button" class="tom-world-map__object-jump" data-action="edit-map-region" data-region-id="{{id}}" data-world-map-sidebar-tooltip="{{tooltip}}">
+              <span class="tom-world-map__object-type-icon"><i class="fas fa-draw-polygon" aria-hidden="true"></i></span>
+              <span class="tom-world-map__object-meta">
+                <span class="tom-world-map__object-label">{{name}}</span>
+              </span>
+            </button>
+            <button type="button" class="tom-button tom-button-icon tom-library-action tom-library-action--delete" data-action="remove-map-region" data-region-id="{{id}}" title="{{tr "Delete region"}}" aria-label="{{tr "Delete region"}}">
+              <i class="fas fa-trash-can" aria-hidden="true"></i>
+            </button>
+          </li>
+          {{/each}}
+        </ul>
+        {{else}}
+        <p class="notes">{{tr "No regions created yet."}}</p>
+        {{/if}}
+      </div>
+      <div class="tom-world-map__object-section">
+        <h3>{{tr "Lines"}}</h3>
+        {{#if lines.length}}
+        <ul class="tom-world-map__object-list">
+          {{#each lines}}
+          <li class="tom-world-map__object-item">
+            <button type="button" class="tom-world-map__object-jump" data-action="edit-map-line" data-line-id="{{id}}" data-world-map-sidebar-tooltip="{{tooltip}}">
+              <span class="tom-world-map__object-type-icon"><i class="fas fa-route" aria-hidden="true"></i></span>
+              <span class="tom-world-map__object-meta">
+                <span class="tom-world-map__object-label">{{name}}</span>
+              </span>
+            </button>
+            <button type="button" class="tom-button tom-button-icon tom-library-action tom-library-action--delete" data-action="remove-map-line" data-line-id="{{id}}" title="{{tr "Delete line"}}" aria-label="{{tr "Delete line"}}">
+              <i class="fas fa-trash-can" aria-hidden="true"></i>
+            </button>
+          </li>
+          {{/each}}
+        </ul>
+        {{else}}
+        <p class="notes">{{tr "No lines created yet."}}</p>
+        {{/if}}
+      </div>
+      {{/if}}
+    </aside>
+    <div class="tom-world-map__sidebar-tooltip" hidden></div>
+  </div>
+  {{else}}
+  <div class="tom-world-map__empty tom-theme-container">
+    <h2>{{tr "No world map available."}}</h2>
+    <p class="notes">{{tr "Create and generate a map in the Footlights Map Library first."}}</p>
+  </div>
+  {{/if}}
+</section>

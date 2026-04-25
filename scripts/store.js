@@ -1155,6 +1155,7 @@ export class TheatreStore {
     return {
       id: String(playlistData.id || randomId()),
       name: String(playlistData.name || tr("New Sound Playlist")).trim() || tr("New Sound Playlist"),
+      globalPlayer: Boolean(playlistData.globalPlayer),
       sceneIds,
       tracks,
       soundboard
@@ -1179,6 +1180,10 @@ export class TheatreStore {
 
   static getSoundPlaylists() {
     return this.getSoundLibraryState().playlists;
+  }
+
+  static getGlobalSoundPlaylists() {
+    return this.getSoundPlaylists().filter((playlist) => playlist.globalPlayer);
   }
 
   static getSoundPlaylistById(playlistId) {

@@ -12,6 +12,7 @@ export class TheatreOverlayApplication extends Application {
     this.isDimControlsOpen = false;
     this.isGmBarCollapsed = false;
     this.isSoundControlsOpen = false;
+    this.isSoundPanelContentCollapsed = false;
     this.soundboardPage = 0;
     this._dragState = null;
     this._recentlyDraggedSceneActorId = null;
@@ -268,6 +269,7 @@ export class TheatreOverlayApplication extends Application {
       isDimControlsOpen: this.isDimControlsOpen && isGM,
       isGmBarCollapsed: this.isGmBarCollapsed && isGM,
       isSoundControlsOpen: this.isSoundControlsOpen && isGM && (soundContext.tracks.length > 0 || soundContext.soundboard.length > 0),
+      isSoundPanelContentCollapsed: this.isSoundPanelContentCollapsed,
       hasSceneSoundControls: isGM && (soundContext.tracks.length > 0 || soundContext.soundboard.length > 0),
       sceneSoundTracks,
       sceneSoundboardPageItems: (soundContext.soundboardPages[this.soundboardPage] ?? []).map((entry) => ({
@@ -330,6 +332,7 @@ export class TheatreOverlayApplication extends Application {
     html.on("click", "[data-action='scene-audio-loop']", this._onSceneAudioLoop.bind(this));
     html.on("click", "[data-action='scene-audio-stop']", this._onSceneAudioStop.bind(this));
     html.on("input change", "[data-action='set-scene-audio-volume']", this._onSetSceneAudioVolume.bind(this));
+    html.on("click", "[data-action='toggle-sound-panel-content']", this._onToggleSoundPanelContent.bind(this));
     html.on("click", "[data-action='play-soundboard-item']", this._onPlaySoundboardItem.bind(this));
     html.on("click", "[data-action='soundboard-page-prev']", this._onSoundboardPagePrev.bind(this));
     html.on("click", "[data-action='soundboard-page-next']", this._onSoundboardPageNext.bind(this));
@@ -1307,6 +1310,12 @@ export class TheatreOverlayApplication extends Application {
     this._refreshSoundControlsUi(this._getSceneSoundContext());
   }
 
+  _onToggleSoundPanelContent(event) {
+    event.preventDefault();
+    this.isSoundPanelContentCollapsed = !this.isSoundPanelContentCollapsed;
+    this._refreshSoundControlsUi(this._getSceneSoundContext());
+  }
+
   async _onPlaySceneTrack(event) {
     event.preventDefault();
     const trackId = String(event.currentTarget.dataset.trackId || "").trim();
@@ -1434,6 +1443,20 @@ export class TheatreOverlayApplication extends Application {
     if (!(soundPanel instanceof HTMLElement)) return;
     soundPanel.toggleAttribute("hidden", !this.isSoundControlsOpen || !hasControls);
     if (soundPanel.hidden) return;
+    soundPanel.classList.toggle("is-content-collapsed", this.isSoundPanelContentCollapsed);
+    const contentToggle = soundPanel.querySelector("[data-action='toggle-sound-panel-content']");
+    if (contentToggle instanceof HTMLElement) {
+      contentToggle.classList.toggle("is-active", this.isSoundPanelContentCollapsed);
+      contentToggle.setAttribute("aria-pressed", this.isSoundPanelContentCollapsed ? "true" : "false");
+      contentToggle.setAttribute("title", this.isSoundPanelContentCollapsed ? tr("Show tracks and soundboard") : tr("Hide tracks and soundboard"));
+      contentToggle.setAttribute("aria-label", this.isSoundPanelContentCollapsed ? tr("Show tracks and soundboard") : tr("Hide tracks and soundboard"));
+      const icon = contentToggle.querySelector("i");
+      if (icon) icon.className = `fas ${this.isSoundPanelContentCollapsed ? "fa-chevron-up" : "fa-chevron-down"}`;
+    }
+    const content = soundPanel.querySelector(".tom-scene-sound-panel__content");
+    if (content instanceof HTMLElement) {
+      content.hidden = this.isSoundPanelContentCollapsed;
+    }
 
     const trackList = soundPanel.querySelector(".tom-scene-sound-panel__track-list");
     if (trackList instanceof HTMLElement) {

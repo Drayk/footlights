@@ -1042,6 +1042,14 @@
             <input type="text" name="soundPlaylistEditor.name" value="{{soundPlaylistEditor.name}}" placeholder="{{tr "New Sound Playlist"}}" />
           </div>
 
+          <label class="checkbox tom-scene-config-toggle-card tom-sound-playlist-global-toggle">
+            <input type="checkbox" name="soundPlaylistEditor.globalPlayer" {{checked soundPlaylistEditor.globalPlayer}} />
+            <span>
+              {{tr "Global Player"}}
+              <small class="notes">{{tr "Also make this playlist available in the standalone sidebar player."}}</small>
+            </span>
+          </label>
+
           <section class="tom-theme-content-surface tom-sound-playlist-section">
             <header class="tom-editor-header tom-editor-header--inline-section">
               <div>
@@ -1187,6 +1195,7 @@
               <div class="tom-library-card__body">
                 <h3>{{name}}</h3>
                 <p>{{tr "{trackCount} track(s) - {soundboardCount} soundboard" trackCount=trackCount soundboardCount=soundboardCount}}</p>
+                {{#if globalPlayer}}<p class="notes"><i class="fas fa-headphones" aria-hidden="true"></i> {{tr "Available in Global Player"}}</p>{{/if}}
                 <p class="notes">{{tr "{count} scene assignment(s)" count=sceneCount}}</p>
               </div>
 

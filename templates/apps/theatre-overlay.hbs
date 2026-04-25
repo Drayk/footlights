@@ -161,10 +161,20 @@
           <div class="tom-scene-sound-panel__volume">
             <input type="range" min="0" max="1" step="0.01" value="{{currentSceneAudio.volume}}" data-action="set-scene-audio-volume" />
             <span class="tom-scene-sound-panel__volume-value">{{currentSceneAudio.volumePercent}}%</span>
+            <button
+              type="button"
+              class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button tom-scene-sound-panel__content-toggle {{#if isSoundPanelContentCollapsed}}is-active{{/if}}"
+              data-action="toggle-sound-panel-content"
+              title="{{#if isSoundPanelContentCollapsed}}{{tr "Show tracks and soundboard"}}{{else}}{{tr "Hide tracks and soundboard"}}{{/if}}"
+              aria-label="{{#if isSoundPanelContentCollapsed}}{{tr "Show tracks and soundboard"}}{{else}}{{tr "Hide tracks and soundboard"}}{{/if}}"
+              aria-pressed="{{#if isSoundPanelContentCollapsed}}true{{else}}false{{/if}}"
+            >
+              <i class="fas {{#if isSoundPanelContentCollapsed}}fa-chevron-up{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+            </button>
           </div>
         </div>
 
-        <div class="tom-scene-sound-panel__content">
+        <div class="tom-scene-sound-panel__content" {{#if isSoundPanelContentCollapsed}}hidden{{/if}}>
           <section class="tom-scene-sound-panel__tracks">
             <header><strong>{{tr "Music"}}</strong></header>
             <div class="tom-scene-sound-panel__track-list">

@@ -6,6 +6,13 @@ For campaign-heavy groups in particular, Footlights helps prepared moments actua
 
 > Screenshot Placeholder: Hero shot of the app / active scene
 
+## Feature Overview
+
+- Fullscreen theatre-of-the-mind scenes with mood visuals and sound controls
+- Adventure planning in a flexible mindmap format
+- Zoomable world maps with pins, regions, overlays, fog of war, and deep GM controls
+- Stage Goblin action bar to connect scenes, maps, planner nodes, avatars, and references during play
+
 ## Why Footlights?
 
 Footlights helps you

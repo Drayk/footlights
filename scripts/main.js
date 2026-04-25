@@ -11,12 +11,14 @@ import { TheatreAvatarConfigApplication } from "./apps/theatre-avatar-config.js"
 import { TheatreAdventurePlannerConfigApplication } from "./apps/theatre-adventure-planner-config.js";
 import { TheatreMindmapApplication } from "./apps/theatre-mindmap.js";
 import { TheatreStageGoblinApplication } from "./apps/theatre-stage-goblin.js";
+import { TheatreGlobalSoundPlayerApplication } from "./apps/theatre-global-sound-player.js";
 import { TheatreWorldMapApplication } from "./apps/theatre-world-map.js";
 import { TheatreWorldMapStageApplication } from "./apps/theatre-world-map-stage.js";
 import { TheatreWorldMapConfigApplication } from "./apps/theatre-world-map-config.js";
 
 const manager = new TheatreManager();
 let stageGoblinApp = null;
+let globalSoundPlayerApp = null;
 let footlightsSocketRegistered = false;
 const REFRESHABLE_APP_NAMES = [
   "TheatreSceneLibraryApplication",
@@ -25,6 +27,7 @@ const REFRESHABLE_APP_NAMES = [
   "TheatreAdventurePlannerConfigApplication",
   "TheatreMindmapApplication",
   "TheatreStageGoblinApplication",
+  "TheatreGlobalSoundPlayerApplication",
   "TheatreWorldMapApplication",
   "TheatreWorldMapStageApplication",
   "TheatreWorldMapConfigApplication"
@@ -120,6 +123,36 @@ function isStageGoblinOpen() {
   return Boolean(stageGoblinApp?._getRootElement?.());
 }
 
+function openOrFocusGlobalSoundPlayer() {
+  if (globalSoundPlayerApp) {
+    globalSoundPlayerApp.render(true);
+    ui.controls?.render?.(false);
+    return globalSoundPlayerApp;
+  }
+
+  globalSoundPlayerApp = new TheatreGlobalSoundPlayerApplication();
+  globalSoundPlayerApp.render(true);
+  ui.controls?.render?.(false);
+  return globalSoundPlayerApp;
+}
+
+function isGlobalSoundPlayerOpen() {
+  return Boolean(globalSoundPlayerApp?._getRootElement?.());
+}
+
+function ensureGlobalSoundPlayerForRemote() {
+  if (globalSoundPlayerApp) return globalSoundPlayerApp;
+  globalSoundPlayerApp = new TheatreGlobalSoundPlayerApplication({ remoteOnly: true });
+  globalSoundPlayerApp.render(true);
+  return globalSoundPlayerApp;
+}
+
+async function closeGlobalSoundPlayer() {
+  if (!globalSoundPlayerApp) return;
+  await globalSoundPlayerApp.close();
+  ui.controls?.render?.(false);
+}
+
 async function closeStageGoblin() {
   if (!stageGoblinApp) return;
   await stageGoblinApp.close();
@@ -134,6 +167,16 @@ async function toggleStageGoblin(force = null) {
   }
 
   await closeStageGoblin();
+}
+
+async function toggleGlobalSoundPlayer(force = null) {
+  const shouldOpen = typeof force === "boolean" ? force : !isGlobalSoundPlayerOpen();
+  if (shouldOpen) {
+    openOrFocusGlobalSoundPlayer();
+    return;
+  }
+
+  await closeGlobalSoundPlayer();
 }
 
 function refreshOpenApps({ skipNames = [] } = {}) {
@@ -169,6 +212,13 @@ function registerFootlightsSocket() {
       } else {
         openOrFocusWorldMap(mapId);
       }
+      return;
+    }
+
+    if (action === "globalSoundPlayerControl") {
+      if (game.user?.isGM) return;
+      const app = ensureGlobalSoundPlayerForRemote();
+      window.setTimeout(() => app.applyRemoteControl?.(payload), 0);
       return;
     }
 
@@ -270,7 +320,12 @@ Hooks.once("init", async () => {
     closeStageGoblin: () => closeStageGoblin(),
     toggleStageGoblin: (force = null) => toggleStageGoblin(force),
     isStageGoblinOpen: () => isStageGoblinOpen(),
-    renderStageGoblin: () => stageGoblinApp?.render(false)
+    renderStageGoblin: () => stageGoblinApp?.render(false),
+    openGlobalSoundPlayer: () => openOrFocusGlobalSoundPlayer(),
+    closeGlobalSoundPlayer: () => closeGlobalSoundPlayer(),
+    toggleGlobalSoundPlayer: (force = null) => toggleGlobalSoundPlayer(force),
+    isGlobalSoundPlayerOpen: () => isGlobalSoundPlayerOpen(),
+    renderGlobalSoundPlayer: () => globalSoundPlayerApp?.render(false)
   };
 
   const moduleEntry = game.modules.get(MODULE_ID);
@@ -300,9 +355,11 @@ Hooks.on("updateSetting", (setting) => {
     const isMindmapSetting = setting.key === `${MODULE_ID}.${SETTINGS.MINDMAP}`;
     const isStageGoblinSetting = setting.key === `${MODULE_ID}.${SETTINGS.STAGE_GOBLIN}`;
     const isMapLibrarySetting = setting.key === `${MODULE_ID}.${SETTINGS.MAP_LIBRARY}`;
+    const isSoundLibrarySetting = setting.key === `${MODULE_ID}.${SETTINGS.SOUND_LIBRARY}`;
     if (isLanguageSetting) {
       void setActiveLanguage(setting.value ?? TheatreStore.getLanguage()).then(() => {
         stageGoblinApp?.render(false);
+        globalSoundPlayerApp?.render(false);
         refreshOpenApps();
         ui.controls?.render?.(false);
       });
@@ -317,8 +374,13 @@ Hooks.on("updateSetting", (setting) => {
       return;
     }
 
+    if (isSoundLibrarySetting) {
+      globalSoundPlayerApp?.render(false);
+    }
+
     if (setting.key === `${MODULE_ID}.${SETTINGS.THEME}`) {
       stageGoblinApp?.render(false);
+      globalSoundPlayerApp?.render(false);
     }
 
     if (isMindmapSetting) {
@@ -379,6 +441,15 @@ Hooks.on("getSceneControlButtons", (controls) => {
         toggle: true,
         active: isStageGoblinOpen(),
         onClick: (toggled) => game.modules.get(MODULE_ID)?.api?.toggleStageGoblin?.(toggled)
+      },
+      {
+        name: "toggle-global-player",
+        title: sceneControlTitle("Toggle Player"),
+        icon: "fas fa-headphones",
+        visible: true,
+        toggle: true,
+        active: isGlobalSoundPlayerOpen(),
+        onClick: (toggled) => game.modules.get(MODULE_ID)?.api?.toggleGlobalSoundPlayer?.(toggled)
       }
     ]
   });
@@ -480,5 +551,10 @@ Hooks.on("dropCanvasData", async (canvas, data) => {
 
 Hooks.on("closeTheatreStageGoblinApplication", () => {
   stageGoblinApp = null;
+  ui.controls?.render?.(false);
+});
+
+Hooks.on("closeTheatreGlobalSoundPlayerApplication", () => {
+  globalSoundPlayerApp = null;
   ui.controls?.render?.(false);
 });

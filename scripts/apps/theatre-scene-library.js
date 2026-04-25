@@ -437,6 +437,7 @@ export class TheatreSceneLibraryApplication extends FormApplication {
     return {
       id: "",
       name: "",
+      globalPlayer: false,
       sceneIds: [],
       tracks: [],
       soundboard: []
@@ -459,6 +460,7 @@ export class TheatreSceneLibraryApplication extends FormApplication {
     return {
       id: String(playlist.id || ""),
       name: String(playlist.name || "").trim(),
+      globalPlayer: Boolean(playlist.globalPlayer),
       sceneIds: Array.isArray(playlist.sceneIds) ? playlist.sceneIds.map((id) => String(id || "").trim()).filter(Boolean) : [],
       tracks: Array.isArray(playlist.tracks) ? playlist.tracks.map((entry) => this._normalizeSoundEntry(entry)) : [],
       soundboard: Array.isArray(playlist.soundboard) ? playlist.soundboard.map((entry) => this._normalizeSoundEntry(entry)).slice(0, 10) : []
@@ -3621,6 +3623,7 @@ export class TheatreSceneLibraryApplication extends FormApplication {
       ...this.soundPlaylistEditor,
       id: expanded.id || this.soundPlaylistEditor.id || randomId(),
       name: expanded.name || "",
+      globalPlayer: Boolean(expanded.globalPlayer),
       sceneIds,
       tracks,
       soundboard

@@ -1,0 +1,113 @@
+<section class="tom-global-sound-player tom-theme-root tom-theme-default" style="{{themeInlineStyle}}">
+  <div class="tom-global-sound-player__shell tom-theme-content-surface">
+    {{#if hasControls}}
+    <div class="tom-global-sound-player__panel {{#if isContentCollapsed}}is-content-collapsed{{/if}}">
+      <div class="tom-scene-sound-panel__player">
+        <div class="tom-scene-sound-panel__player-actions">
+          <button type="button" class="tom-global-sound-player__drag-handle" data-action="drag-global-sound-player" title="{{tr "Move"}}" aria-label="{{tr "Move"}}">
+            <i class="fas fa-arrows-up-down-left-right" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="global-audio-play" title="{{tr "Play"}}" aria-label="{{tr "Play"}}">
+            <i class="fas fa-play" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="global-audio-pause" title="{{tr "Pause"}}" aria-label="{{tr "Pause"}}">
+            <i class="fas fa-pause" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button {{#if currentAudio.loop}}is-active{{/if}}" data-action="global-audio-loop" title="{{#if currentAudio.loop}}{{tr "Disable loop"}}{{else}}{{tr "Enable loop"}}{{/if}}" aria-label="{{#if currentAudio.loop}}{{tr "Disable loop"}}{{else}}{{tr "Enable loop"}}{{/if}}" aria-pressed="{{#if currentAudio.loop}}true{{else}}false{{/if}}">
+            <i class="fas fa-repeat" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="global-audio-stop" title="{{tr "Stop"}}" aria-label="{{tr "Stop"}}">
+            <i class="fas fa-stop" aria-hidden="true"></i>
+          </button>
+        </div>
+        <label class="tom-scene-sound-panel__volume">
+          <input type="range" min="0" max="1" step="0.01" value="{{currentAudio.volume}}" data-action="set-global-audio-volume" aria-label="{{tr "Volume"}}" />
+          <span class="tom-scene-sound-panel__volume-value">{{currentAudio.volumePercent}}%</span>
+        </label>
+        <button
+          type="button"
+          class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button tom-scene-sound-panel__content-toggle {{#if isContentCollapsed}}is-active{{/if}}"
+          data-action="toggle-global-player-content"
+          title="{{#if isContentCollapsed}}{{tr "Show tracks and soundboard"}}{{else}}{{tr "Hide tracks and soundboard"}}{{/if}}"
+          aria-label="{{#if isContentCollapsed}}{{tr "Show tracks and soundboard"}}{{else}}{{tr "Hide tracks and soundboard"}}{{/if}}"
+          aria-pressed="{{#if isContentCollapsed}}true{{else}}false{{/if}}"
+        >
+          <i class="fas {{#if isContentCollapsed}}fa-chevron-up{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button tom-global-sound-player__close" data-action="close-global-sound-player" title="{{tr "Close"}}" aria-label="{{tr "Close"}}">
+          <i class="fas fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="tom-scene-sound-panel__content" {{#if isContentCollapsed}}hidden{{/if}}>
+        <section class="tom-scene-sound-panel__tracks">
+          <h3>{{tr "Music"}}</h3>
+          <div class="tom-scene-sound-panel__track-list">
+            {{#if tracks.length}}
+              {{#each tracks}}
+              <button
+                type="button"
+                class="tom-scene-sound-track tom-button tom-button-ghost {{#if isActive}}is-active{{/if}} {{#if isLooping}}is-looping{{/if}}"
+                data-action="play-global-track"
+                data-track-id="{{id}}"
+                title="{{label}}"
+              >
+                <span>{{label}}</span>
+                {{#if playlistName}}<small>{{playlistName}}</small>{{/if}}
+                {{#if showPlaybackStatus}}
+                <span class="tom-scene-sound-track__status" aria-hidden="true">
+                  <i class="fas fa-play"></i>
+                  {{#if isLooping}}<i class="fas fa-repeat tom-scene-sound-track__loop"></i>{{/if}}
+                </span>
+                {{/if}}
+              </button>
+              {{/each}}
+            {{else}}
+            <p class="tom-global-sound-player__empty">{{tr "No music tracks in Global Player playlists yet."}}</p>
+            {{/if}}
+          </div>
+        </section>
+
+        <section class="tom-scene-sound-panel__board">
+          <div class="tom-scene-sound-panel__board-header">
+            <h3>{{tr "Soundboard"}}</h3>
+            <div class="tom-scene-sound-panel__board-pagination" {{#unless hasMultipleSoundboardPages}}hidden{{/unless}}>
+              <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="global-soundboard-page-prev" aria-label="{{tr "Previous soundboard page"}}" title="{{tr "Back"}}">
+                <i class="fas fa-chevron-left" aria-hidden="true"></i>
+              </button>
+              <span>{{currentAudio.pageDisplay}} / {{soundboardPageCount}}</span>
+              <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="global-soundboard-page-next" aria-label="{{tr "Next soundboard page"}}" title="{{tr "Next"}}">
+                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div class="tom-scene-sound-panel__board-grid" style="--tom-soundboard-columns: {{soundboardColumnCount}};">
+            {{#if soundboardPageItems.length}}
+              {{#each soundboardPageItems}}
+              <button
+                type="button"
+                class="tom-scene-soundboard-item tom-button tom-button-ghost {{#if icon}}has-image{{/if}}"
+                data-action="play-global-soundboard-item"
+                data-soundboard-id="{{id}}"
+                title="{{label}}"
+                style="{{buttonStyle}}"
+              >
+                <span>{{label}}</span>
+              </button>
+              {{/each}}
+            {{else}}
+            <p class="tom-global-sound-player__empty">{{tr "No soundboard sounds available yet."}}</p>
+            {{/if}}
+          </div>
+        </section>
+      </div>
+    </div>
+    {{else}}
+    <div class="tom-global-sound-player__empty-state tom-theme-card">
+      <i class="fas fa-headphones" aria-hidden="true"></i>
+      <p>{{tr "No Global Player playlists yet."}}</p>
+      <small>{{tr "Enable Global Player in a sound playlist setup to show tracks here."}}</small>
+    </div>
+    {{/if}}
+  </div>
+</section>

@@ -2983,7 +2983,6 @@
 
 .tom-map-editmode.tom-world-map-config--inline,
 .tom-map-editmode.tom-world-map-config {
-  --tom-map-edit-bg: var(--tom-world-map-edit-bg);
   --tom-map-edit-card: var(--tom-world-map-edit-card-bg);
   --tom-map-edit-subcard: var(--tom-world-map-edit-subcard-bg);
   --tom-map-edit-input: var(--tom-world-map-edit-input-bg);

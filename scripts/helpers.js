@@ -7,6 +7,59 @@ export function duplicateData(data) {
   return foundry.utils.deepClone(data);
 }
 
+// Shared Footlights switch behavior. Use the .tom-toggle-switch markup for new toggles
+// so Foundry reflows cannot swallow the slide animation.
+export function animateFootlightsToggleSwitch(inputOrSwitch, checkedOverride = null) {
+  const switchEl = inputOrSwitch?.matches?.(".tom-toggle-switch")
+    ? inputOrSwitch
+    : inputOrSwitch?.closest?.(".tom-toggle-switch");
+  const input = switchEl?.querySelector?.("input[type='checkbox']");
+  const knob = switchEl?.querySelector?.(".tom-toggle-switch__knob");
+  if (!switchEl || !input || !knob) return;
+
+  const checked = checkedOverride === null ? Boolean(input.checked) : Boolean(checkedOverride);
+  const wasChecked = switchEl.classList.contains("is-checked");
+  if (wasChecked === checked) return;
+
+  if (knob._tomSwitchAnimationFrame) window.cancelAnimationFrame(knob._tomSwitchAnimationFrame);
+  switchEl.classList.toggle("is-checked", checked);
+
+  const fromX = wasChecked ? 1.56 : 0;
+  const toX = checked ? 1.56 : 0;
+  const duration = 220;
+  const startedAt = performance.now();
+  const easeOutCubic = (value) => 1 - Math.pow(1 - value, 3);
+
+  const tick = (time) => {
+    const progress = Math.min(1, (time - startedAt) / duration);
+    const eased = easeOutCubic(progress);
+    const x = fromX + ((toX - fromX) * eased);
+    knob.style.transform = `translate3d(${x.toFixed(3)}rem, -50%, 0)`;
+
+    if (progress < 1) {
+      knob._tomSwitchAnimationFrame = window.requestAnimationFrame(tick);
+      return;
+    }
+
+    knob.style.transform = "";
+    knob._tomSwitchAnimationFrame = null;
+  };
+
+  knob.style.transform = `translate3d(${fromX}rem, -50%, 0)`;
+  knob._tomSwitchAnimationFrame = window.requestAnimationFrame(tick);
+}
+
+export function bindFootlightsToggleSwitches(root) {
+  const host = root?.jquery ? root[0] : root;
+  if (!host?.querySelectorAll) return;
+
+  host.querySelectorAll(".tom-toggle-switch:not([data-manual-toggle='true']) input[type='checkbox']").forEach((input) => {
+    if (input.dataset.tomToggleBound === "true") return;
+    input.dataset.tomToggleBound = "true";
+    input.addEventListener("change", () => animateFootlightsToggleSwitch(input));
+  });
+}
+
 export function normalizeProfiles(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -61,6 +114,18 @@ export function normalizeRuntimeState(value) {
         .map(([key, entry]) => [
           key,
           {
+            ...(Number.isFinite(Number(entry.anchorX))
+              ? { anchorX: Math.max(0, Math.min(100, Number(entry.anchorX))) }
+              : {}),
+            ...(Number.isFinite(Number(entry.anchorY))
+              ? { anchorY: Math.max(0, Math.min(100, Number(entry.anchorY))) }
+              : {}),
+            ...(Number.isFinite(Number(entry.referencePlaneWidth)) && Number(entry.referencePlaneWidth) > 0
+              ? { referencePlaneWidth: Math.max(1, Number(entry.referencePlaneWidth)) }
+              : {}),
+            ...(Number.isFinite(Number(entry.referencePlaneHeight)) && Number(entry.referencePlaneHeight) > 0
+              ? { referencePlaneHeight: Math.max(1, Number(entry.referencePlaneHeight)) }
+              : {}),
             offsetX: Number.isFinite(Number(entry.offsetX)) ? Number(entry.offsetX) : 0,
             offsetY: Number.isFinite(Number(entry.offsetY)) ? Number(entry.offsetY) : 0,
             zIndex: Number.isFinite(Number(entry.zIndex)) ? Number(entry.zIndex) : 1,
@@ -190,7 +255,7 @@ export function readTransferJson(event, mimeType) {
   }
 }
 
-export function setAvatarDragData(event, avatarId, plainPayload = avatarId) {
+export function setAvatarDragData(event, avatarId, plainPayload = { type: "TheatreAvatar", avatarId }) {
   if (!avatarId) return;
 
   const nativeEvent = getNativeDragEvent(event);
@@ -339,13 +404,28 @@ export function setWorldMapDragData(event, mapId, plainPayload = { type: "WorldM
   transfer.effectAllowed = "copy";
 }
 
+export function setPortalDragData(event, portalId, plainPayload = { type: "Portal", portalId }) {
+  if (!portalId) return;
+
+  const nativeEvent = getNativeDragEvent(event);
+  const transfer = nativeEvent?.dataTransfer;
+  if (!transfer) return;
+
+  transfer.setData("application/x-footlights-portal", JSON.stringify({ portalId }));
+  transfer.setData(
+    "text/plain",
+    typeof plainPayload === "string" ? plainPayload : JSON.stringify(plainPayload)
+  );
+  transfer.effectAllowed = "copy";
+}
+
 export function openImagePickerForInput(form, targetSelector, pickerType = "image") {
   if (!form || !targetSelector) return;
 
   const input = form.querySelector(targetSelector);
   if (!input) return;
 
-  new FilePicker({
+  const picker = new FilePicker({
     type: pickerType || "image",
     current: input.value || "",
     callback: (path) => {
@@ -362,7 +442,28 @@ export function openImagePickerForInput(form, targetSelector, pickerType = "imag
         }
       }
     }
-  }).render(true);
+  });
+  picker.render(true);
+
+  const liftPickerToFront = () => {
+    picker.bringToTop?.();
+    const pickerElement = picker.element?.[0] ?? picker.element;
+    if (!(pickerElement instanceof HTMLElement)) return;
+    pickerElement.classList.add("tom-footlights-filepicker-front");
+    const highestZIndex = Array.from(document.querySelectorAll(".app.window-app"))
+      .reduce((highest, element) => {
+        const value = Number.parseInt(window.getComputedStyle(element).zIndex, 10);
+        return Number.isFinite(value) ? Math.max(highest, value) : highest;
+      }, 100);
+    pickerElement.style.setProperty("z-index", String(Math.max(5000, highestZIndex + 100)), "important");
+    pickerElement.style.setProperty("visibility", "visible", "important");
+    pickerElement.style.setProperty("opacity", "1", "important");
+    pickerElement.style.setProperty("pointer-events", "auto", "important");
+  };
+
+  window.requestAnimationFrame(liftPickerToFront);
+  window.setTimeout(liftPickerToFront, 50);
+  window.setTimeout(liftPickerToFront, 180);
 }
 
 export function isVideoMediaPath(value) {
@@ -388,6 +489,29 @@ export function themeStopToCss(stop) {
   const b = parseInt(hex.slice(4, 6), 16);
   const alpha = Math.max(0, Math.min(1, Number(stop?.alpha)));
   return `rgba(${r}, ${g}, ${b}, ${Number.isFinite(alpha) ? alpha : 1})`;
+}
+
+export function themeStopToOpaqueCss(stop) {
+  const match = /^#([0-9a-f]{6})$/i.exec(String(stop?.color ?? ""));
+  if (!match) return "rgba(255,255,255,1)";
+  const hex = match[1];
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, 1)`;
+}
+
+export function themeStopToAlphaCss(stop, alphaMultiplier = 1) {
+  const match = /^#([0-9a-f]{6})$/i.exec(String(stop?.color ?? ""));
+  if (!match) return "rgba(255,255,255,1)";
+  const hex = match[1];
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const alpha = Math.max(0, Math.min(1, Number(stop?.alpha)));
+  const resolvedAlpha = Number.isFinite(alpha) ? alpha : 1;
+  const multiplier = Math.max(0, Math.min(1, Number(alphaMultiplier)));
+  return `rgba(${r}, ${g}, ${b}, ${resolvedAlpha * (Number.isFinite(multiplier) ? multiplier : 1)})`;
 }
 
 export function themeLinearGradientCss(start, end) {
@@ -418,12 +542,13 @@ export function themeImageUrlToCss(value, fallback = "none") {
   return `url("${escapedPath}")`;
 }
 
-function buildThemeMediaLayerStyle(pathValue, alphaValue, scaleValue, repeatValue) {
+function buildThemeMediaLayerStyle(pathValue, alphaValue, scaleValue, repeatValue, blurValue = 0) {
   const path = String(pathValue ?? "").trim();
   if (!path) return "";
   const alpha = Math.max(0, Math.min(1, Number(alphaValue) || 0));
   if (alpha <= 0) return "";
   const scale = Math.max(0.1, Math.min(4, Number(scaleValue) || 1));
+  const blur = Math.max(0, Math.min(32, Number(blurValue) || 0));
   const repeat = String(repeatValue ?? "repeat").trim() || "repeat";
   const escapedPath = path.replaceAll("\\", "/").replaceAll("\"", "\\\"");
   return [
@@ -431,6 +556,7 @@ function buildThemeMediaLayerStyle(pathValue, alphaValue, scaleValue, repeatValu
     "background-position:center center",
     `background-repeat:${repeat}`,
     `background-size:${(scale * 100).toFixed(0)}% auto`,
+    `filter:${blur > 0 ? `blur(${blur}px)` : "none"}`,
     `opacity:${alpha}`
   ].join(";");
 }
@@ -459,6 +585,16 @@ function applyThemeMediaLayers(rootElement, theme) {
   const managedElements = new Set();
 
   const applyToElements = (selector, styleValue) => {
+    const candidates = [
+      root,
+      root.closest?.(".window-content"),
+      root.closest?.(".window-app")
+    ].filter((element, index, list) => element instanceof HTMLElement && list.indexOf(element) === index);
+    candidates.forEach((element) => {
+      if (!element.matches?.(selector)) return;
+      managedElements.add(element);
+      syncThemeMediaLayer(element, styleValue);
+    });
     root.querySelectorAll(selector).forEach((element) => {
       managedElements.add(element);
       syncThemeMediaLayer(element, styleValue);
@@ -469,13 +605,15 @@ function applyThemeMediaLayers(rootElement, theme) {
     theme?.content?.appBackgroundImage,
     theme?.content?.appBackgroundImageAlpha,
     theme?.content?.appBackgroundImageScale,
-    theme?.content?.appBackgroundImageRepeat
+    theme?.content?.appBackgroundImageRepeat,
+    theme?.content?.appBackgroundImageBlur
   );
   const surfaceStyle = buildThemeMediaLayerStyle(
     theme?.content?.surfaceImage,
     theme?.content?.surfaceImageAlpha,
     theme?.content?.surfaceImageScale,
-    theme?.content?.surfaceImageRepeat
+    theme?.content?.surfaceImageRepeat,
+    theme?.content?.surfaceImageBlur
   );
   const containerStyle = buildThemeMediaLayerStyle(
     theme?.content?.containerImage,
@@ -497,14 +635,7 @@ function applyThemeMediaLayers(rootElement, theme) {
   );
 
   applyToElements([
-    ".theatre-scene-library.window-app",
-    ".theatre-scene-library .window-content",
     ".tom-scene-library",
-    ".tom-library-content--shell",
-    ".tom-library-inline-editor",
-    ".tom-library-inline-mindmap-shell",
-    ".tom-library-inline-mindmap-stage",
-    ".tom-library-inline-mindmap",
     ".theatre-scene-config .window-content",
     ".theatre-actor-profile-config .window-content",
     ".theatre-mindmap .window-content",
@@ -540,8 +671,26 @@ export function buildThemeInlineStyle(theme) {
   const contentContainerImageAlpha = Math.max(0, Math.min(1, Number(theme.content?.containerImageAlpha) || 0));
   const contentCardImageAlpha = Math.max(0, Math.min(1, Number(theme.content?.cardImageAlpha) || 0));
   const contentSurfaceImageScale = Math.max(0.1, Math.min(4, Number(theme.content?.surfaceImageScale ?? 1) || 1));
+  const contentSurfaceImageBlur = Math.max(0, Math.min(32, Number(theme.content?.surfaceImageBlur ?? 0) || 0));
   const contentContainerImageScale = Math.max(0.1, Math.min(4, Number(theme.content?.containerImageScale ?? 1) || 1));
   const contentCardImageScale = Math.max(0.1, Math.min(4, Number(theme.content?.cardImageScale ?? 1) || 1));
+  const appBackgroundImageBlur = Math.max(0, Math.min(32, Number(theme.content?.appBackgroundImageBlur ?? 0) || 0));
+  const contentShadowBlurValue = Number(theme.content?.shadowBlur ?? 42);
+  const contentShadowDistanceValue = Number(theme.content?.shadowDistance ?? 18);
+  const contentShadowBlur = Number.isFinite(contentShadowBlurValue) ? Math.max(0, Math.min(96, contentShadowBlurValue)) : 42;
+  const contentShadowDistance = Number.isFinite(contentShadowDistanceValue) ? Math.max(0, Math.min(96, contentShadowDistanceValue)) : 18;
+  const contentShadow = `0 ${contentShadowDistance}px ${contentShadowBlur}px ${themeStopToCss(theme.content?.shadow)}`;
+  const contentShadowBleedGutter = Math.max(10, Math.min(24, 10 + ((contentShadowBlur + contentShadowDistance) * 0.0733)));
+  const contentFocusShadowBlurValue = Number(theme.content?.focusShadowBlur ?? 0);
+  const contentFocusShadowDistanceValue = Number(theme.content?.focusShadowDistance ?? 2);
+  const contentFocusShadowBlur = Number.isFinite(contentFocusShadowBlurValue) ? Math.max(0, Math.min(32, contentFocusShadowBlurValue)) : 0;
+  const contentFocusShadowDistance = Number.isFinite(contentFocusShadowDistanceValue) ? Math.max(0, Math.min(32, contentFocusShadowDistanceValue)) : 2;
+  const contentFocusShadow = `0 0 ${contentFocusShadowBlur}px ${contentFocusShadowDistance}px ${themeStopToCss(theme.content?.focusShadow)}`;
+  const contentIconFocusShadowBlur = Math.max(contentFocusShadowBlur, contentFocusShadowDistance);
+  const contentFocusShadowColor = themeStopToOpaqueCss(theme.content?.focusShadow);
+  const contentFocusShadowColor70 = themeStopToAlphaCss(theme.content?.focusShadow, 0.7);
+  const contentIconFocusShadow = `0 0 ${contentIconFocusShadowBlur}px ${contentFocusShadowColor}`;
+  const contentHoverShadow = `${contentFocusShadow}, ${contentShadow}`;
   const stageGoblinFontSize = resolveThemeFontPresetSize(theme, theme?.stageGoblin?.fontPreset);
   return [
     `--tom-font-heading-1:${themeSizeToCss(theme.typography?.heading1, 1.42)}`,
@@ -552,6 +701,7 @@ export function buildThemeInlineStyle(theme) {
     `--tom-font-sub-text:${themeSizeToCss(theme.typography?.subText, 0.82)}`,
     `--tom-font-sub-text-hover:${themeSizeToCss(theme.typography?.subTextHover, theme.typography?.subText ?? 0.82)}`,
     `--tom-font-micro-text:${themeSizeToCss(theme.typography?.microText, 0.72)}`,
+    `--tom-font-label-text:${themeSizeToCss(theme.typography?.labelText, theme.typography?.heading3 ?? 0.82)}`,
     `--tom-font-navigation-size:${themeSizeToCss(theme.typography?.navigationSize, 0.76)}`,
     `--tom-font-family-heading-1:${themeFontFamilyToCss(theme.typography?.heading1Font)}`,
     `--tom-font-family-heading-2:${themeFontFamilyToCss(theme.typography?.heading2Font)}`,
@@ -559,12 +709,24 @@ export function buildThemeInlineStyle(theme) {
     `--tom-font-family-body:${themeFontFamilyToCss(theme.typography?.bodyFont)}`,
     `--tom-font-family-sub-text:${themeFontFamilyToCss(theme.typography?.subTextFont)}`,
     `--tom-font-family-micro-text:${themeFontFamilyToCss(theme.typography?.microTextFont)}`,
-    `--tom-font-family-navigation:${themeFontFamilyToCss(theme.typography?.navigationFont)}`,
+    `--tom-font-family-label-text:${themeFontFamilyToCss(theme.typography?.labelTextFont, "var(--tom-font-family-heading-3, inherit)")}`,
+    `--tom-font-family-navigation:${themeFontFamilyToCss(theme.typography?.navigationFont, "var(--tom-font-family-body, inherit)")}`,
     `--tom-typography-heading-1-color:${themeStopToCss(theme.content.heading)}`,
     `--tom-typography-heading-2-color:${themeStopToCss(theme.content.subheading)}`,
     `--tom-typography-heading-3-color:${themeStopToCss(theme.content.label)}`,
+    `--tom-typography-label-text-color:${themeStopToCss(theme.content.label)}`,
+    `--tom-shadow-soft:${contentShadow}`,
+    `--tom-shadow-panel:${contentShadow}`,
+    `--tom-shadow-glow:${contentHoverShadow}`,
+    `--tom-shadow-bleed-gutter:${contentShadowBleedGutter.toFixed(1)}px`,
+    `--tom-library-shadow-bleed-gutter:${contentShadowBleedGutter.toFixed(1)}px`,
+    `--tom-theme-shadow-bleed-gutter:${contentShadowBleedGutter.toFixed(1)}px`,
+    `--tom-content-surface-shadow:${contentShadow}`,
+    `--tom-content-card-shadow:${contentShadow}`,
+    `--tom-settings-surface-shadow:${contentShadow}`,
     `--tom-app-background:${themeStopToCss(theme.content.appBackground)}`,
     `--tom-app-background-solid:${String(theme.content.appBackground?.color ?? "#08121f")}`,
+    `--tom-app-background-image-blur:${appBackgroundImageBlur}px`,
     `--tom-nav-surface-bg:${themeLinearGradientCss(theme.navigation.surfaceStart, theme.navigation.surfaceEnd)}`,
     `--tom-nav-surface-image:${themeImageUrlToCss(theme.navigation.surfaceImage)}`,
     `--tom-nav-surface-image-alpha:${Math.max(0, Math.min(1, Number(theme.navigation.surfaceImageAlpha) || 0))}`,
@@ -617,6 +779,8 @@ export function buildThemeInlineStyle(theme) {
     `--tom-nav-action-create-border-width:${themeNumberToCss(theme.navigation.actionCreateBorderWidth, 1, "px")}`,
     `--tom-nav-action-create-radius:${themeNumberToCss(theme.navigation.actionCreateRadius, 8, "px")}`,
     `--tom-nav-action-create-text:${themeStopToCss(theme.navigation.actionCreateText)}`,
+    `--tom-nav-action-create-hover-bg:${themeStopToCss(theme.navigation.actionCreateHoverBg)}`,
+    `--tom-nav-action-create-hover-text:${themeStopToCss(theme.navigation.actionCreateHoverText)}`,
     `--tom-nav-text:${themeStopToCss(theme.navigation.text)}`,
     `--tom-nav-muted-text:${themeStopToCss(theme.navigation.mutedText)}`,
     `--tom-nav-header-rule:${themeStopToCss(theme.navigation.headerRule)}`,
@@ -628,8 +792,12 @@ export function buildThemeInlineStyle(theme) {
     `--tom-content-surface-image-alpha:0`,
     `--tom-content-surface-image-scale:${contentSurfaceImageScale}`,
     `--tom-content-surface-image-size:${(contentSurfaceImageScale * 100).toFixed(0)}% auto`,
+    `--tom-content-surface-image-filter:${contentSurfaceImageBlur > 0 ? `blur(${contentSurfaceImageBlur}px)` : "none"}`,
     `--tom-content-surface-image-repeat:${String(theme.content?.surfaceImageRepeat ?? "repeat")}`,
     `--tom-content-surface-radius:${themeNumberToCss(theme.content.surfaceRadius, 20, "px")}`,
+    `--tom-settings-surface-radius:${themeNumberToCss(theme.content.surfaceRadius, 20, "px")}`,
+    `--tom-library-settings-card-radius:${themeNumberToCss(theme.content.surfaceRadius, 20, "px")}`,
+    `--tom-library-settings-panel-radius:${themeNumberToCss(theme.content.surfaceRadius, 20, "px")}`,
     `--tom-content-container-bg:${themeStopToCss(theme.content.container)}`,
     `--tom-content-container-image:none`,
     `--tom-content-container-image-alpha:0`,
@@ -649,7 +817,12 @@ export function buildThemeInlineStyle(theme) {
     `--tom-content-form-bg:${themeStopToCss(theme.content.formBackground)}`,
     `--tom-content-form-radius:${themeNumberToCss(theme.content.formRadius, 12, "px")}`,
     `--tom-content-divider:${themeStopToCss(theme.content.divider)}`,
+    `--tom-content-highlight:${themeStopToCss(theme.content.highlight)}`,
     `--tom-content-scrollbar:${themeStopToCss(theme.content.scrollbar)}`,
+    `--tom-shadow-focus:${contentFocusShadow}`,
+    `--tom-shadow-focus-color:${contentFocusShadowColor}`,
+    `--tom-shadow-focus-color-70:${contentFocusShadowColor70}`,
+    `--tom-shadow-focus-icon:${contentIconFocusShadow}`,
     `--tom-content-heading:${themeStopToCss(theme.content.heading)}`,
     `--tom-content-subheading:${themeStopToCss(theme.content.subheading)}`,
     `--tom-content-button-hover-heading:${themeStopToCss(theme.content.buttonHoverHeading)}`,
@@ -711,16 +884,27 @@ export function buildThemeInlineStyle(theme) {
     `--tom-stage-goblin-border-width:${themeNumberToCss(theme.stageGoblin.borderWidth, 1, "px")}`,
     `--tom-stage-goblin-radius:${themeNumberToCss(theme.stageGoblin.radius, 11, "px")}`,
     `--tom-stage-goblin-font-size:${themeSizeToCss(stageGoblinFontSize, 0.82)}`,
+    `--tom-stage-goblin-tag-font-size:${themeSizeToCss(theme.stageGoblin.tagFontSize, 0.62)}`,
+    `--tom-stage-goblin-tag-height:${themeNumberToCss(theme.stageGoblin.tagHeight, 26, "px")}`,
+    `--tom-stage-goblin-tag-width:${themeNumberToCss(theme.stageGoblin.tagWidth, 92, "px")}`,
+    `--tom-stage-goblin-tag-radius:${themeNumberToCss(theme.stageGoblin.tagRadius, 4, "px")}`,
+    `--tom-stage-goblin-tag-padding-x:${themeSizeToCss(theme.stageGoblin.tagPaddingX, 0.42)}`,
+    `--tom-stage-goblin-tag-glow-blur:${theme.stageGoblin.tagGlowEnabled ? themeNumberToCss(theme.stageGoblin.tagGlowBlur, 14, "px") : "0px"}`,
+    `--tom-stage-goblin-tag-glow-alpha:${theme.stageGoblin.tagGlowEnabled ? "34%" : "0%"}`,
     `--tom-theatre-stage-title:${themeStopToCss(theme.theatre.stageTitle)}`,
     `--tom-theatre-stage-title-size:${themeSizeToCss(theme.theatre.stageTitleSize, 1.42)}`,
+    `--tom-theatre-stage-title-font:${themeFontFamilyToCss(theme.theatre.stageTitleFont, "var(--tom-font-family-heading-1, inherit)")}`,
     `--tom-theatre-stage-subtitle:${themeStopToCss(theme.theatre.stageSubtitle)}`,
     `--tom-theatre-stage-subtitle-size:${themeSizeToCss(theme.theatre.stageSubtitleSize, 0.94)}`,
+    `--tom-theatre-stage-subtitle-font:${themeFontFamilyToCss(theme.theatre.stageSubtitleFont, "var(--tom-font-family-body, inherit)")}`,
     `--tom-theatre-avatar-name:${themeStopToCss(theme.theatre.avatarName)}`,
     `--tom-theatre-avatar-name-size:${themeSizeToCss(theme.theatre.avatarNameSize, 1.02)}`,
     `--tom-theatre-mood:${themeStopToCss(theme.theatre.mood)}`,
     `--tom-theatre-mood-size:${themeSizeToCss(theme.theatre.moodSize, 1.02)}`,
     `--tom-theatre-title-bg:${themeStopToCss(theme.theatre.titleBackground)}`,
-    `--tom-theatre-title-bg-radius:${themeNumberToCss(theme.theatre.titleBackgroundRadius, 999, "px")}`,
+    `--tom-theatre-title-bg-border:${themeStopToCss(theme.theatre.titleBackgroundBorder)}`,
+    `--tom-theatre-title-bg-border-width:${themeNumberToCss(theme.theatre.titleBackgroundBorderWidth, 0, "px")}`,
+    `--tom-theatre-title-bg-radius:${themeNumberToCss(theme.theatre.titleBackgroundRadius, 100, "px")}`,
     `--tom-theatre-avatar-name-bg:${themeStopToCss(theme.theatre.avatarNameBackground)}`,
     `--tom-theatre-mood-bg:${themeStopToCss(theme.theatre.moodBackground)}`,
     `--tom-theatre-gm-bar-bg:${themeStopToCss(theme.theatre.gmBarBackground)}`,
@@ -746,6 +930,7 @@ export function buildThemeInlineStyle(theme) {
     `--tom-theatre-icon-border-width:${themeNumberToCss(theme.theatre.iconBorderWidth, 1, "px")}`,
     `--tom-theatre-stage-frame:${themeStopToCss(theme.theatre.stageFrame)}`,
     `--tom-theatre-stage-frame-width:${themeNumberToCss(theme.theatre.stageFrameWidth, 1, "px")}`,
+    `--tom-theatre-stage-frame-radius:${themeNumberToCss(theme.theatre.stageFrameRadius, 24, "px")}`,
     `--tom-content-overlay-bg:${themeStopToCss(theme.planner.backdrop)}`,
     `--tom-content-overlay-text:${themeStopToCss(theme.planner.backdropText)}`
   ].join(";");
@@ -807,16 +992,19 @@ export function applyTheatreDialogTheme(dialog, moduleId, width = "24rem", theme
     maxWidth: "calc(100vw - 2rem)",
     minWidth: "28rem",
     background: themeBackground,
-    color: "var(--tom-color-text, #eef6ff)"
+    color: "var(--tom-content-text, var(--tom-color-text, #eef6ff))"
   });
   root.find(".window-header, .dialog-buttons").addClass("tom-theme-area--navigation");
   root.find(".window-content, .dialog-content, form").addClass("tom-theme-area--content");
   root.find(".window-content, .dialog-content, form").css({
     background: themeBackground,
-    color: "var(--tom-color-text, #eef6ff)"
+    color: "var(--tom-content-text, var(--tom-color-text, #eef6ff))"
   });
-  root.find(".dialog-content, .dialog-content p, .dialog-content .notes, form, form p").css({
-    color: "var(--tom-color-text, #eef6ff)"
+  root.find(".dialog-content, form").css({
+    color: "var(--tom-content-text, var(--tom-color-text, #eef6ff))"
+  });
+  root.find(".dialog-content .notes, .dialog-content p.notes, .dialog-content small.notes, form .notes, form p.notes, form small.notes").css({
+    color: "var(--tom-content-text, var(--tom-color-text, #eef6ff))"
   });
   root.find("form").css({
     margin: 0,

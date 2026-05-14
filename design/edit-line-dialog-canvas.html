@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Footlights Edit Line Design Variants</title>
+  <style>
+    :root {
+      --app-bg: #0b121b;
+      --app-bg-2: #101a26;
+      --titlebar: #111c29;
+      --surface: #172331;
+      --surface-2: #1d2a39;
+      --field: #101823;
+      --border: rgba(132, 178, 218, 0.22);
+      --border-strong: rgba(161, 214, 246, 0.34);
+      --text: #d9e4ef;
+      --muted: #91a4b7;
+      --heading: #bed57f;
+      --highlight: #96b22b;
+      --button: #263748;
+      --button-text: #e6edf4;
+      --create: #91aa21;
+      --create-text: #152016;
+      --danger: #9e3143;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+      --radius: 6px;
+      color-scheme: dark;
+      font-family: Arial, sans-serif;
+      font-size: 15px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 26px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 0%, rgba(128, 180, 220, 0.18), transparent 32%),
+        radial-gradient(circle at 85% 12%, rgba(150, 178, 43, 0.1), transparent 30%),
+        linear-gradient(135deg, #070d14, #121d2a 48%, #080d13);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .page-head {
+      max-width: 1680px;
+      margin: 0 auto 22px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .page-head h1 {
+      color: var(--heading);
+      font-size: 1.25rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .page-head p {
+      max-width: 780px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .variant-grid {
+      max-width: 1680px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(620px, 1fr));
+      gap: 22px;
+      align-items: start;
+    }
+
+    .variant {
+      display: grid;
+      gap: 10px;
+    }
+
+    .variant-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 2px;
+    }
+
+    .variant-label h2 {
+      color: var(--heading);
+      font-size: 0.98rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .variant-label span {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .dialog {
+      overflow: hidden;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: var(--app-bg);
+      box-shadow: var(--shadow);
+    }
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 28px;
+      padding: 0 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--titlebar);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .content {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      min-height: 620px;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 0 14px 14px;
+    }
+
+    button, .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 112px;
+      height: 34px;
+      padding: 0 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--button);
+      color: var(--button-text);
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .primary {
+      background: var(--create);
+      color: var(--create-text);
+      border-color: color-mix(in srgb, var(--create) 82%, white);
+    }
+
+    label, .label, .eyebrow {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      line-height: 1.15;
+      text-transform: uppercase;
+    }
+
+    input, select {
+      width: 100%;
+      height: 34px;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--field);
+      color: var(--text);
+      padding: 7px 10px;
+      font: inherit;
+      font-size: 0.84rem;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .field.inline {
+      grid-template-columns: 110px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+    }
+
+    .fields-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .fields-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-head h3 {
+      color: var(--heading);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .card-body {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .switch {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 34px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--field);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .track {
+      position: relative;
+      width: 42px;
+      height: 22px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: #203142;
+    }
+
+    .track::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 4px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #08131f;
+    }
+
+    .track.on { background: var(--highlight); }
+    .track.on::after { left: 24px; }
+
+    .swatch-row {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 32px;
+      height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #d7e8ff;
+    }
+
+    .drop {
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 8px;
+      min-height: 150px;
+      padding: 16px;
+      border: 2px dashed color-mix(in srgb, var(--border-strong) 72%, transparent);
+      border-radius: 10px;
+      background: var(--field);
+      text-align: center;
+    }
+
+    .drop .icon {
+      color: var(--heading);
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .drop strong {
+      max-width: 230px;
+      color: var(--heading);
+      font-size: 0.98rem;
+      line-height: 1.18;
+    }
+
+    .drop small {
+      max-width: 260px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      line-height: 1.3;
+    }
+
+    .drop button { margin-top: 4px; height: 32px; min-width: 112px; }
+
+    /* Variant 1 */
+    .v1 .content {
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      align-items: start;
+    }
+
+    .v1 .identity-bar {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto auto;
+      gap: 10px;
+      align-items: end;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .v1 .style-stack { display: grid; gap: 12px; }
+    .v1 .right-stack { display: grid; gap: 12px; }
+
+    /* Variant 2 */
+    .v2 .content {
+      grid-template-columns: 220px minmax(0, 1fr);
+      align-items: stretch;
+    }
+
+    .v2 .rail {
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: linear-gradient(180deg, var(--surface), #111a25);
+    }
+
+    .v2 .rail-title {
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .v2 .rail-title h3 {
+      color: var(--heading);
+      font-size: 1.04rem;
+    }
+
+    .v2 .tab-list { display: grid; gap: 6px; }
+    .v2 .tab {
+      padding: 8px 9px;
+      border-radius: 6px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .v2 .tab.active {
+      color: var(--text);
+      background: color-mix(in srgb, var(--highlight) 20%, transparent);
+      outline: 1px solid color-mix(in srgb, var(--highlight) 44%, transparent);
+    }
+    .v2 .main-stack { display: grid; gap: 12px; }
+
+    /* Variant 3 */
+    .v3 .content { align-content: start; }
+    .v3 .band {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    .v3 .band-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .v3 .band-head h3 {
+      color: var(--heading);
+      font-size: 1.02rem;
+    }
+    .v3 .compact-row {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .v3 .wide { grid-column: span 2; }
+    .v3 .drop-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+    /* Variant 4 */
+    .v4 .content {
+      grid-template-rows: auto auto minmax(0, 1fr);
+      align-content: start;
+    }
+
+    .v4 .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--highlight) 12%, transparent), transparent 44%),
+        var(--surface);
+    }
+
+    .v4 .hero h3 {
+      color: var(--heading);
+      font-size: 1.1rem;
+    }
+
+    .v4 .segmented {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .v4 .segment {
+      height: 32px;
+      min-width: 0;
+      border-radius: 6px;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .v4 .segment.active {
+      background: var(--highlight);
+      color: #101916;
+    }
+
+    .v4 .editor-board {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    @media (max-width: 1380px) {
+      .variant-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 14px; }
+      .page-head { display: grid; }
+      .variant-grid { grid-template-columns: 1fr; }
+      .dialog { min-width: 0; }
+      .content,
+      .v1 .content,
+      .v2 .content,
+      .v4 .editor-board { grid-template-columns: 1fr; }
+      .v1 .identity-bar,
+      .fields-2,
+      .fields-3,
+      .v3 .compact-row,
+      .v3 .drop-pair { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-head">
+    <div>
+      <h1>Edit Line redesign canvas</h1>
+      <p>Four different layout directions for the World Map Edit Line window. These are static design variants only and do not touch the module runtime.</p>
+    </div>
+  </header>
+
+  <section class="variant-grid">
+    <article class="variant v1">
+      <div class="variant-label"><h2>Version 1: Control Deck</h2><span>clean cards, fewer nested boxes</span></div>
+      <div class="dialog">
+        <div class="titlebar"><span>Edit line</span><span>Close</span></div>
+        <div class="content">
+          <section class="identity-bar">
+            <div class="field"><label>Name</label><input value="Line" /></div>
+            <div class="field"><label>Category</label><select><option>General</option></select></div>
+            <div class="switch"><span>Movable</span><span class="track"></span></div>
+            <div class="switch"><span>Hover info</span><span class="track on"></span></div>
+          </section>
+          <div class="style-stack">
+            <section class="card"><div class="card-head"><h3>Stroke</h3><span class="eyebrow">Line style</span></div><div class="card-body fields-3">
+              <div class="field"><label>Color</label><div class="swatch-row"><span class="swatch"></span><input value="#D7E8FF" /></div></div>
+              <div class="field"><label>Opacity</label><input value="0,95" /></div>
+              <div class="field"><label>Thickness</label><input value="3" /></div>
+              <div class="field"><label>Style</label><select><option>Dash dot</option></select></div>
+              <div class="field"><label>Line ends</label><select><option>Round</option></select></div>
+            </div></section>
+            <section class="card"><div class="card-head"><h3>Border & Shadow</h3><span class="eyebrow">Depth</span></div><div class="card-body fields-3">
+              <div class="field"><label>Border color</label><div class="swatch-row"><span class="swatch" style="background:#101722"></span><input value="#101722" /></div></div>
+              <div class="field"><label>Border width</label><input value="0" /></div>
+              <div class="field"><label>Shadow color</label><div class="swatch-row"><span class="swatch" style="background:#000"></span><input value="#000000" /></div></div>
+              <div class="field"><label>Blur</label><input value="6" /></div>
+              <div class="field"><label>Distance</label><input value="0" /></div>
+              <div class="field"><label>Direction</label><select><option>Down left</option></select></div>
+            </div></section>
+          </div>
+          <div class="right-stack">
+            <section class="card"><div class="card-head"><h3>Connection Points</h3></div><div class="card-body fields-2">
+              <div class="field"><label>Style</label><select><option>None</option></select></div>
+              <div class="field"><label>Size</label><input value="7" /></div>
+              <div class="field"><label>Point color</label><div class="swatch-row"><span class="swatch"></span><input value="#D7E8FF" /></div></div>
+              <div class="field"><label>Point border</label><input value="1" /></div>
+            </div></section>
+            <section class="destination-card">
+              <div class="eyebrow">Travel target</div><div class="field"><label>Destination</label><select><option>No travel target</option></select></div><div class="switch"><span>Player access</span><span class="track"></span></div>
+              <div class="drop"><span class="icon">route</span><strong>Choose or drop a scene, portal, or map</strong><small>Clicking this line changes destination.</small><button>Clear target</button></div>
+            </section>
+            <section class="destination-card">
+              <div class="eyebrow">Linked document</div><div></div><div class="switch"><span>Player access</span><span class="track on"></span></div>
+              <div class="drop"><span class="icon">link</span><strong>Drag a journal or token here</strong><small>Clicking this line opens the document.</small><button>Clear link</button></div>
+            </section>
+          </div>
+        </div>
+        <div class="footer"><button>Cancel</button><button class="primary">Save</button></div>
+      </div>
+    </article>
+
+    <article class="variant v2">
+      <div class="variant-label"><h2>Version 2: Inspector Rail</h2><span>navigation rail plus focused content area</span></div>
+      <div class="dialog">
+        <div class="titlebar"><span>Edit line</span><span>Close</span></div>
+        <div class="content">
+          <aside class="rail">
+            <div class="rail-title"><h3>Line</h3><p style="color:var(--muted);font-size:.78rem;margin-top:4px">General map connector</p></div>
+            <div class="field"><label>Name</label><input value="Line" /></div>
+            <div class="field"><label>Category</label><select><option>General</option></select></div>
+            <div class="switch"><span>Movable</span><span class="track"></span></div>
+            <div class="switch"><span>Hover info</span><span class="track on"></span></div>
+            <nav class="tab-list"><div class="tab active">Stroke</div><div class="tab">Border</div><div class="tab">Shadow</div><div class="tab">Travel & Info</div></nav>
+          </aside>
+          <section class="main-stack">
+            <section class="card"><div class="card-head"><h3>Stroke</h3><span class="eyebrow">Active section</span></div><div class="card-body">
+              <div class="fields-3">
+                <div class="field"><label>Color</label><div class="swatch-row"><span class="swatch"></span><input value="#D7E8FF" /></div></div>
+                <div class="field"><label>Opacity</label><input value="0,95" /></div>
+                <div class="field"><label>Thickness</label><input value="3" /></div>
+              </div>
+              <div class="fields-2">
+                <div class="field"><label>Style</label><select><option>Dash dot</option></select></div>
+                <div class="field"><label>Line ends</label><select><option>Round</option></select></div>
+              </div>
+            </div></section>
+            <section class="card"><div class="card-head"><h3>Supporting Style</h3></div><div class="card-body fields-3">
+              <div class="field"><label>Border color</label><div class="swatch-row"><span class="swatch" style="background:#101722"></span><input value="#101722" /></div></div>
+              <div class="field"><label>Border width</label><input value="0" /></div>
+              <div class="field"><label>Shadow color</label><div class="swatch-row"><span class="swatch" style="background:#000"></span><input value="#000000" /></div></div>
+              <div class="field"><label>Shadow blur</label><input value="6" /></div>
+              <div class="field"><label>Shadow opacity</label><input value="0,35" /></div>
+              <div class="field"><label>Direction</label><select><option>Down left</option></select></div>
+            </div></section>
+            <section class="destination-grid">
+              <section class="destination-card"><div class="eyebrow">Travel target</div><div class="field"><label>Destination</label><select><option>No travel target</option></select></div><div class="switch"><span>Player access</span><span class="track"></span></div><div class="drop"><span class="icon">route</span><strong>Choose or drop a scene, portal, or map</strong><small>Travel from this line.</small><button>Clear target</button></div></section>
+              <section class="destination-card"><div class="eyebrow">Linked document</div><div></div><div class="switch"><span>Player access</span><span class="track on"></span></div><div class="drop"><span class="icon">link</span><strong>Drag a journal or token here</strong><small>Show information from this line.</small><button>Clear link</button></div></section>
+            </section>
+          </section>
+        </div>
+        <div class="footer"><button>Cancel</button><button class="primary">Save</button></div>
+      </div>
+    </article>
+
+    <article class="variant v3">
+      <div class="variant-label"><h2>Version 3: Section Bands</h2><span>wide bands, very little nesting</span></div>
+      <div class="dialog">
+        <div class="titlebar"><span>Edit line</span><span>Close</span></div>
+        <div class="content">
+          <section class="band">
+            <div class="band-head"><h3>Identity</h3><span class="eyebrow">Line basics</span></div>
+            <div class="fields-2"><div class="field inline"><label>Name</label><input value="Line" /></div><div class="field inline"><label>Category</label><select><option>General</option></select></div></div>
+            <div class="fields-2"><div class="switch"><span>Movable for players</span><span class="track"></span></div><div class="switch"><span>Show hover info</span><span class="track on"></span></div></div>
+          </section>
+          <section class="band">
+            <div class="band-head"><h3>Visual Line</h3><span class="eyebrow">Stroke, border, shadow</span></div>
+            <div class="compact-row">
+              <div class="field wide"><label>Stroke color</label><div class="swatch-row"><span class="swatch"></span><input value="#D7E8FF" /></div></div>
+              <div class="field"><label>Opacity</label><input value="0,95" /></div>
+              <div class="field"><label>Thickness</label><input value="3" /></div>
+              <div class="field wide"><label>Style</label><select><option>Dash dot</option></select></div>
+              <div class="field wide"><label>Border color</label><div class="swatch-row"><span class="swatch" style="background:#101722"></span><input value="#101722" /></div></div>
+              <div class="field"><label>Border</label><input value="0" /></div>
+              <div class="field"><label>Blur</label><input value="6" /></div>
+              <div class="field"><label>Distance</label><input value="0" /></div>
+              <div class="field wide"><label>Direction</label><select><option>Down left</option></select></div>
+            </div>
+          </section>
+          <section class="band">
+            <div class="band-head"><h3>Connection Points</h3><span class="eyebrow">Optional endpoints</span></div>
+            <div class="fields-3"><div class="field"><label>Style</label><select><option>None</option></select></div><div class="field"><label>Size</label><input value="7" /></div><div class="field"><label>Opacity</label><input value="0,95" /></div></div>
+          </section>
+          <section class="drop-pair">
+            <section class="destination-card"><div class="eyebrow">Travel target</div><div class="field"><label>Destination</label><select><option>No travel target</option></select></div><div class="switch"><span>Player access</span><span class="track"></span></div><div class="drop"><span class="icon">route</span><strong>Choose or drop a scene, portal, or map</strong><small>Move players to a destination.</small><button>Clear target</button></div></section>
+            <section class="destination-card"><div class="eyebrow">Linked document</div><div></div><div class="switch"><span>Player access</span><span class="track on"></span></div><div class="drop"><span class="icon">link</span><strong>Drag a journal or token here</strong><small>Open supporting information.</small><button>Clear link</button></div></section>
+          </section>
+        </div>
+        <div class="footer"><button>Cancel</button><button class="primary">Save</button></div>
+      </div>
+    </article>
+
+    <article class="variant v4">
+      <div class="variant-label"><h2>Version 4: Focus Tabs</h2><span>strong header, tab-like editing groups</span></div>
+      <div class="dialog">
+        <div class="titlebar"><span>Edit line</span><span>Close</span></div>
+        <div class="content">
+          <section class="hero">
+            <div><h3>Line</h3><p style="color:var(--muted);font-size:.8rem;margin-top:4px">Edit how this map connection looks, behaves, and where it leads.</p></div>
+            <div class="fields-2" style="min-width:360px"><div class="field"><label>Name</label><input value="Line" /></div><div class="field"><label>Category</label><select><option>General</option></select></div></div>
+          </section>
+          <nav class="segmented"><button class="segment active">Style</button><button class="segment">Points</button><button class="segment">Travel</button><button class="segment">Info</button></nav>
+          <section class="editor-board">
+            <section class="card"><div class="card-head"><h3>Style</h3><span class="eyebrow">Shown tab</span></div><div class="card-body">
+              <div class="fields-3"><div class="field"><label>Color</label><div class="swatch-row"><span class="swatch"></span><input value="#D7E8FF" /></div></div><div class="field"><label>Opacity</label><input value="0,95" /></div><div class="field"><label>Thickness</label><input value="3" /></div></div>
+              <div class="fields-3"><div class="field"><label>Style</label><select><option>Dash dot</option></select></div><div class="field"><label>Line ends</label><select><option>Round</option></select></div><div class="field"><label>Point size</label><input value="7" /></div></div>
+              <div class="fields-3"><div class="field"><label>Border color</label><div class="swatch-row"><span class="swatch" style="background:#101722"></span><input value="#101722" /></div></div><div class="field"><label>Shadow blur</label><input value="6" /></div><div class="field"><label>Direction</label><select><option>Down left</option></select></div></div>
+            </div></section>
+            <aside class="card"><div class="card-head"><h3>Behavior</h3></div><div class="card-body">
+              <div class="switch"><span>Movable for players</span><span class="track"></span></div>
+              <div class="switch"><span>Show hover info</span><span class="track on"></span></div>
+              <div class="switch"><span>Travel access</span><span class="track"></span></div>
+              <div class="switch"><span>Info access</span><span class="track on"></span></div>
+            </div></aside>
+            <section class="destination-grid" style="grid-column:1/-1">
+              <section class="destination-card"><div class="eyebrow">Travel target</div><div class="field"><label>Destination</label><select><option>No travel target</option></select></div><div></div><div class="drop"><span class="icon">route</span><strong>Choose or drop a scene, portal, or map</strong><small>Travel action from this line.</small><button>Clear target</button></div></section>
+              <section class="destination-card"><div class="eyebrow">Linked document</div><div></div><div></div><div class="drop"><span class="icon">link</span><strong>Drag a journal or token here</strong><small>Information action from this line.</small><button>Clear link</button></div></section>
+            </section>
+          </section>
+        </div>
+        <div class="footer"><button>Cancel</button><button class="primary">Save</button></div>
+      </div>
+    </article>
+  </section>
+</body>
+</html>

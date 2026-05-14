@@ -43,13 +43,13 @@
             <button type="button" class="tom-world-map__action-button" data-action="fit-world-map" title="{{tr "Fit map"}}" aria-label="{{tr "Fit map"}}">
               <i class="fas fa-fw fa-expand" aria-hidden="true"></i>
             </button>
-            <button type="button" class="tom-world-map__action-button {{#if arePinsVisible}}is-active{{/if}}" data-action="toggle-map-pin-visibility" title="{{tr "Pins"}}" aria-label="{{tr "Pins"}}">
+            <button type="button" class="tom-world-map__action-button {{#if arePinsVisible}}is-active{{/if}}" data-action="toggle-map-pin-visibility" title="{{tr "Pins"}}" aria-label="{{tr "Pins"}}" aria-pressed="{{#if arePinsVisible}}true{{else}}false{{/if}}">
               <i class="fas fa-fw {{#if arePinsVisible}}fa-eye{{else}}fa-eye-slash{{/if}}" aria-hidden="true"></i>
             </button>
-            <button type="button" class="tom-world-map__action-button {{#if areObjectOverlaysVisible}}is-active{{/if}}" data-action="toggle-map-object-overlay-visibility" title="{{tr "Object overlays"}}" aria-label="{{tr "Object overlays"}}">
+            <button type="button" class="tom-world-map__action-button {{#if areObjectOverlaysVisible}}is-active{{/if}}" data-action="toggle-map-object-overlay-visibility" title="{{tr "Object overlays"}}" aria-label="{{tr "Object overlays"}}" aria-pressed="{{#if areObjectOverlaysVisible}}true{{else}}false{{/if}}">
               <i class="fas fa-fw fa-layer-group" aria-hidden="true"></i>
             </button>
-            <button type="button" class="tom-world-map__action-button {{#if areRegionsVisible}}is-active{{/if}}" data-action="toggle-map-region-visibility" title="{{tr "Regions"}}" aria-label="{{tr "Regions"}}">
+            <button type="button" class="tom-world-map__action-button {{#if areRegionsVisible}}is-active{{/if}}" data-action="toggle-map-region-visibility" title="{{tr "Regions"}}" aria-label="{{tr "Regions"}}" aria-pressed="{{#if areRegionsVisible}}true{{else}}false{{/if}}">
               <i class="fas fa-fw fa-vector-square" aria-hidden="true"></i>
             </button>
             {{#if fogEnabled}}
@@ -116,7 +116,18 @@
           <div class="tom-world-map__region-draw-bar tom-world-map__region-draw-bar--edit">
             <span class="tom-world-map__region-draw-note">{{tr "Edit region points: drag handles to move points. Right-click a handle to remove it."}} {{editingRegionName}}</span>
             <div class="tom-world-map__region-edit-actions">
-              <button type="button" class="tom-world-map__overlay-button {{#if isRegionSnapEnabled}}is-active{{/if}}" data-action="toggle-region-snap">{{tr "Snap"}}</button>
+              <button type="button" class="tom-world-map__snap-toggle {{#if isRegionSnapEnabled}}is-active{{/if}}" data-action="toggle-region-snap" aria-pressed="{{#if isRegionSnapEnabled}}true{{else}}false{{/if}}">
+                <span>{{tr "Snap"}}</span>
+                <span class="tom-world-map__snap-toggle-track" aria-hidden="true"><span></span></span>
+              </button>
+              <button type="button" class="tom-world-map__snap-toggle {{#if isEditGridVisible}}is-active{{/if}}" data-action="toggle-map-edit-grid" aria-pressed="{{#if isEditGridVisible}}true{{else}}false{{/if}}">
+                <span>{{tr "Grid"}}</span>
+                <span class="tom-world-map__snap-toggle-track" aria-hidden="true"><span></span></span>
+              </button>
+              <label class="tom-world-map__edit-grid-field">
+                <span>{{tr "Grid size"}}</span>
+                <input type="number" min="8" max="512" step="1" value="{{editGridSize}}" data-map-edit-grid-size="true" />
+              </label>
               <button type="button" class="tom-world-map__overlay-button" data-action="style-region-edit">{{tr "Edit region"}}</button>
               <button type="button" class="tom-world-map__overlay-button" data-action="save-region-edit">{{tr "Save"}}</button>
               <button type="button" class="tom-world-map__overlay-button" data-action="cancel-region-edit">{{tr "Cancel"}}</button>
@@ -146,7 +157,18 @@
           <div class="tom-world-map__region-draw-bar tom-world-map__region-draw-bar--edit tom-world-map__region-draw-bar--line">
             <span class="tom-world-map__region-draw-note">{{tr "Edit line points: drag handles to move points. Right-click a handle to remove it."}} {{editingLineName}}</span>
             <div class="tom-world-map__region-edit-actions">
-              <button type="button" class="tom-world-map__overlay-button {{#if isLineSnapEnabled}}is-active{{/if}}" data-action="toggle-line-snap">{{tr "Snap"}}</button>
+              <button type="button" class="tom-world-map__snap-toggle {{#if isLineSnapEnabled}}is-active{{/if}}" data-action="toggle-line-snap" aria-pressed="{{#if isLineSnapEnabled}}true{{else}}false{{/if}}">
+                <span>{{tr "Snap"}}</span>
+                <span class="tom-world-map__snap-toggle-track" aria-hidden="true"><span></span></span>
+              </button>
+              <button type="button" class="tom-world-map__snap-toggle {{#if isEditGridVisible}}is-active{{/if}}" data-action="toggle-map-edit-grid" aria-pressed="{{#if isEditGridVisible}}true{{else}}false{{/if}}">
+                <span>{{tr "Grid"}}</span>
+                <span class="tom-world-map__snap-toggle-track" aria-hidden="true"><span></span></span>
+              </button>
+              <label class="tom-world-map__edit-grid-field">
+                <span>{{tr "Grid size"}}</span>
+                <input type="number" min="8" max="512" step="1" value="{{editGridSize}}" data-map-edit-grid-size="true" />
+              </label>
               <button type="button" class="tom-world-map__overlay-button" data-action="style-line-edit">{{tr "Edit line"}}</button>
               <button type="button" class="tom-world-map__overlay-button" data-action="save-line-edit">{{tr "Save"}}</button>
               <button type="button" class="tom-world-map__overlay-button" data-action="cancel-line-edit">{{tr "Cancel"}}</button>
@@ -223,15 +245,22 @@
             </div>
             <div class="tom-world-map__context-group tom-world-map__context-group--edit">
               <button type="button" class="tom-world-map__context-action" data-action="edit-map-context-target">{{tr "Edit"}}</button>
+              <button type="button" class="tom-world-map__context-action tom-world-map__context-action--line-points" data-action="edit-map-context-line-points">{{tr "Edit line"}}</button>
+              <button type="button" class="tom-world-map__context-action tom-world-map__context-action--region-points" data-action="edit-map-context-region-points">{{tr "Edit region"}}</button>
+              <button type="button" class="tom-world-map__context-action tom-world-map__context-action--duplicate" data-action="duplicate-map-context-target">{{tr "Duplicate"}}</button>
+              <button type="button" class="tom-world-map__context-action tom-world-map__context-action--delete" data-action="delete-map-context-target">{{tr "Delete"}}</button>
             </div>
           </div>
-          <div class="tom-world-map__canvas" data-world-map-canvas="true"></div>
+          <div class="tom-world-map__canvas" data-world-map-canvas="true" style="--tom-world-map-edit-grid-size: {{editGridSize}}px;"></div>
         </div>
 
         <aside class="tom-world-map__sidebar tom-world-map__sidebar--right tom-theme-container">
-          <h3>{{tr "Pins"}}</h3>
-          <p class="notes">{{tr "Double-click on the map to create a new pin."}}</p>
-          <p class="notes">{{tr "Drag a journal entry onto the map to create a linked pin."}}</p>
+          <div class="tom-world-map__sidebar-heading-row">
+            <h3>{{tr "Pins"}}</h3>
+            <button type="button" class="tom-world-map__sidebar-info" data-world-map-sidebar-tooltip="{{tr "Double-click on the map to create a new pin."}}&#10;{{tr "Drag a journal entry onto the map to create a linked pin."}}" aria-label="{{tr "Map pin help"}}">
+              <i class="fas fa-circle-info" aria-hidden="true"></i>
+            </button>
+          </div>
           <div class="tom-world-map__pin-filters">
             <input type="search" data-world-map-pin-filter="search" placeholder="{{tr "Search pins"}}" aria-label="{{tr "Search pins"}}" />
             <select data-world-map-pin-filter="category" aria-label="{{tr "Filter pins by category"}}">
@@ -246,7 +275,7 @@
             {{#each pins}}
             <li class="tom-world-map__pin-item {{#if isSelected}}is-selected{{/if}}" data-pin-label="{{label}}" data-pin-category="{{type}}">
               <button type="button" class="tom-world-map__pin-jump" data-action="jump-to-pin" data-pin-id="{{id}}" {{#if sidebarTooltip}}data-world-map-sidebar-tooltip="{{sidebarTooltip}}"{{/if}}>
-                <span class="tom-world-map__pin-icon" style="color:{{color}}; font-size:{{iconSizeRem}}rem; {{iconBorderStyle}} {{iconShadowStyle}}">
+                <span class="tom-world-map__pin-icon" style="color:{{color}}; {{iconBorderStyle}} {{iconShadowStyle}}">
                   <i class="fas {{iconClass}}" aria-hidden="true"></i>
                 </span>
                 <span class="tom-world-map__pin-meta">

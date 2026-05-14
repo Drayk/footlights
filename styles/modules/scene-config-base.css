@@ -48,7 +48,7 @@
   color: var(--tom-color-muted) !important;
 }
 
-.tom-scene-config-headings :is(input[type="text"], textarea) {
+.tom-scene-config-headings :where(input[type="text"], textarea) {
   min-height: 2.9rem;
   padding: 0.68rem 0.9rem;
   font-size: var(--tom-font-size-title-sm);
@@ -202,7 +202,7 @@
   text-transform: uppercase;
 }
 
-.tom-scene-config-settings-card :is(input[type="text"], select, textarea) {
+.tom-scene-config-settings-card :where(input[type="text"], select, textarea) {
   min-height: 2.9rem;
   font-size: var(--tom-font-body);
 }
@@ -243,19 +243,94 @@
   gap: 0.65rem;
 }
 
+.tom-toggle-switch {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 3rem !important;
+  align-items: center !important;
+  gap: 0.85rem !important;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tom-toggle-switch input[type="checkbox"] {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  pointer-events: none;
+}
+
+.tom-toggle-switch__label {
+  grid-column: 1;
+  min-width: 0;
+  color: var(--tom-content-text) !important;
+  font-family: var(--tom-font-family-body, inherit);
+  font-size: var(--tom-font-body);
+  line-height: 1.2;
+}
+
+.tom-toggle-switch__track {
+  grid-column: 2;
+  position: relative;
+  justify-self: end;
+  flex: 0 0 3rem;
+  width: 3rem;
+  height: 1.45rem;
+  border: 1px solid var(--tom-content-border-2);
+  border-radius: var(--tom-radius-pill, 999px);
+  background: color-mix(in srgb, var(--tom-content-muted-text, #8a96a6) 36%, var(--tom-content-card-bg) 64%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.16);
+  transition: background var(--tom-transition-fast), border-color var(--tom-transition-fast);
+}
+
+.tom-toggle-switch__knob {
+  position: absolute;
+  top: 50%;
+  left: 0.2rem;
+  width: 1.02rem;
+  height: 1.02rem;
+  border-radius: var(--tom-radius-round, 50%);
+  background: var(--tom-content-text);
+  transform: translate3d(0, -50%, 0);
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.86, 0.24, 1),
+    background var(--tom-transition-fast),
+    box-shadow var(--tom-transition-fast);
+  will-change: transform;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.28);
+}
+
+.tom-toggle-switch.is-checked .tom-toggle-switch__track {
+  border-color: var(--tom-nav-action-create-border, var(--tom-color-accent-strong));
+  background: var(--tom-nav-action-create-bg-start, var(--tom-nav-action-create-bg, var(--tom-color-accent-strong)));
+}
+
+.tom-toggle-switch.is-checked .tom-toggle-switch__knob {
+  transform: translate3d(1.56rem, -50%, 0);
+  background: var(--tom-nav-action-create-text, #07121f);
+}
+
 .tom-scene-config-toggle-card {
   display: grid !important;
-  grid-template-columns: 1.05rem minmax(0, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) 3rem !important;
   align-items: center !important;
   min-height: 3rem;
   padding: 0.8rem 0.9rem;
-  column-gap: 0.7rem !important;
+  column-gap: 0.85rem !important;
   border: var(--tom-content-border-3-width) solid var(--tom-content-border-3);
   border-radius: var(--tom-content-card-radius, var(--tom-radius-card));
   background: color-mix(in srgb, var(--tom-content-card-bg) 82%, transparent);
 }
 
-.tom-scene-config-toggle-card input[type="checkbox"] {
+.tom-scene-config-toggle-card .tom-toggle-switch__label {
+  display: block !important;
+}
+
+.tom-scene-config-toggle-card:not(.tom-toggle-switch) {
+  grid-template-columns: 1.05rem minmax(0, 1fr) !important;
+}
+
+.tom-scene-config-toggle-card:not(.tom-toggle-switch) input[type="checkbox"] {
   position: static !important;
   left: auto !important;
   top: auto !important;
@@ -276,7 +351,7 @@
   align-self: center !important;
 }
 
-.tom-scene-config-toggle-card input[type="checkbox"]::before {
+.tom-scene-config-toggle-card:not(.tom-toggle-switch) input[type="checkbox"]::before {
   content: "";
   width: 0.55rem;
   height: 0.55rem;
@@ -286,11 +361,11 @@
   background: var(--tom-color-accent-strong);
 }
 
-.tom-scene-config-toggle-card input[type="checkbox"]:checked::before {
+.tom-scene-config-toggle-card:not(.tom-toggle-switch) input[type="checkbox"]:checked::before {
   transform: scale(1);
 }
 
-.tom-scene-config-toggle-card span {
+.tom-scene-config-toggle-card:not(.tom-toggle-switch) span {
   display: flex !important;
   align-items: center !important;
   grid-column: 2;
@@ -300,5 +375,542 @@
   font-size: var(--tom-font-body);
   line-height: 1.15;
   align-self: center;
+}
+
+/* Inline Scene editor redesign, based on Designpattern/SceneSetup.jsx. */
+.tom-scene-config-layout--inline {
+  display: grid;
+  grid-template-columns: minmax(17rem, 3fr) minmax(0, 9fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  height: 100%;
+  min-height: 0;
+  padding: 1.25rem;
+  overflow: auto;
+}
+
+.tom-scene-config-hero {
+  grid-column: 1 / -1;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: var(--tom-library-editor-hero-gap) !important;
+  margin: var(--tom-library-editor-hero-margin) !important;
+  padding-left: var(--tom-library-editor-hero-padding-left) !important;
+}
+
+.tom-scene-config-hero__icon {
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 var(--tom-library-editor-hero-icon-size) !important;
+  width: var(--tom-library-editor-hero-icon-size) !important;
+  height: var(--tom-library-editor-hero-icon-size) !important;
+  border-radius: var(--tom-library-editor-hero-icon-radius) !important;
+  color: var(--tom-library-editor-hero-icon-color) !important;
+  background: var(--tom-library-editor-hero-icon-bg) !important;
+  border: var(--tom-library-editor-hero-icon-border) !important;
+  box-shadow: var(--tom-library-editor-hero-icon-shadow);
+  font-family: "Font Awesome 6 Pro", "Font Awesome 6 Free", "Font Awesome 5 Free" !important;
+  font-size: var(--tom-library-editor-hero-icon-font-size) !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+.tom-scene-config-hero__icon i {
+  display: block !important;
+  width: 1em;
+  height: 1em;
+  margin: 0 !important;
+  color: inherit !important;
+  font-size: 1em;
+  line-height: 1 !important;
+  text-align: center;
+  transform: translateY(0.06em);
+}
+
+.tom-scene-config-hero__copy {
+  display: grid !important;
+  gap: 0 !important;
+  min-width: 0;
+}
+
+.tom-scene-config-hero h1 {
+  margin: 0 !important;
+  border-bottom: 0 !important;
+  color: var(--tom-library-editor-hero-title-color) !important;
+  font-family: var(--tom-font-family-heading-1, inherit) !important;
+  font-size: var(--tom-library-editor-hero-title-size) !important;
+  font-weight: inherit !important;
+  letter-spacing: -0.03em;
+  line-height: 1.05 !important;
+}
+
+.tom-scene-config-hero p {
+  margin: 0.35rem 0 0 !important;
+  color: var(--tom-library-editor-hero-copy-color) !important;
+  font-family: var(--tom-font-family-sub-text, inherit) !important;
+  font-size: var(--tom-library-editor-hero-copy-size) !important;
+  line-height: 1.35 !important;
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar,
+.tom-scene-config-layout--inline .tom-scene-config-main > .tom-theme-content-surface,
+.tom-scene-config-layout--inline .tom-scene-config-settings-card,
+.tom-scene-config-layout--inline .tom-scene-dropzone,
+.tom-scene-config-layout--inline .tom-scene-actor-row {
+  border-radius: var(--tom-content-container-radius, 1rem);
+  border: var(--tom-library-section-border);
+  background: var(--tom-content-surface-bg, var(--tom-content-container-bg)) !important;
+  box-shadow: var(--tom-library-section-shadow);
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: auto;
+  max-height: calc(100vh - 10rem);
+  padding: 1.25rem;
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar .tom-editor-header {
+  padding: 0;
+  margin: 0 0 1.25rem;
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar .tom-editor-header h2,
+.tom-scene-config-layout--inline .tom-editor-header--toggle h2 {
+  margin: 0;
+  border-bottom: 0 !important;
+  color: var(--tom-typography-heading-2-color, var(--tom-color-heading-2, var(--tom-content-subheading, var(--tom-color-text-strong)))) !important;
+  font-family: var(--tom-font-family-heading-2, inherit) !important;
+  font-size: var(--tom-font-heading-2, 1.18rem) !important;
+  font-weight: inherit;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+
+.tom-scene-config-layout--inline .tom-editor-header--toggle:hover h2,
+.tom-scene-config-layout--inline .tom-editor-header--toggle:focus-visible h2 {
+  font-size: var(--tom-font-heading-2-hover, var(--tom-font-heading-2, 1.18rem)) !important;
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar .tom-editor-header .notes,
+.tom-scene-config-layout--inline .tom-editor-header--toggle .notes,
+.tom-scene-config-layout--inline .tom-scene-config-settings-card__header .notes,
+.tom-scene-config-layout--inline .tom-scene-dropzone .notes {
+  margin: 0.25rem 0 0;
+  color: var(--tom-content-muted-text, var(--tom-color-sub-text)) !important;
+  font-family: var(--tom-font-family-sub-text, inherit);
+  font-size: var(--tom-font-sub-text, 0.76rem);
+  line-height: 1.35;
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar__list {
+  gap: 0.55rem;
+  padding-right: 0.15rem;
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar__item {
+  grid-template-columns: 3rem minmax(0, 1fr) 2rem;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0.65rem 0.5rem 0.5rem;
+  border-radius: var(--tom-content-card-radius, 0.75rem);
+  border: var(--tom-content-border-3-width, 1px) solid color-mix(in srgb, var(--tom-content-border-3, rgba(255,255,255,0.1)) 72%, transparent);
+  background: var(--tom-content-form-bg, rgba(0, 0, 0, 0.42)) !important;
+  box-shadow: none;
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar__thumb {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--tom-radius-round, 50%);
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar__meta strong,
+.tom-scene-config-layout--inline .tom-scene-actor-preview strong {
+  color: var(--tom-content-text, var(--tom-color-text)) !important;
+  font-family: var(--tom-font-family-body, inherit);
+  font-size: var(--tom-font-body, 0.9rem);
+  font-weight: 600;
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar__meta .notes {
+  margin-top: 0.12rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.62rem;
+}
+
+.tom-scene-config-layout--inline .tom-scene-avatar-sidebar__icon {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: var(--tom-content-action-generic-radius, 0.5rem) !important;
+}
+
+.tom-scene-config-layout--inline .tom-scene-config-main {
+  height: auto;
+  overflow: visible;
+  padding-right: 0;
+  gap: 1rem;
+}
+
+.tom-scene-config-layout--inline .tom-scene-config-main > .tom-theme-content-surface {
+  overflow: hidden;
+}
+
+.tom-scene-config-layout--inline .tom-editor-header--toggle {
+  padding: 1.5rem;
+  background: var(--tom-content-surface-bg, var(--tom-content-container-bg)) !important;
+  transition: background 160ms ease;
+}
+
+.tom-scene-config-layout--inline .tom-editor-header--toggle:hover {
+  background: color-mix(in srgb, var(--tom-content-surface-bg, var(--tom-content-container-bg)) 94%, var(--tom-content-text, #fff)) !important;
+}
+
+.tom-scene-config-layout--inline .tom-editor-header--toggle > div {
+  position: relative;
+  min-height: 2.5rem;
+  padding-left: 3.5rem;
+}
+
+.tom-scene-config-layout--inline .tom-editor-header--toggle > div::before {
+  content: "\f013";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--tom-content-card-radius, 0.75rem);
+  color: color-mix(in srgb, var(--tom-content-muted-text, var(--tom-color-sub-text)) 72%, transparent);
+  background: var(--tom-content-form-bg, rgba(0, 0, 0, 0.35)) !important;
+  font-family: "Font Awesome 6 Pro", "Font Awesome 6 Free", "Font Awesome 5 Free";
+  font-weight: 900;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  transform: translateY(-50%);
+}
+
+.tom-scene-config-layout--inline [data-scene-editor-section="background"] .tom-editor-header--toggle > div::before {
+  content: "\f03e";
+}
+
+.tom-scene-config-layout--inline [data-scene-editor-section="transition"] .tom-editor-header--toggle > div::before {
+  content: "\f021";
+}
+
+.tom-scene-config-layout--inline [data-scene-editor-section="actors"] .tom-editor-header--toggle > div::before {
+  content: "\f0c0";
+}
+
+.tom-scene-config-layout--inline .tom-theme-content-surface.is-expanded .tom-editor-header--toggle > div::before {
+  color: var(--tom-color-heading-1, var(--tom-color-accent-strong)) !important;
+  background: color-mix(in srgb, var(--tom-color-heading-1, var(--tom-color-accent-strong)) 12%, transparent) !important;
+}
+
+.tom-scene-config-layout--inline .tom-editor-header--toggle > i {
+  color: color-mix(in srgb, var(--tom-content-muted-text, var(--tom-color-sub-text)) 52%, transparent);
+  transition: transform 220ms ease;
+}
+
+.tom-scene-config-layout--inline .tom-theme-content-surface.is-expanded .tom-editor-header--toggle > i {
+  transform: rotate(90deg);
+}
+
+.tom-scene-config-layout--inline .tom-editor-header--toggle > i.fa-chevron-down::before {
+  content: "\f054";
+}
+
+.tom-scene-config-layout--inline .tom-scene-editor-section-body {
+  padding: 0.25rem 1.5rem 1.5rem;
+  border-top: var(--tom-library-divider-border);
+}
+
+.tom-scene-config-layout--inline .tom-scene-config-setup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.tom-scene-config-layout--inline .tom-scene-config-headings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 0;
+}
+
+.tom-scene-config-layout--inline .tom-scene-config-headings .form-group:nth-child(4),
+.tom-scene-config-layout--inline .tom-scene-config-headings .form-group:nth-child(6) {
+  grid-column: 1 / -1;
+}
+
+.tom-scene-config-layout--inline .tom-scene-config-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.tom-scene-config-layout--inline .tom-scene-config-settings-card {
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: var(--tom-content-card-radius, 0.75rem);
+  background: var(--tom-content-form-bg, rgba(0, 0, 0, 0.42)) !important;
+  box-shadow: none;
+}
+
+.tom-scene-config-layout--inline .tom-scene-config-settings-card__header h3 {
+  margin: 0;
+  border-bottom: 0 !important;
+  color: var(--tom-typography-heading-2-color, var(--tom-color-heading-2, var(--tom-content-subheading, var(--tom-color-text-strong)))) !important;
+  font-family: var(--tom-font-family-heading-2, inherit) !important;
+  font-size: var(--tom-font-heading-2, 1.18rem) !important;
+  font-weight: inherit;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+
+.tom-scene-config-layout--inline :where(.form-group, .tom-scene-config-settings-card .form-group) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  margin: 0 !important;
+}
+
+.tom-scene-config-layout--inline :where(.form-group > label, .tom-scene-config-headings label, .tom-scene-config-settings-card .form-group > label) {
+  display: block !important;
+  width: auto !important;
+  margin: 0 0 0.4rem !important;
+  padding-left: 0.25rem !important;
+  color: var(--tom-content-muted-text, var(--tom-color-sub-text)) !important;
+  font-family: var(--tom-font-family-sub-text, inherit) !important;
+  font-size: var(--tom-font-sub-text, 0.76rem) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.tom-scene-config-layout--inline :where(input[type="text"], select, textarea) {
+  width: 100%;
+  min-height: var(--tom-library-control-height);
+  padding: var(--tom-library-control-padding);
+  border-radius: 6px;
+  border: var(--tom-library-control-border);
+  color: var(--tom-content-text, var(--tom-color-text)) !important;
+  background: var(--tom-content-form-bg, rgba(0, 0, 0, 0.42)) !important;
+  font-family: var(--tom-font-family-body, inherit);
+  font-size: var(--tom-font-body, 0.88rem);
+  box-shadow: none;
+}
+
+.tom-scene-config-layout--inline select {
+  padding-right: 2.85rem !important;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%) !important;
+  background-position:
+    calc(100% - 1.45rem) 50%,
+    calc(100% - 1.08rem) 50% !important;
+  background-size: 0.38rem 0.38rem, 0.38rem 0.38rem !important;
+  background-repeat: no-repeat !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+.tom-scene-config-layout--inline textarea {
+  min-height: 5.4rem;
+  resize: vertical;
+}
+
+.tom-scene-config-layout--inline :where(input[type="text"], select, textarea):focus {
+  border-color: var(--tom-library-control-focus-border);
+  box-shadow: var(--tom-library-control-focus-shadow);
+  outline: none;
+}
+
+.tom-scene-config-layout--inline .tom-input-with-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.38rem 0.5rem 0.38rem 0.85rem;
+  border-radius: var(--tom-content-card-radius, 0.75rem);
+  border: var(--tom-library-file-row-border);
+  background: var(--tom-library-file-row-bg) !important;
+}
+
+.tom-scene-config-layout--inline .tom-input-with-button input {
+  min-height: 1.65rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: var(--tom-library-inline-path-color) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace !important;
+  font-size: 0.72rem !important;
+}
+
+.tom-scene-config-layout--inline .tom-input-with-button .tom-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  min-height: 2rem;
+  height: 2rem;
+  gap: 0.45rem;
+  padding-inline: 0.7rem;
+  padding-block: 0 !important;
+  border-radius: 4px !important;
+  background: var(--tom-content-action-generic-bg) !important;
+  border: var(--tom-content-action-generic-border-width) solid var(--tom-content-action-generic-border) !important;
+  color: var(--tom-content-action-generic-text) !important;
+  font-size: 0.72rem;
+  vertical-align: middle;
+}
+
+.tom-scene-config-layout--inline .tom-input-with-button .tom-button i,
+.tom-scene-config-layout--inline .tom-input-with-button .tom-button span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
+.tom-scene-config-layout--inline .tom-scene-config-toggle-list {
+  gap: 0.65rem;
+}
+
+.tom-scene-config-layout--inline .tom-scene-config-toggle-card {
+  min-height: 0;
+  padding: 1rem;
+  border-radius: var(--tom-content-card-radius, 0.75rem);
+  background: var(--tom-library-file-row-bg) !important;
+}
+
+.tom-scene-config-layout--inline .tom-range-with-value {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+
+.tom-scene-config-layout--inline .tom-range-with-value span {
+  min-width: 3.1rem;
+  padding: 0.16rem 0.45rem;
+  border-radius: 0.42rem;
+  color: var(--tom-library-value-badge-color) !important;
+  background: var(--tom-library-value-badge-bg);
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.tom-scene-config-layout--inline .tom-range-with-value input[type="range"] {
+  height: 0.38rem;
+  border: 0;
+  border-radius: var(--tom-radius-pill, 999px);
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--tom-library-range-track-bg);
+}
+
+.tom-scene-config-layout--inline .tom-range-with-value input[type="range"]::-webkit-slider-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--tom-radius-round, 50%);
+  border: var(--tom-library-range-thumb-border);
+  background: var(--tom-library-range-thumb-bg);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.tom-scene-config-layout--inline .tom-range-with-value input[type="range"]::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--tom-radius-round, 50%);
+  border: var(--tom-library-range-thumb-border);
+  background: var(--tom-library-range-thumb-bg);
+}
+
+.tom-scene-config-layout--inline .tom-scene-transition-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  max-width: 48rem;
+}
+
+.tom-scene-config-layout--inline .tom-scene-transition-grid--stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tom-scene-config-layout--inline .tom-scene-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 10.5rem;
+  margin-bottom: 1.5rem;
+  padding: 2rem;
+  border-style: dashed;
+  box-shadow: none;
+  text-align: center;
+}
+
+.tom-scene-config-layout--inline .tom-scene-dropzone strong {
+  color: var(--tom-content-text, var(--tom-color-text)) !important;
+  font-family: var(--tom-font-family-body, inherit);
+  font-size: var(--tom-font-body, 0.9rem);
+}
+
+.tom-scene-config-layout--inline .tom-scene-actor-list {
+  gap: 0.75rem;
+}
+
+.tom-scene-config-layout--inline .tom-scene-actor-row {
+  display: grid;
+  grid-template-columns: minmax(13rem, 1fr) minmax(10rem, 14rem) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  box-shadow: none;
+}
+
+.tom-scene-config-layout--inline .tom-scene-actor-thumbnail {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--tom-radius-round, 50%);
+}
+
+@media (max-width: 1100px) {
+  .tom-scene-config-layout--inline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tom-scene-config-hero,
+  .tom-scene-config-layout--inline .tom-scene-avatar-sidebar,
+  .tom-scene-config-layout--inline .tom-scene-config-main {
+    grid-column: 1;
+  }
+
+  .tom-scene-config-layout--inline .tom-scene-avatar-sidebar {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .tom-scene-config-layout--inline .tom-scene-config-headings,
+  .tom-scene-config-layout--inline .tom-scene-config-settings-grid,
+  .tom-scene-config-layout--inline .tom-scene-transition-grid,
+  .tom-scene-config-layout--inline .tom-scene-actor-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 

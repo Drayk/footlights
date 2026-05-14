@@ -1,0 +1,138 @@
+<section class="tom-portal tom-theme-root tom-theme-default tom-theme-area tom-theme-area--content" style="{{themeInlineStyle}}">
+  {{#if hasPortal}}
+  <div class="tom-portal__stage">
+    {{#if canOpenStage}}
+    <div class="tom-portal__actionbar" aria-label="{{tr "Portal actions"}}">
+      <button
+        type="button"
+        class="tom-portal__action tom-button tom-button-icon"
+        data-action="open-portal-stage"
+        title="{{tr "Open fullscreen"}}"
+        aria-label="{{tr "Open fullscreen"}}"
+      >
+        <i class="fas fa-display" aria-hidden="true"></i>
+      </button>
+    </div>
+    {{/if}}
+
+    <div class="tom-portal__surface" data-portal-surface {{#if portal.surfaceAspect}}data-portal-surface-aspect="{{portal.surfaceAspect}}" data-portal-surface-override="true"{{/if}} data-portal-background-fit="{{portal.settings.backgroundFit}}" data-portal-background-crop-width-ratio="{{portal.settings.backgroundCropWidthRatio}}" data-portal-background-crop-height-ratio="{{portal.settings.backgroundCropHeightRatio}}" data-portal-background-crop-offset-x="{{portal.settings.backgroundCropOffsetX}}" data-portal-background-crop-offset-y="{{portal.settings.backgroundCropOffsetY}}">
+      <div class="tom-portal__background">
+        {{#if portal.background}}
+          {{#if portal.isVideoBackground}}
+          <video class="tom-portal__background-media" src="{{portal.background}}" autoplay loop muted playsinline style="{{portal.backgroundMediaStyle}}"></video>
+          {{else if portal.isBackgroundRepeated}}
+          <img class="tom-portal__background-probe" src="{{portal.background}}" alt="" aria-hidden="true" />
+          <div class="tom-portal__background-media tom-portal__background-media--pattern" style="{{portal.backgroundMediaStyle}}"></div>
+          {{else}}
+          <img class="tom-portal__background-media" src="{{portal.background}}" alt="" style="{{portal.backgroundMediaStyle}}" />
+          {{/if}}
+        {{else}}
+        <div class="tom-portal__background-empty">
+          <i class="fas fa-door-open" aria-hidden="true"></i>
+          <span>{{tr "No portal background configured yet."}}</span>
+        </div>
+        {{/if}}
+      </div>
+
+      <div class="tom-portal__elements" aria-label="{{portal.name}}">
+        {{#each portal.elements}}
+        {{#if visible}}
+        <button
+          type="button"
+          class="tom-portal-element tom-portal-element--{{type}} {{#if isPortalAvatar}}is-portal-avatar{{/if}} {{#if hasClickInteraction}}is-clickable{{/if}} {{#if hasHoverMedia}}has-hover-media{{/if}} {{#if hasHoverMediaSwap}}has-hover-media-swap{{/if}}"
+          data-portal-element-id="{{id}}"
+          style="{{elementStyle}};{{hoverVars}}"
+          title="{{name}}"
+        >
+          <span class="tom-portal-element__visual" style="{{visualStyle}}">
+            <span class="tom-portal-element__backdrop-effect" aria-hidden="true"></span>
+            {{#if isPortalAvatar}}
+              <span class="tom-avatar-thumb tom-portal-avatar-element {{#if avatar.useCircularCrop}}is-circular{{/if}} {{#if avatar.showBackdrop}}has-backdrop{{/if}}" style="{{avatar.thumbnailStyle}}">
+                <span class="tom-avatar-thumb__image-stack" style="{{avatar.imageStackStyle}}">
+                  {{#if avatar.thumbnail}}
+                  <img src="{{avatar.thumbnail}}" alt="{{avatar.name}}" class="tom-avatar-thumb__image" />
+                  {{else}}
+                  <span class="tom-avatar-thumb__placeholder" aria-hidden="true">{{tr "Avatar"}}</span>
+                  {{/if}}
+                </span>
+                {{#if avatar.frameImage}}
+                <img src="{{avatar.frameImage}}" alt="" class="tom-avatar-thumb__frame" aria-hidden="true" />
+                {{/if}}
+              </span>
+            {{/if}}
+            {{#unless isPortalAvatar}}
+              {{#each contentLayers}}
+              {{#if visible}}
+              <span class="tom-portal-content-layer tom-portal-content-layer--{{type}}" data-portal-content-layer-id="{{id}}" style="{{layerStyle}}">
+                <span class="tom-portal-content-layer__effect-target">
+                {{#if isImage}}
+                  {{#if isRepeatedImage}}
+                  {{else if hasMedia}}<img class="tom-portal-element__media tom-portal-element__media--base" src="{{media.src}}" alt="" style="object-fit:{{mediaFit}};" />{{/if}}
+                {{else if isVideo}}
+                  {{#if hasMedia}}<video class="tom-portal-element__media tom-portal-element__media--base" src="{{media.src}}" autoplay loop muted playsinline style="object-fit:{{mediaFit}};"></video>{{/if}}
+                {{else if isPortalAvatar}}
+                  <span class="tom-portal-avatar-layer {{#if canOpenActorSheetOnClick}}is-clickable{{/if}}" {{#if canOpenActorSheetOnClick}}data-portal-avatar-layer-action="open-actor-sheet" data-portal-content-layer-id="{{id}}"{{/if}}>
+                    {{#if avatar.thumbnail}}
+                    <img src="{{avatar.thumbnail}}" alt="{{avatar.name}}" />
+                    {{else}}
+                    <span class="tom-avatar-thumb__placeholder" aria-hidden="true">{{tr "Avatar"}}</span>
+                    {{/if}}
+                  </span>
+                {{else if isDataText}}
+                  <span class="tom-portal-element__text">{{{escapedText}}}</span>
+                {{else if isText}}
+                  <span class="tom-portal-element__text">{{{escapedText}}}</span>
+                {{else if isHtml}}
+                  <style data-portal-custom-css>{{{scopedCss}}}</style>
+                  <span class="tom-portal-content-layer__html">{{{customHtml}}}</span>
+                {{/if}}
+                </span>
+              </span>
+              {{/if}}
+              {{/each}}
+            {{/unless}}
+            {{#if hasHoverMedia}}
+              {{#if isHoverVideo}}
+              <video class="tom-portal-element__media tom-portal-element__media--hover" src="{{media.hoverSrc}}" autoplay loop muted playsinline style="object-fit:{{mediaFit}};"></video>
+              {{else}}
+              <img class="tom-portal-element__media tom-portal-element__media--hover" src="{{media.hoverSrc}}" alt="" style="object-fit:{{mediaFit}};" />
+              {{/if}}
+            {{/if}}
+            {{#if isText}}
+            {{#unless contentLayers.length}}
+            <span class="tom-portal-element__text">{{{escapedText}}}</span>
+            {{/unless}}
+            {{/if}}
+            {{#if isDataText}}
+            {{#unless contentLayers.length}}
+            <span class="tom-portal-element__text">{{{escapedText}}}</span>
+            {{/unless}}
+            {{/if}}
+          </span>
+        </button>
+        {{/if}}
+        {{/each}}
+      </div>
+      {{#if portal.avatars.length}}
+      <div class="tom-portal__avatar-strip" aria-label="{{tr "Portal avatars"}}">
+        {{#each portal.avatars}}
+        <span class="tom-portal__avatar" title="{{name}}">
+          {{#if image}}
+          <img src="{{image}}" alt="{{name}}" />
+          {{else}}
+          <i class="fas fa-user" aria-hidden="true"></i>
+          {{/if}}
+        </span>
+        {{/each}}
+      </div>
+      {{/if}}
+    </div>
+  </div>
+  {{else}}
+  <div class="tom-portal__empty tom-theme-card">
+    <i class="fas fa-door-open" aria-hidden="true"></i>
+    <h2>{{tr "No portal available"}}</h2>
+    <p class="notes">{{tr "Create a portal in the Footlights Library first."}}</p>
+  </div>
+  {{/if}}
+</section>

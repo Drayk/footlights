@@ -1,6 +1,62 @@
-import { MODULE_ID, SETTINGS, DEFAULT_MINDMAP_STATE, DEFAULT_RUNTIME_STATE, DEFAULT_THEME_STATE, DEFAULT_STAGE_GOBLIN_STATE, DEFAULT_AVATAR_LIBRARY_STATE, DEFAULT_SOUND_LIBRARY_STATE, DEFAULT_WORLD_MAP_LIBRARY_STATE, BUILTIN_THEME_PRESETS } from "./constants.js";
+import { MODULE_ID, SETTINGS, DEFAULT_MINDMAP_STATE, DEFAULT_RUNTIME_STATE, DEFAULT_THEME_STATE, DEFAULT_STAGE_GOBLIN_STATE, DEFAULT_GLOBAL_SOUND_PLAYER_STATE, DEFAULT_AVATAR_LIBRARY_STATE, DEFAULT_SOUND_LIBRARY_STATE, DEFAULT_WORLD_MAP_LIBRARY_STATE, DEFAULT_PORTAL_LIBRARY_STATE, BUILTIN_THEME_PRESETS } from "./constants.js";
+import { bakeAvatarTokenImage } from "./avatar-bake.js";
 import { duplicateData, normalizeProfiles, normalizeSceneTags, normalizeScenes, normalizeRuntimeState, randomId } from "./helpers.js";
 import { getLanguageOptions, setActiveLanguage, translate as tr } from "./localization.js";
+import { getDefaultWorldMapCategories, normalizeWorldMapCategory, normalizeWorldMapCategoryList, normalizeWorldMapLockedCategories, collectWorldMapCategorySource } from "./world-map/category-utils.js";
+import { FOG_DEFAULTS, normalizeFogImageTileSize, normalizeFogMode, normalizeFogOpacity, normalizeFogOperations } from "./world-map/fog-utils.js";
+
+export class FootlightsResetSettingsApplication extends FormApplication {
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: "footlights-reset-settings",
+      title: "Reset Footlights",
+      template: `modules/${MODULE_ID}/templates/apps/footlights-reset-settings.hbs`,
+      width: 480,
+      height: "auto",
+      closeOnSubmit: false
+    });
+  }
+
+  activateListeners(html) {
+    super.activateListeners(html);
+    const input = html.find('input[name="confirmation"]');
+    input.on("input", () => {
+      html.find(".footlights-reset-settings__feedback").text("");
+      input.removeClass("error");
+    });
+    html.find('[data-action="close"]').on("click", () => this.close());
+  }
+
+  async _updateObject(_event, formData) {
+    if (String(formData.confirmation || "") !== "DELETE") {
+      const root = this.element;
+      root.find('input[name="confirmation"]').addClass("error");
+      root.find(".footlights-reset-settings__feedback").text("Please type DELETE exactly to confirm the reset.");
+      return;
+    }
+
+    try {
+      await TheatreStore.resetFootlightsData();
+      await this.close();
+      window.setTimeout(() => {
+        new Dialog({
+          title: "Footlights reset complete",
+          content: "<p>All saved Footlights data and settings have been reset.</p>",
+          buttons: {
+            ok: {
+              icon: '<i class="fas fa-check"></i>',
+              label: "OK"
+            }
+          },
+          default: "ok"
+        }).render(true);
+      }, 50);
+    } catch (error) {
+      console.error("Footlights reset failed", error);
+      this.element.find(".footlights-reset-settings__feedback").text("The reset could not be completed. Check the console for details.");
+    }
+  }
+}
 
 export class TheatreStore {
   static _normalizePublicAssetPath(path) {
@@ -68,7 +124,7 @@ export class TheatreStore {
     scaleFallback = null,
     repeatFallback = null
   } = {}) {
-    return {
+    const normalized = {
       [`${keyPrefix}Image`]: String(source?.[`${keyPrefix}Image`] || defaults[`${keyPrefix}Image`] || "").trim(),
       [`${keyPrefix}ImageAlpha`]: this._normalizeThemeNumber(
         source?.[`${keyPrefix}ImageAlpha`],
@@ -88,6 +144,15 @@ export class TheatreStore {
         ["no-repeat", "repeat", "repeat-x", "repeat-y"]
       )
     };
+    if (`${keyPrefix}ImageBlur` in defaults || `${keyPrefix}ImageBlur` in source) {
+      normalized[`${keyPrefix}ImageBlur`] = this._normalizeThemeNumber(
+        source?.[`${keyPrefix}ImageBlur`],
+        defaults[`${keyPrefix}ImageBlur`] ?? 0,
+        0,
+        32
+      );
+    }
+    return normalized;
   }
 
   static _normalizeThemeActionVariant(source = {}, defaults = {}, variantKey, {
@@ -164,6 +229,7 @@ export class TheatreStore {
           "subText",
           "subTextHover",
           "microText",
+          "labelText",
           "navigationSize"
         ]),
         heading1Font: this._normalizeThemeFontChoice(theme?.typography?.heading1Font, defaults.typography.heading1Font),
@@ -172,6 +238,7 @@ export class TheatreStore {
         bodyFont: this._normalizeThemeFontChoice(theme?.typography?.bodyFont, defaults.typography.bodyFont),
         subTextFont: this._normalizeThemeFontChoice(theme?.typography?.subTextFont, defaults.typography.subTextFont),
         microTextFont: this._normalizeThemeFontChoice(theme?.typography?.microTextFont, defaults.typography.microTextFont),
+        labelTextFont: this._normalizeThemeFontChoice(theme?.typography?.labelTextFont, defaults.typography.labelTextFont),
         navigationFont: this._normalizeThemeFontChoice(theme?.typography?.navigationFont, defaults.typography.navigationFont)
       },
       navigation: {
@@ -201,6 +268,8 @@ export class TheatreStore {
           "actionCreateBg",
           "actionCreateBorder",
           "actionCreateText",
+          "actionCreateHoverBg",
+          "actionCreateHoverText",
           "actionSettingsBg",
           "actionSettingsBorder",
           "actionSettingsIcon",
@@ -251,7 +320,10 @@ export class TheatreStore {
           "cardHover",
           "formBackground",
           "divider",
+          "highlight",
           "scrollbar",
+          "shadow",
+          "focusShadow",
           "heading",
           "subheading",
           "buttonHoverHeading",
@@ -290,6 +362,10 @@ export class TheatreStore {
         border1Width: this._normalizeThemeNumber(theme?.content?.border1Width, defaults.content.border1Width, 0, 8),
         border2Width: this._normalizeThemeNumber(theme?.content?.border2Width, defaults.content.border2Width, 0, 8),
         border3Width: this._normalizeThemeNumber(theme?.content?.border3Width, defaults.content.border3Width, 0, 8),
+        shadowBlur: this._normalizeThemeNumber(theme?.content?.shadowBlur, defaults.content.shadowBlur, 0, 96),
+        shadowDistance: this._normalizeThemeNumber(theme?.content?.shadowDistance, defaults.content.shadowDistance, 0, 96),
+        focusShadowBlur: this._normalizeThemeNumber(theme?.content?.focusShadowBlur, defaults.content.focusShadowBlur, 0, 32),
+        focusShadowDistance: this._normalizeThemeNumber(theme?.content?.focusShadowDistance, defaults.content.focusShadowDistance, 0, 32),
         ...this._normalizeThemeActionVariant(theme?.content, defaults.content, "actionGeneric"),
         ...this._normalizeThemeActionVariant(theme?.content, defaults.content, "actionEdit"),
         ...this._normalizeThemeActionVariant(theme?.content, defaults.content, "actionDuplicate", {
@@ -330,10 +406,19 @@ export class TheatreStore {
         ...this._normalizeThemeBranch(theme?.stageGoblin, defaults.stageGoblin, [
           "surface",
           "border",
-          "icon"
+          "icon",
+          "text"
         ]),
+        iconSize: this._normalizeThemeNumber(theme?.stageGoblin?.iconSize, defaults.stageGoblin.iconSize, 0.62, 2.4),
         borderWidth: this._normalizeThemeNumber(theme?.stageGoblin?.borderWidth, defaults.stageGoblin.borderWidth, 0, 6),
         radius: this._normalizeThemeNumber(theme?.stageGoblin?.radius, defaults.stageGoblin.radius, 0, 40),
+        tagFontSize: this._normalizeThemeNumber(theme?.stageGoblin?.tagFontSize, defaults.stageGoblin.tagFontSize, 0.2, 1.2),
+        tagHeight: this._normalizeThemeNumber(theme?.stageGoblin?.tagHeight, defaults.stageGoblin.tagHeight, 10, 52),
+        tagWidth: this._normalizeThemeNumber(theme?.stageGoblin?.tagWidth, defaults.stageGoblin.tagWidth, 36, 180),
+        tagRadius: this._normalizeThemeNumber(theme?.stageGoblin?.tagRadius, defaults.stageGoblin.tagRadius, 0, 16),
+        tagPaddingX: this._normalizeThemeNumber(theme?.stageGoblin?.tagPaddingX, defaults.stageGoblin.tagPaddingX, 0.12, 1.2),
+        tagGlowEnabled: this._normalizeThemeBoolean(theme?.stageGoblin?.tagGlowEnabled, defaults.stageGoblin.tagGlowEnabled),
+        tagGlowBlur: this._normalizeThemeNumber(theme?.stageGoblin?.tagGlowBlur, defaults.stageGoblin.tagGlowBlur, 0, 32),
         fontPreset: this._normalizeThemeChoice(theme?.stageGoblin?.fontPreset, defaults.stageGoblin.fontPreset, [
           "heading1",
           "heading2",
@@ -350,6 +435,7 @@ export class TheatreStore {
           "avatarName",
           "mood",
           "titleBackground",
+          "titleBackgroundBorder",
           "avatarNameBackground",
           "moodBackground",
           "gmBarBackground",
@@ -364,24 +450,28 @@ export class TheatreStore {
           "iconColor",
           "stageFrame"
         ]),
-        titleBackgroundRadius: this._normalizeThemeNumber(theme?.theatre?.titleBackgroundRadius, defaults.theatre.titleBackgroundRadius, 0, 999),
+        titleBackgroundBorderWidth: this._normalizeThemeNumber(theme?.theatre?.titleBackgroundBorderWidth, defaults.theatre.titleBackgroundBorderWidth, 0, 8),
+        titleBackgroundRadius: this._normalizeThemeNumber(theme?.theatre?.titleBackgroundRadius, defaults.theatre.titleBackgroundRadius, 0, 100),
         ...this._normalizeThemeImageSet(theme?.theatre, defaults.theatre, "gmBar"),
-        gmBarRadius: this._normalizeThemeNumber(theme?.theatre?.gmBarRadius, defaults.theatre.gmBarRadius, 0, 40),
+        gmBarRadius: this._normalizeThemeNumber(theme?.theatre?.gmBarRadius, defaults.theatre.gmBarRadius, 0, 100),
         container1BorderWidth: this._normalizeThemeNumber(theme?.theatre?.container1BorderWidth, defaults.theatre.container1BorderWidth, 0, 8),
-        container1Radius: this._normalizeThemeNumber(theme?.theatre?.container1Radius, defaults.theatre.container1Radius, 0, 40),
+        container1Radius: this._normalizeThemeNumber(theme?.theatre?.container1Radius, defaults.theatre.container1Radius, 0, 100),
         container1BlurEnabled: this._normalizeThemeBoolean(theme?.theatre?.container1BlurEnabled, defaults.theatre.container1BlurEnabled),
         container2BorderWidth: this._normalizeThemeNumber(theme?.theatre?.container2BorderWidth, defaults.theatre.container2BorderWidth, 0, 8),
-        container2Radius: this._normalizeThemeNumber(theme?.theatre?.container2Radius, defaults.theatre.container2Radius, 0, 40),
+        container2Radius: this._normalizeThemeNumber(theme?.theatre?.container2Radius, defaults.theatre.container2Radius, 0, 100),
         container2BlurEnabled: this._normalizeThemeBoolean(theme?.theatre?.container2BlurEnabled, defaults.theatre.container2BlurEnabled),
         container3BorderWidth: this._normalizeThemeNumber(theme?.theatre?.container3BorderWidth, defaults.theatre.container3BorderWidth, 0, 8),
-        container3Radius: this._normalizeThemeNumber(theme?.theatre?.container3Radius, defaults.theatre.container3Radius, 0, 40),
+        container3Radius: this._normalizeThemeNumber(theme?.theatre?.container3Radius, defaults.theatre.container3Radius, 0, 100),
         container3BlurEnabled: this._normalizeThemeBoolean(theme?.theatre?.container3BlurEnabled, defaults.theatre.container3BlurEnabled),
         iconBorderWidth: this._normalizeThemeNumber(theme?.theatre?.iconBorderWidth, defaults.theatre.iconBorderWidth, 0, 8),
         stageTitleSize: this._normalizeThemeSize(theme?.theatre?.stageTitleSize, defaults.theatre.stageTitleSize),
+        stageTitleFont: this._normalizeThemeFontChoice(theme?.theatre?.stageTitleFont, defaults.theatre.stageTitleFont),
         stageSubtitleSize: this._normalizeThemeSize(theme?.theatre?.stageSubtitleSize, defaults.theatre.stageSubtitleSize),
+        stageSubtitleFont: this._normalizeThemeFontChoice(theme?.theatre?.stageSubtitleFont, defaults.theatre.stageSubtitleFont),
         avatarNameSize: this._normalizeThemeSize(theme?.theatre?.avatarNameSize, defaults.theatre.avatarNameSize),
         moodSize: this._normalizeThemeSize(theme?.theatre?.moodSize, defaults.theatre.moodSize),
-        stageFrameWidth: this._normalizeThemeNumber(theme?.theatre?.stageFrameWidth, defaults.theatre.stageFrameWidth, 0, 8)
+        stageFrameWidth: this._normalizeThemeNumber(theme?.theatre?.stageFrameWidth, defaults.theatre.stageFrameWidth, 0, 8),
+        stageFrameRadius: this._normalizeThemeNumber(theme?.theatre?.stageFrameRadius, defaults.theatre.stageFrameRadius, 0, 100)
       }
     };
   }
@@ -429,6 +519,7 @@ export class TheatreStore {
     if (node?.type === "note") return { color: "#f2c778", alpha: 0.46 };
     if (node?.type === "theatreScene") return { color: "#54c7c3", alpha: 0.42 };
     if (node?.type === "worldMap") return { color: "#6fc5ff", alpha: 0.42 };
+    if (node?.type === "portal") return { color: "#b9d77a", alpha: 0.42 };
     if (node?.documentType === "Actor" || node?.documentType === "Token" || node?.documentType === "TokenDocument") return { color: "#6fc5ff", alpha: 0.42 };
     if (node?.documentType === "Item") return { color: "#f2c778", alpha: 0.42 };
     if (node?.documentType === "JournalEntry" || node?.documentType === "JournalEntryPage") return { color: "#b298ff", alpha: 0.42 };
@@ -548,6 +639,7 @@ export class TheatreStore {
       documentUuid: node.documentUuid || "",
       theatreSceneId: node.theatreSceneId || "",
       worldMapId: node.worldMapId || "",
+      portalId: node.portalId || "",
       label: node.label || tr("Node"),
       noteContent: node.noteContent || "",
       tags: Array.isArray(node.tags)
@@ -643,6 +735,7 @@ export class TheatreStore {
   static _normalizeStageGoblinItem(item = {}) {
     return {
       id: item.id || randomId(),
+      barId: String(item.barId || "bar-1").trim() || "bar-1",
       sourceType: item.sourceType === "plannerNode" ? "plannerNode" : "document",
       plannerId: item.sourceType === "plannerNode" ? String(item.plannerId || "") : "",
       nodeId: item.sourceType === "plannerNode" ? String(item.nodeId || "") : "",
@@ -653,34 +746,121 @@ export class TheatreStore {
     };
   }
 
+  static _normalizeStageGoblinBar(bar = {}, index = 0, fallback = {}) {
+    const defaultPosition = fallback.position ?? DEFAULT_STAGE_GOBLIN_STATE.position;
+    const id = String(bar?.id || fallback.id || `bar-${index + 1}`).trim() || `bar-${index + 1}`;
+    const defaultTop = Math.max(8, Number(defaultPosition.top) || DEFAULT_STAGE_GOBLIN_STATE.position.top) + (index * 76);
+    const tagPosition = String(bar?.tagPosition || fallback.tagPosition || "left").trim();
+    const orientation = String(bar?.orientation || fallback.orientation || "horizontal").trim();
+    const normalizedOrientation = orientation === "vertical" ? "vertical" : "horizontal";
+    const normalizeHex = (value, fallbackValue = "") => {
+      const normalized = String(value || "").trim();
+      return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized.toLowerCase() : fallbackValue;
+    };
+    const normalizeAlpha = (value, fallbackValue = 1) => {
+      const numeric = Number(value);
+      const resolved = Number.isFinite(numeric) ? numeric : Number(fallbackValue);
+      const alpha = resolved > 1 ? resolved / 100 : resolved;
+      return Math.max(0, Math.min(1, Number.isFinite(alpha) ? alpha : 1));
+    };
+    return {
+      id,
+      label: String(bar?.label || fallback.label || tr("Stage Goblin Bar {number}", { number: index + 1 })).trim() || `Stage Goblin Leiste ${index + 1}`,
+      tagColor: normalizeHex(bar?.tagColor || fallback.tagColor, ["#8db4db", "#86d18f", "#f2c778", "#b298ff", "#ff85b6"][index] ?? "#8db4db"),
+      tagAlpha: normalizeAlpha(bar?.tagAlpha ?? fallback.tagAlpha, 1),
+      tagTextColor: normalizeHex(bar?.tagTextColor || fallback.tagTextColor, "#0d1722"),
+      tagTextAlpha: normalizeAlpha(bar?.tagTextAlpha ?? fallback.tagTextAlpha, 1),
+      tagPosition: ["left", "top-left", "bottom-left", "right", "top-right", "bottom-right"].includes(tagPosition) ? tagPosition : "left",
+      orientation: normalizedOrientation,
+      verticalItemHeight: this._normalizeThemeNumber(bar?.verticalItemHeight ?? fallback.verticalItemHeight, 38, 18, 72),
+      visible: bar?.visible ?? fallback.visible ?? true,
+      showLabel: bar?.showLabel ?? fallback.showLabel ?? true,
+      surfaceColor: normalizeHex(bar?.surfaceColor || fallback.surfaceColor),
+      surfaceAlpha: normalizeAlpha(bar?.surfaceAlpha ?? fallback.surfaceAlpha, 1),
+      borderColor: normalizeHex(bar?.borderColor || fallback.borderColor),
+      borderAlpha: normalizeAlpha(bar?.borderAlpha ?? fallback.borderAlpha, 1),
+      iconColor: normalizeHex(bar?.iconColor || fallback.iconColor),
+      iconAlpha: normalizeAlpha(bar?.iconAlpha ?? fallback.iconAlpha, 1),
+      textColor: normalizeHex(bar?.textColor || fallback.textColor),
+      textAlpha: normalizeAlpha(bar?.textAlpha ?? fallback.textAlpha, 1),
+      borderWidth: this._normalizeThemeNumber(bar?.borderWidth ?? fallback.borderWidth, 1, 0, 6),
+      radius: this._normalizeThemeNumber(bar?.radius ?? fallback.radius, 11, 0, 40),
+      fontSize: this._normalizeThemeNumber(bar?.fontSize ?? fallback.fontSize, 0.82, 0.4, 1.6),
+      iconSize: this._normalizeThemeNumber(bar?.iconSize ?? fallback.iconSize, 0.92, 0.62, 2.4),
+      tagFontSize: this._normalizeThemeNumber(bar?.tagFontSize ?? fallback.tagFontSize, 0.62, 0.2, 1.2),
+      tagHeight: this._normalizeThemeNumber(bar?.tagHeight ?? fallback.tagHeight, 26, 10, 52),
+      tagWidth: this._normalizeThemeNumber(bar?.tagWidth ?? fallback.tagWidth, 92, 36, 180),
+      tagRadius: this._normalizeThemeNumber(bar?.tagRadius ?? fallback.tagRadius, 4, 0, 16),
+      tagGlowEnabled: this._normalizeThemeBoolean(bar?.tagGlowEnabled ?? fallback.tagGlowEnabled, true),
+      tagGlowBlur: this._normalizeThemeNumber(bar?.tagGlowBlur ?? fallback.tagGlowBlur, 14, 0, 32),
+      position: {
+        left: Math.max(0, Number(bar?.position?.left ?? defaultPosition.left) || DEFAULT_STAGE_GOBLIN_STATE.position.left),
+        top: Math.max(0, Number(bar?.position?.top ?? defaultTop) || defaultTop),
+        width: Math.max(normalizedOrientation === "vertical" ? 168 : 240, Number(bar?.position?.width ?? defaultPosition.width) || DEFAULT_STAGE_GOBLIN_STATE.position.width),
+        height: Math.max(30, Number(bar?.position?.height ?? defaultPosition.height) || DEFAULT_STAGE_GOBLIN_STATE.position.height)
+      },
+      collapsed: Boolean(bar?.collapsed ?? fallback.collapsed),
+      selectedPlannerId: String(bar?.selectedPlannerId || fallback.selectedPlannerId || "").trim() || null
+    };
+  }
+
   static _normalizeStageGoblinState(state = {}) {
     const planners = this.getAdventurePlanners?.() ?? [];
-    const requestedPlannerId = String(state?.selectedPlannerId || "").trim();
-    const selectedPlannerId = planners.some((planner) => planner.id === requestedPlannerId)
-      ? requestedPlannerId
-      : (planners.find((planner) => planner.id === this.getActiveAdventurePlanner?.()?.id)?.id ?? planners[0]?.id ?? null);
-    return {
-      position: {
-        left: Math.max(0, Number(state?.position?.left) || DEFAULT_STAGE_GOBLIN_STATE.position.left),
-        top: Math.max(0, Number(state?.position?.top) || DEFAULT_STAGE_GOBLIN_STATE.position.top),
-        width: Math.max(240, Number(state?.position?.width) || DEFAULT_STAGE_GOBLIN_STATE.position.width),
-        height: Math.max(44, Number(state?.position?.height) || DEFAULT_STAGE_GOBLIN_STATE.position.height)
-      },
+    const requestedCount = Number(state?.barCount ?? state?.bars?.length ?? DEFAULT_STAGE_GOBLIN_STATE.barCount);
+    const barCount = Math.max(1, Math.min(5, Number.isFinite(requestedCount) ? Math.round(requestedCount) : 1));
+    const sourceBars = Array.isArray(state?.bars) ? state.bars : [];
+    const legacyFallback = {
+      id: "bar-1",
+      label: "Stage Goblin Leiste 1",
+      tagColor: "#8db4db",
+      tagTextColor: "#0d1722",
+      tagPosition: "left",
+      showLabel: state?.showLabels !== false,
+      position: state?.position ?? DEFAULT_STAGE_GOBLIN_STATE.position,
       collapsed: Boolean(state?.collapsed),
-      selectedPlannerId,
-      items: Array.isArray(state?.items)
+      selectedPlannerId: state?.selectedPlannerId
+    };
+    const bars = Array.from({ length: barCount }, (_entry, index) => {
+      const normalized = this._normalizeStageGoblinBar(sourceBars[index], index, index === 0 ? legacyFallback : {});
+      normalized.selectedPlannerId = planners.some((planner) => planner.id === normalized.selectedPlannerId)
+        ? normalized.selectedPlannerId
+        : null;
+      return normalized;
+    });
+    const barIds = new Set(bars.map((bar) => bar.id));
+    const items = Array.isArray(state?.items)
         ? state.items
             .map((item) => this._normalizeStageGoblinItem(item))
+            .map((item) => ({ ...item, barId: barIds.has(item.barId) ? item.barId : "bar-1" }))
             .filter((item) => (
               item.sourceType === "plannerNode"
                 ? Boolean(item.plannerId && item.nodeId)
                 : Boolean(item.documentUuid || item.documentId)
             ))
-        : []
+        : [];
+    return {
+      barCount,
+      showLabels: state?.showLabels !== false,
+      position: bars[0]?.position ?? DEFAULT_STAGE_GOBLIN_STATE.position,
+      collapsed: Boolean(bars[0]?.collapsed),
+      selectedPlannerId: bars[0]?.selectedPlannerId ?? null,
+      bars,
+      items
     };
   }
 
-  static registerSettings(appClasses) {
+  static _normalizeGlobalSoundPlayerState(state = {}) {
+    const defaultPosition = DEFAULT_GLOBAL_SOUND_PLAYER_STATE.position;
+    return {
+      position: {
+        left: Math.max(0, Number(state?.position?.left) || defaultPosition.left),
+        top: Math.max(0, Number(state?.position?.top) || defaultPosition.top),
+        width: Math.max(420, Number(state?.position?.width) || defaultPosition.width)
+      }
+    };
+  }
+
+  static registerSettings() {
     game.settings.register(MODULE_ID, SETTINGS.LANGUAGE, {
       name: "Footlights Language",
       scope: "world",
@@ -716,6 +896,29 @@ export class TheatreStore {
       default: []
     });
 
+    game.settings.register(MODULE_ID, SETTINGS.AVATAR_TOKEN_BAKE_SIZE, {
+      name: "Footlights baked avatar token size",
+      hint: "Maximum edge length in pixels for token images baked from Footlights avatars.",
+      scope: "world",
+      config: true,
+      type: Number,
+      range: {
+        min: 128,
+        max: 1024,
+        step: 32
+      },
+      default: 450
+    });
+
+    game.settings.registerMenu(MODULE_ID, "resetFootlightsData", {
+      name: "Reset Footlights data",
+      label: "Reset Footlights",
+      hint: "Reset all Footlights scenes, avatars, sounds, maps, portals, themes, Stage Goblin bars, runtime data, and client layout state.",
+      icon: "fas fa-trash-alt",
+      type: FootlightsResetSettingsApplication,
+      restricted: true
+    });
+
     game.settings.register(MODULE_ID, SETTINGS.AVATAR_LIBRARY, {
       name: "Avatar Library State",
       scope: "world",
@@ -738,6 +941,14 @@ export class TheatreStore {
       config: false,
       type: Object,
       default: duplicateData(DEFAULT_WORLD_MAP_LIBRARY_STATE)
+    });
+
+    game.settings.register(MODULE_ID, SETTINGS.PORTAL_LIBRARY, {
+      name: "Portal Library State",
+      scope: "world",
+      config: false,
+      type: Object,
+      default: duplicateData(DEFAULT_PORTAL_LIBRARY_STATE)
     });
 
     game.settings.register(MODULE_ID, SETTINGS.MOODS, {
@@ -780,6 +991,22 @@ export class TheatreStore {
       default: duplicateData(DEFAULT_STAGE_GOBLIN_STATE)
     });
 
+    game.settings.register(MODULE_ID, SETTINGS.GLOBAL_SOUND_PLAYER, {
+      name: "Global Sound Player State",
+      scope: "client",
+      config: false,
+      type: Object,
+      default: duplicateData(DEFAULT_GLOBAL_SOUND_PLAYER_STATE)
+    });
+
+    game.settings.register(MODULE_ID, SETTINGS.DIALOG_LAYOUT, {
+      name: "Footlights Dialog Layout State",
+      scope: "client",
+      config: false,
+      type: Object,
+      default: {}
+    });
+
     game.settings.register(MODULE_ID, SETTINGS.RUNTIME, {
       name: "Footlights Runtime State",
       scope: "world",
@@ -788,14 +1015,49 @@ export class TheatreStore {
       default: duplicateData(DEFAULT_RUNTIME_STATE)
     });
 
-    game.settings.registerMenu(MODULE_ID, "sceneLibraryMenu", {
-      name: "Footlights Library",
-      label: "Open Footlights Library",
-      hint: "Manage Footlights scenes, avatars, maps, and settings.",
-      icon: "fas fa-theater-masks",
-      type: appClasses.sceneLibrary,
-      restricted: true
-    });
+  }
+
+  static async resetFootlightsData() {
+    const resets = [
+      [SETTINGS.LANGUAGE, "en"],
+      [SETTINGS.PROFILES, []],
+      [SETTINGS.SCENES, []],
+      [SETTINGS.AVATARS, []],
+      [SETTINGS.AVATAR_TOKEN_BAKE_SIZE, 450],
+      [SETTINGS.AVATAR_LIBRARY, duplicateData(DEFAULT_AVATAR_LIBRARY_STATE)],
+      [SETTINGS.SOUND_LIBRARY, duplicateData(DEFAULT_SOUND_LIBRARY_STATE)],
+      [SETTINGS.MAP_LIBRARY, duplicateData(DEFAULT_WORLD_MAP_LIBRARY_STATE)],
+      [SETTINGS.PORTAL_LIBRARY, duplicateData(DEFAULT_PORTAL_LIBRARY_STATE)],
+      [SETTINGS.MOODS, ["neutral"]],
+      [SETTINGS.THEME, duplicateData(DEFAULT_THEME_STATE)],
+      [SETTINGS.THEME_PRESETS, []],
+      [SETTINGS.MINDMAP, duplicateData(DEFAULT_MINDMAP_STATE)],
+      [SETTINGS.STAGE_GOBLIN, duplicateData(DEFAULT_STAGE_GOBLIN_STATE)],
+      [SETTINGS.GLOBAL_SOUND_PLAYER, duplicateData(DEFAULT_GLOBAL_SOUND_PLAYER_STATE)],
+      [SETTINGS.DIALOG_LAYOUT, {}],
+      [SETTINGS.RUNTIME, duplicateData(DEFAULT_RUNTIME_STATE)]
+    ];
+
+    for (const [key, value] of resets) {
+      await game.settings.set(MODULE_ID, key, value);
+    }
+
+    try {
+      localStorage.removeItem(`${MODULE_ID}.globalSoundPlayer.position`);
+    } catch (_error) {
+      // Local storage may be unavailable in hardened browser contexts.
+    }
+
+    window.setTimeout(() => {
+      const api = game.modules.get(MODULE_ID)?.api;
+      void api?.manager?.onSettingsChanged?.(true);
+      api?.renderStageGoblin?.();
+      api?.renderGlobalSoundPlayer?.();
+
+      Object.values(ui.windows ?? {})
+        .filter((app) => app?.constructor?.name?.startsWith?.("Theatre"))
+        .forEach((app) => app.render?.(false));
+    }, 0);
   }
 
   static getProfiles() {
@@ -871,6 +1133,10 @@ export class TheatreStore {
           moodDisplayMode: ["all", "gm", "hidden"].includes(sceneData.settings?.moodDisplayMode)
             ? sceneData.settings.moodDisplayMode
             : "all",
+          boxed: sceneData.settings?.boxed !== false,
+          backgroundFullscreenFit: ["width", "height"].includes(sceneData.settings?.backgroundFullscreenFit)
+            ? sceneData.settings.backgroundFullscreenFit
+            : "width",
           preserveBackgroundAspect: sceneData.settings?.preserveBackgroundAspect !== false,
           cinematicBars: ["standard", "small", "medium", "big"].includes(sceneData.settings?.cinematicBars)
             ? sceneData.settings.cinematicBars
@@ -1047,6 +1313,12 @@ export class TheatreStore {
     return this.getAvatars().find((avatar) => avatar.id === avatarId) ?? null;
   }
 
+  static getAvatarTokenBakeSize() {
+    const size = Number(game.settings.get(MODULE_ID, SETTINGS.AVATAR_TOKEN_BAKE_SIZE));
+    if (!Number.isFinite(size)) return 450;
+    return Math.round(Math.max(128, Math.min(2048, size)));
+  }
+
   static async saveAvatars(avatars) {
     return game.settings.set(
       MODULE_ID,
@@ -1057,18 +1329,53 @@ export class TheatreStore {
 
   static async upsertAvatar(avatarData) {
     const avatars = this.getAvatars();
+    const existingAvatar = avatars.find((avatar) => avatar.id === avatarData.id) ?? null;
+    const canReuseExistingTokenImage = Boolean(
+      existingAvatar
+      && String(existingAvatar.defaultImage || "") === String(avatarData.defaultImage || avatarData.image || avatarData.thumbnail || avatarData.img || avatarData.imagePath || avatarData.texture?.src || avatarData.prototypeToken?.texture?.src || "")
+      && String(existingAvatar.frameImage || "") === String(avatarData.frameImage || "")
+      && Boolean(existingAvatar.useCircularCrop) === Boolean(avatarData.useCircularCrop)
+      && Number(existingAvatar.circularCropScale) === Number(avatarData.circularCropScale)
+      && Number(existingAvatar.cropOffsetX) === Number(avatarData.cropOffsetX ?? 0)
+      && Number(existingAvatar.cropOffsetY) === Number(avatarData.cropOffsetY ?? 0)
+      && Number(existingAvatar.frameFitScale) === Number(avatarData.frameFitScale)
+      && Boolean(existingAvatar.showBackdrop) === (avatarData.showBackdrop !== false)
+    );
     const nextAvatar = this._normalizeAvatar({
       id: avatarData.id || randomId(),
       name: avatarData.name || tr("New Avatar"),
       actorId: avatarData.actorId || "",
-      defaultImage: avatarData.defaultImage || "",
+      defaultImage: avatarData.defaultImage
+        || avatarData.image
+        || avatarData.thumbnail
+        || avatarData.img
+        || avatarData.imagePath
+        || avatarData.texture?.src
+        || avatarData.prototypeToken?.texture?.src
+        || "",
       moodImages: avatarData.moodImages ?? {},
       useCircularCrop: avatarData.useCircularCrop,
       circularCropScale: avatarData.circularCropScale,
+      cropOffsetX: avatarData.cropOffsetX,
+      cropOffsetY: avatarData.cropOffsetY,
       frameFitScale: avatarData.frameFitScale,
       frameImage: avatarData.frameImage || "",
-      showBackdrop: avatarData.showBackdrop
+      showBackdrop: avatarData.showBackdrop,
+      tokenImage: avatarData.tokenImage || (canReuseExistingTokenImage ? existingAvatar?.tokenImage : "") || ""
     });
+
+    if (!nextAvatar.defaultImage) {
+      nextAvatar.tokenImage = "";
+    } else {
+      try {
+        const tokenImage = await bakeAvatarTokenImage(nextAvatar, {
+          maxSize: this.getAvatarTokenBakeSize()
+        });
+        if (tokenImage) nextAvatar.tokenImage = tokenImage;
+      } catch (error) {
+        console.warn(`${MODULE_ID} | Avatar token image could not be baked`, error);
+      }
+    }
 
     const index = avatars.findIndex((avatar) => avatar.id === nextAvatar.id);
     if (index === -1) avatars.push(nextAvatar);
@@ -1086,18 +1393,31 @@ export class TheatreStore {
           .filter(([key]) => Boolean(key))
       )
       : {};
+    const defaultImage = String(
+      avatarData.defaultImage
+      || avatarData.image
+      || avatarData.thumbnail
+      || avatarData.img
+      || avatarData.imagePath
+      || avatarData.texture?.src
+      || avatarData.prototypeToken?.texture?.src
+      || ""
+    ).trim();
 
     return {
       id: String(avatarData.id || randomId()),
       name: String(avatarData.name || tr("New Avatar")).trim() || tr("New Avatar"),
       actorId: String(avatarData.actorId || "").trim(),
-      defaultImage: String(avatarData.defaultImage || "").trim(),
+      defaultImage,
       moodImages,
       useCircularCrop: Boolean(avatarData.useCircularCrop),
-      circularCropScale: Math.max(0.7, Math.min(1.3, Number(avatarData.circularCropScale) || 1)),
+      circularCropScale: Math.max(0.7, Math.min(3, Number(avatarData.circularCropScale) || 1)),
+      cropOffsetX: Math.max(-160, Math.min(160, Number(avatarData.cropOffsetX) || 0)),
+      cropOffsetY: Math.max(-160, Math.min(160, Number(avatarData.cropOffsetY) || 0)),
       frameFitScale: Math.max(0.6, Math.min(1.2, Number(avatarData.frameFitScale) || 1)),
       frameImage: String(avatarData.frameImage || "").trim(),
-      showBackdrop: avatarData.showBackdrop !== false
+      showBackdrop: avatarData.showBackdrop !== false,
+      tokenImage: String(avatarData.tokenImage || "").trim()
     };
   }
 
@@ -1234,6 +1554,20 @@ export class TheatreStore {
     return this.getSceneSoundPlaylists(targetSceneId);
   }
 
+  static _normalizeWorldMapTravelTarget(data = {}) {
+    const allowedTypes = new Set(["foundryScene", "theatreScene", "portal", "worldMap"]);
+    const type = String(data.travelTargetType || "").trim();
+    const normalizedType = allowedTypes.has(type) ? type : "";
+    return {
+      travelTargetType: normalizedType,
+      travelTargetId: normalizedType ? String(data.travelTargetId || "").trim() : "",
+      travelTargetUuid: normalizedType ? String(data.travelTargetUuid || "").trim() : "",
+      travelTargetName: normalizedType ? String(data.travelTargetName || "").trim() : "",
+      travelPlayerAccess: Boolean(data.travelPlayerAccess),
+      travelCloseWorldMap: data.travelCloseWorldMap !== false
+    };
+  }
+
   static _normalizeWorldMapPin(pinData = {}) {
     const type = String(pinData.type || "location").trim().toLowerCase();
     return {
@@ -1247,6 +1581,8 @@ export class TheatreStore {
       documentUuid: String(pinData.documentUuid || "").trim(),
       documentType: String(pinData.documentType || "").trim(),
       documentName: String(pinData.documentName || "").trim(),
+      documentPlayerAccess: pinData.documentPlayerAccess !== false,
+      ...this._normalizeWorldMapTravelTarget(pinData),
       color: /^#[0-9a-f]{6}$/i.test(String(pinData.color || "").trim()) ? String(pinData.color).trim().toLowerCase() : "#7ebaec",
       size: Number.isFinite(Number(pinData.size)) ? Math.max(0.7, Math.min(2.4, Number(pinData.size))) : 1,
       borderColor: /^#[0-9a-f]{6}$/i.test(String(pinData.borderColor || "").trim()) ? String(pinData.borderColor).trim().toLowerCase() : "#101722",
@@ -1255,28 +1591,17 @@ export class TheatreStore {
       shadowDistance: Number.isFinite(Number(pinData.shadowDistance)) ? Math.max(0, Math.min(32, Number(pinData.shadowDistance))) : 2,
       shadowOpacity: Number.isFinite(Number(pinData.shadowOpacity)) ? Math.max(0, Math.min(1, Number(pinData.shadowOpacity))) : 0.55,
       shadowBlur: Number.isFinite(Number(pinData.shadowBlur)) ? Math.max(0, Math.min(32, Number(pinData.shadowBlur))) : 4,
-      movableForPlayers: Boolean(pinData.movableForPlayers)
+      movableForPlayers: Boolean(pinData.movableForPlayers),
+      tooltipEnabled: pinData.tooltipEnabled !== false
     };
   }
 
   static _getDefaultWorldMapCategories() {
-    return [
-      { id: "settlement", name: tr("Settlement"), iconClass: "fa-house", color: "#2f4057" },
-      { id: "location", name: tr("Location"), iconClass: "fa-location-dot", color: "#33475f" },
-      { id: "poi", name: tr("Point of interest"), iconClass: "fa-star", color: "#39455c" },
-      { id: "headquarters", name: tr("Headquarters"), iconClass: "fa-shield-halved", color: "#3c4259" }
-    ];
+    return getDefaultWorldMapCategories();
   }
 
   static _normalizeWorldMapCategory(categoryData = {}) {
-    const fallback = this._getDefaultWorldMapCategories()[0];
-    const id = String(categoryData.id || categoryData.name || fallback.id).trim().toLowerCase().replace(/[^a-z0-9-_]+/g, "-");
-    return {
-      id: id || fallback.id,
-      name: String(categoryData.name || fallback.name).trim() || fallback.name,
-      iconClass: String(categoryData.iconClass || fallback.iconClass).trim() || fallback.iconClass,
-      color: /^#[0-9a-f]{6}$/i.test(String(categoryData.color || "").trim()) ? String(categoryData.color).trim().toLowerCase() : fallback.color
-    };
+    return normalizeWorldMapCategory(categoryData);
   }
 
   static _normalizeWorldMapOverlay(overlayData = {}) {
@@ -1303,41 +1628,14 @@ export class TheatreStore {
   }
 
   static _normalizeWorldMapFogSettings(fogData = {}) {
-    const mode = String(fogData.mode || "color").trim().toLowerCase();
-    const operations = Array.isArray(fogData.operations)
-      ? fogData.operations
-          .map((operation) => {
-            const tool = String(operation?.tool || "brush").trim().toLowerCase();
-            const action = String(operation?.action || "reveal").trim().toLowerCase();
-            const points = Array.isArray(operation?.points)
-              ? operation.points
-                  .map((point) => ({
-                    x: Number.isFinite(Number(point?.x)) ? Number(point.x) : null,
-                    y: Number.isFinite(Number(point?.y)) ? Number(point.y) : null
-                  }))
-                  .filter((point) => point.x !== null && point.y !== null)
-              : [];
-            if (!["brush", "polygon"].includes(tool) || !["reveal", "restore"].includes(action) || !points.length) return null;
-            return {
-              id: String(operation?.id || randomId()).trim() || randomId(),
-              tool,
-              action,
-              points,
-              space: String(operation?.space || "map").trim().toLowerCase() === "screen" ? "screen" : "map",
-              radius: Number.isFinite(Number(operation?.radius)) ? Math.max(1, Math.min(32768, Number(operation.radius))) : 64,
-              feather: Number.isFinite(Number(operation?.feather)) ? Math.max(0, Math.min(32768, Number(operation.feather))) : 18,
-              createdAt: Number.isFinite(Number(operation?.createdAt)) ? Number(operation.createdAt) : Date.now()
-            };
-          })
-          .filter(Boolean)
-      : [];
+    const operations = normalizeFogOperations(fogData.operations, randomId);
     return {
       enabled: Boolean(fogData.enabled),
-      mode: ["color", "image"].includes(mode) ? mode : "color",
-      color: /^#[0-9a-f]{6}$/i.test(String(fogData.color || "").trim()) ? String(fogData.color).trim().toLowerCase() : "#07111f",
-      opacity: Number.isFinite(Number(fogData.opacity)) ? Math.max(0, Math.min(1, Number(fogData.opacity))) : 0.88,
+      mode: normalizeFogMode(fogData.mode),
+      color: /^#[0-9a-f]{6}$/i.test(String(fogData.color || "").trim()) ? String(fogData.color).trim().toLowerCase() : FOG_DEFAULTS.color,
+      opacity: normalizeFogOpacity(fogData.opacity),
       imagePath: this._normalizePublicAssetPath(fogData.imagePath),
-      imageTileSize: Number.isFinite(Number(fogData.imageTileSize)) ? Math.max(16, Math.min(2048, Number(fogData.imageTileSize))) : 256,
+      imageTileSize: normalizeFogImageTileSize(fogData.imageTileSize),
       imageTileFixedOnZoom: Boolean(fogData.imageTileFixedOnZoom),
       imageTileViewportLocked: Boolean(fogData.imageTileViewportLocked),
       operations
@@ -1362,6 +1660,8 @@ export class TheatreStore {
       documentUuid: String(objectData.documentUuid || "").trim(),
       documentType: String(objectData.documentType || "").trim(),
       documentName: String(objectData.documentName || "").trim(),
+      documentPlayerAccess: objectData.documentPlayerAccess !== false,
+      ...this._normalizeWorldMapTravelTarget(objectData),
       width: Number.isFinite(Number(objectData.width)) ? Math.max(16, Math.min(4096, Number(objectData.width))) : 160,
       fontSize: Number.isFinite(Number(objectData.fontSize)) ? Math.max(8, Math.min(256, Number(objectData.fontSize))) : 24,
       lineHeight: Number.isFinite(Number(objectData.lineHeight)) ? Math.max(0.6, Math.min(2.4, Number(objectData.lineHeight))) : 0.95,
@@ -1405,6 +1705,8 @@ export class TheatreStore {
       documentUuid: String(regionData.documentUuid || "").trim(),
       documentType: String(regionData.documentType || "").trim(),
       documentName: String(regionData.documentName || "").trim(),
+      documentPlayerAccess: regionData.documentPlayerAccess !== false,
+      ...this._normalizeWorldMapTravelTarget(regionData),
       fillColor,
       strokeColor,
       fillOpacity: Number.isFinite(Number(regionData.fillOpacity)) ? Math.max(0, Math.min(1, Number(regionData.fillOpacity))) : 0.28,
@@ -1414,7 +1716,8 @@ export class TheatreStore {
       fillPatternScale: Number.isFinite(Number(regionData.fillPatternScale)) ? Math.max(4, Math.min(48, Number(regionData.fillPatternScale))) : 14,
       fillPatternSize: Number.isFinite(Number(regionData.fillPatternSize)) ? Math.max(1, Math.min(24, Number(regionData.fillPatternSize))) : 2,
       strokeStyle: ["solid", "dashed", "dotted", "dashdot"].includes(strokeStyle) ? strokeStyle : "solid",
-      visible: regionData.visible !== false
+      visible: regionData.visible !== false,
+      tooltipEnabled: regionData.tooltipEnabled !== false
     };
   }
 
@@ -1438,6 +1741,8 @@ export class TheatreStore {
       documentUuid: String(lineData.documentUuid || "").trim(),
       documentType: String(lineData.documentType || "").trim(),
       documentName: String(lineData.documentName || "").trim(),
+      documentPlayerAccess: lineData.documentPlayerAccess !== false,
+      ...this._normalizeWorldMapTravelTarget(lineData),
       color: /^#[0-9a-f]{6}$/i.test(String(lineData.color || "").trim()) ? String(lineData.color).trim().toLowerCase() : "#d7e8ff",
       opacity: Number.isFinite(Number(lineData.opacity)) ? Math.max(0, Math.min(1, Number(lineData.opacity))) : 0.95,
       width: Number.isFinite(Number(lineData.width)) ? Math.max(1, Math.min(32, Number(lineData.width))) : 3,
@@ -1446,6 +1751,8 @@ export class TheatreStore {
       shadowColor: /^#[0-9a-f]{6}$/i.test(String(lineData.shadowColor || "").trim()) ? String(lineData.shadowColor).trim().toLowerCase() : "#000000",
       shadowOpacity: Number.isFinite(Number(lineData.shadowOpacity)) ? Math.max(0, Math.min(1, Number(lineData.shadowOpacity))) : 0.35,
       shadowBlur: Number.isFinite(Number(lineData.shadowBlur)) ? Math.max(0, Math.min(48, Number(lineData.shadowBlur))) : 6,
+      shadowDistance: Number.isFinite(Number(lineData.shadowDistance)) ? Math.max(0, Math.min(64, Number(lineData.shadowDistance))) : 0,
+      shadowDirection: Number.isFinite(Number(lineData.shadowDirection)) ? Math.max(0, Math.min(359, Number(lineData.shadowDirection))) : 135,
       lineStyle: ["solid", "dashed", "dotted", "dashdot"].includes(lineStyle) ? lineStyle : "solid",
       lineCap: ["round", "butt", "square"].includes(lineCap) ? lineCap : "round",
       pointStyle: ["none", "circle", "square"].includes(pointStyle) ? pointStyle : "none",
@@ -1455,7 +1762,8 @@ export class TheatreStore {
       pointOutlineColor: /^#[0-9a-f]{6}$/i.test(String(lineData.pointOutlineColor || "").trim()) ? String(lineData.pointOutlineColor).trim().toLowerCase() : "#101722",
       pointOutlineWidth: Number.isFinite(Number(lineData.pointOutlineWidth)) ? Math.max(0, Math.min(12, Number(lineData.pointOutlineWidth))) : 1,
       visible: lineData.visible !== false,
-      movableForPlayers: Boolean(lineData.movableForPlayers)
+      movableForPlayers: Boolean(lineData.movableForPlayers),
+      tooltipEnabled: lineData.tooltipEnabled !== false
     };
   }
 
@@ -1601,36 +1909,10 @@ export class TheatreStore {
     const initialYRaw = Number(worldMap?.initialView?.y);
     const initialX = Number.isFinite(initialXRaw) ? Math.max(0, Math.min(width, initialXRaw)) : Math.round(width / 2);
     const initialY = Number.isFinite(initialYRaw) ? Math.max(0, Math.min(height, initialYRaw)) : Math.round(height / 2);
-    const categorySource = Array.isArray(worldMap.categories) && worldMap.categories.length
-      ? worldMap.categories
-      : [
-          ...(Array.isArray(worldMap.pinCategories) ? worldMap.pinCategories : []),
-          ...(Array.isArray(worldMap.objectCategories) ? worldMap.objectCategories : []),
-          ...(Array.isArray(worldMap.regionCategories) ? worldMap.regionCategories : [])
-        ];
-    const categories = Array.from(new Map(
-      (categorySource.length ? categorySource : this._getDefaultWorldMapCategories())
-        .map((entry) => this._normalizeWorldMapCategory(entry))
-        .map((entry) => [entry.id, entry])
-    ).values());
+    const categories = normalizeWorldMapCategoryList(collectWorldMapCategorySource(worldMap));
     const allowedCategories = new Set(categories.map((entry) => entry.id));
     const lockedCategoriesInput = worldMap.lockedCategories && typeof worldMap.lockedCategories === "object" ? worldMap.lockedCategories : {};
-    const normalizeLockedCategories = (values, allowedValues) => Array.from(new Set(
-      (Array.isArray(values) ? values : [])
-        .map((value) => String(value || "").trim().toLowerCase())
-        .filter((value) => value && allowedValues.has(value))
-    ));
-    const lockedCategories = {
-      categories: normalizeLockedCategories([
-        ...(Array.isArray(lockedCategoriesInput.categories) ? lockedCategoriesInput.categories : []),
-        ...(Array.isArray(lockedCategoriesInput.pins) ? lockedCategoriesInput.pins : []),
-        ...(Array.isArray(lockedCategoriesInput.objects) ? lockedCategoriesInput.objects : []),
-        ...(Array.isArray(lockedCategoriesInput.regions) ? lockedCategoriesInput.regions : [])
-      ], allowedCategories),
-      pins: [],
-      objects: [],
-      regions: []
-    };
+    const lockedCategories = normalizeWorldMapLockedCategories(lockedCategoriesInput, allowedCategories);
     const defaultCategory = categories[0]?.id || "location";
     const pins = Array.isArray(worldMap.pins)
       ? Array.from(new Map(
@@ -1982,6 +2264,415 @@ export class TheatreStore {
     await this.saveWorldMapLibraryState(state);
   }
 
+  static _normalizePortalElementAction(actionData = {}) {
+    const allowedTypes = new Set(["none", "actor", "journal", "scene", "theatreScene", "worldMap", "portal"]);
+    const type = allowedTypes.has(String(actionData?.type || "")) ? String(actionData.type) : "none";
+    const openMode = ["window", "stage", "fullscreen"].includes(String(actionData?.openMode || ""))
+      ? String(actionData.openMode)
+      : "window";
+    return {
+      type,
+      documentUuid: String(actionData?.documentUuid || "").trim(),
+      documentId: String(actionData?.documentId || "").trim(),
+      theatreSceneId: String(actionData?.theatreSceneId || "").trim(),
+      worldMapId: String(actionData?.worldMapId || "").trim(),
+      portalId: String(actionData?.portalId || "").trim(),
+      label: String(actionData?.label || "").trim(),
+      openMode,
+      closeCurrentPortal: Boolean(actionData?.closeCurrentPortal)
+    };
+  }
+
+  static _normalizePortalElementMedia(mediaData = {}) {
+    const fit = ["contain", "cover", "fill", "none"].includes(String(mediaData?.fit || ""))
+      ? String(mediaData.fit)
+      : "contain";
+    const repeat = ["no-repeat", "repeat", "repeat-x", "repeat-y"].includes(String(mediaData?.repeat || ""))
+      ? String(mediaData.repeat)
+      : "no-repeat";
+    return {
+      src: String(mediaData?.src || "").trim(),
+      type: ["image", "video"].includes(String(mediaData?.type || "")) ? String(mediaData.type) : "image",
+      avatarId: String(mediaData?.avatarId || "").trim(),
+      dataPath: String(mediaData?.dataPath || "").trim(),
+      dataFormat: String(mediaData?.dataFormat || "{value}"),
+      fit,
+      repeat,
+      hoverSrc: String(mediaData?.hoverSrc || "").trim(),
+      hoverType: ["image", "video"].includes(String(mediaData?.hoverType || "")) ? String(mediaData.hoverType) : "image",
+      openActorSheetOnClick: Boolean(mediaData?.openActorSheetOnClick)
+    };
+  }
+
+  static _normalizePortalElementStyle(styleData = {}) {
+    const normalizeColor = (value, fallback) => /^#[0-9a-f]{6}$/i.test(String(value || "")) ? String(value) : fallback;
+    const shapeType = ["rectangle", "rounded", "circle", "diamond", "triangle"].includes(String(styleData?.shapeType || ""))
+      ? String(styleData.shapeType)
+      : "rounded";
+    return {
+      backgroundColor: normalizeColor(styleData?.backgroundColor, "#111827"),
+      textColor: normalizeColor(styleData?.textColor, "#ffffff"),
+      borderColor: normalizeColor(styleData?.borderColor, "#80b5e8"),
+      borderWidth: Math.max(0, Math.min(16, Number(styleData?.borderWidth) || 0)),
+      borderRadius: Math.max(0, Math.min(40, Number(styleData?.borderRadius) || 6)),
+      opacity: Math.max(0, Math.min(1, Number(styleData?.opacity ?? 1))),
+      backgroundOpacity: Math.max(0, Math.min(1, Number(styleData?.backgroundOpacity ?? styleData?.opacity ?? 1))),
+      textOpacity: Math.max(0, Math.min(1, Number(styleData?.textOpacity ?? 1))),
+      shapeType,
+      keepAspectRatio: Boolean(styleData?.keepAspectRatio),
+      shadow: Boolean(styleData?.shadow),
+      hoverScale: Math.max(0.5, Math.min(2, Number(styleData?.hoverScale ?? 1.04))),
+      hoverOpacity: Math.max(0, Math.min(1, Number(styleData?.hoverOpacity ?? 1)))
+    };
+  }
+
+  static _normalizePortalEffect(effectData = {}) {
+    const allowedTypes = new Set([
+      "shadow",
+      "glow",
+      "blur",
+      "glass",
+      "scanlines",
+      "chroma",
+      "rotate",
+      "tilt",
+      "pulse",
+      "float",
+      "perspectiveHover",
+      "sound"
+    ]);
+    const type = allowedTypes.has(String(effectData?.type || "")) ? String(effectData.type) : "shadow";
+    const normalizeNumber = (value, fallback, min = -Infinity, max = Infinity) => {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return fallback;
+      return Math.max(min, Math.min(max, numeric));
+    };
+    const normalizeColor = (value, fallback = "#ffffff") => /^#[0-9a-f]{6}$/i.test(String(value || "")) ? String(value) : fallback;
+    const easing = String(effectData?.transition?.easing || "ease").trim();
+    const normalizedEasing = /^(linear|ease|ease-in|ease-out|ease-in-out)$/i.test(easing) || /^cubic-bezier\([^)]+\)$/i.test(easing)
+      ? easing
+      : "ease";
+    const rawSettings = effectData?.settings && typeof effectData.settings === "object" ? effectData.settings : {};
+    const settings = {};
+    for (const [key, value] of Object.entries(rawSettings)) {
+      if (key.toLowerCase().includes("color")) settings[key] = normalizeColor(value, key === "color" ? "#ffffff" : "#000000");
+      else if (typeof value === "number" || (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)))) settings[key] = Number(value);
+      else if (typeof value === "boolean") settings[key] = value;
+      else settings[key] = String(value ?? "").trim();
+    }
+    if (rawSettings.color !== undefined) settings.color = normalizeColor(rawSettings.color, "#ffffff");
+
+    return {
+      id: String(effectData?.id || "").trim() || randomId(),
+      type,
+      enabled: effectData?.enabled === undefined ? true : Boolean(effectData.enabled),
+      expanded: Boolean(effectData?.expanded),
+      hover: Boolean(effectData?.hover),
+      disableOnHover: Boolean(effectData?.disableOnHover),
+      preview: Boolean(effectData?.preview),
+      targetMode: String(effectData?.targetMode || "") === "layer" ? "layer" : "object",
+      targetLayerId: String(effectData?.targetLayerId || "").trim(),
+      transition: {
+        duration: normalizeNumber(effectData?.transition?.duration, 220, 0, 10000),
+        easing: normalizedEasing
+      },
+      settings
+    };
+  }
+
+  static _normalizePortalElement(elementData = {}) {
+    const rawType = String(elementData?.type || "");
+    const allowedTypes = new Set(["object", "image", "video", "text", "shape"]);
+    const type = allowedTypes.has(rawType) ? rawType : "shape";
+    const media = this._normalizePortalElementMedia(elementData?.media);
+    const style = this._normalizePortalElementStyle(elementData?.style);
+    const contentLayers = this._normalizePortalContentLayers(elementData, { type, media });
+    if (media.avatarId) {
+      style.keepAspectRatio = true;
+      style.backgroundOpacity = 0;
+      style.borderWidth = 0;
+      style.shadow = false;
+    }
+    return {
+      id: String(elementData?.id || "").trim() || randomId(),
+      type,
+      name: String(elementData?.name || "").trim() || tr("Portal element"),
+      text: String(elementData?.text || "").trim(),
+      x: Number.isFinite(Number(elementData?.x)) ? Number(elementData.x) : 120,
+      y: Number.isFinite(Number(elementData?.y)) ? Number(elementData.y) : 120,
+      width: Math.max(8, Number(elementData?.width) || 180),
+      height: Math.max(8, Number(elementData?.height) || 72),
+      rotation: Number.isFinite(Number(elementData?.rotation)) ? Number(elementData.rotation) : 0,
+      zIndex: Number.isFinite(Number(elementData?.zIndex)) ? Number(elementData.zIndex) : 1,
+      locked: Boolean(elementData?.locked),
+      visible: elementData?.visible === undefined ? true : Boolean(elementData.visible),
+      visibleToPlayers: elementData?.visibleToPlayers === undefined ? true : Boolean(elementData.visibleToPlayers),
+      clickableForPlayers: elementData?.clickableForPlayers === undefined ? true : Boolean(elementData.clickableForPlayers),
+      clickable: elementData?.clickable === undefined ? true : Boolean(elementData.clickable),
+      movableForPlayers: Boolean(elementData?.movableForPlayers),
+      media,
+      contentLayers,
+      action: this._normalizePortalElementAction(elementData?.action),
+      style,
+      effects: Array.isArray(elementData?.effects)
+        ? elementData.effects.map((effect) => this._normalizePortalEffect(effect))
+        : [],
+      clickSound: {
+        src: String(elementData?.clickSound?.src || "").trim(),
+        volume: Math.max(0, Math.min(1, Number(elementData?.clickSound?.volume ?? 0.7)))
+      },
+      hoverSound: {
+        src: String(elementData?.hoverSound?.src || "").trim(),
+        volume: Math.max(0, Math.min(1, Number(elementData?.hoverSound?.volume ?? 0.45)))
+      }
+    };
+  }
+
+  static _normalizePortalContentLayers(elementData = {}, legacy = {}) {
+    const sourceLayers = Array.isArray(elementData?.contentLayers) ? elementData.contentLayers : [];
+    const normalized = sourceLayers
+      .map((layer) => this._normalizePortalContentLayer(layer))
+      .filter(Boolean);
+    if (normalized.length) return normalized;
+
+    const type = String(legacy.type || elementData?.type || "");
+    if (!["image", "video", "text", "html", "portalAvatar", "dataText"].includes(type)) return [];
+    return [
+      this._normalizePortalContentLayer({
+        id: "legacy-content",
+        type,
+        name: String(elementData?.name || "").trim() || tr("Content layer"),
+        text: elementData?.text,
+        media: legacy.media || elementData?.media,
+        visible: true,
+        zIndex: 1
+      })
+    ].filter(Boolean);
+  }
+
+  static _normalizePortalContentLayer(layerData = {}) {
+    const rawType = String(layerData?.type || "");
+    const allowedTypes = new Set(["image", "video", "text", "html", "portalAvatar", "dataText"]);
+    if (!allowedTypes.has(rawType)) return null;
+    const media = this._normalizePortalElementMedia({
+      ...(layerData?.media ?? {}),
+      type: rawType === "video" ? "video" : "image"
+    });
+    return {
+      id: String(layerData?.id || "").trim() || randomId(),
+      type: rawType,
+      name: String(layerData?.name || "").trim() || tr("Content layer"),
+      text: String(layerData?.text || "").trim(),
+      html: String(layerData?.html ?? ""),
+      css: String(layerData?.css ?? ""),
+      visible: layerData?.visible === undefined ? true : Boolean(layerData.visible),
+      expanded: Boolean(layerData?.expanded),
+      zIndex: Number.isFinite(Number(layerData?.zIndex)) ? Number(layerData.zIndex) : 1,
+      layout: this._normalizePortalContentLayerLayout(layerData?.layout),
+      textStyle: this._normalizePortalContentLayerTextStyle(layerData?.textStyle),
+      media
+    };
+  }
+
+  static _normalizePortalContentLayerTextStyle(textStyle = {}) {
+    const color = /^#[0-9a-f]{6}$/i.test(String(textStyle?.color || ""))
+      ? String(textStyle.color)
+      : "#ffffff";
+    const fontSize = Number(textStyle?.fontSize);
+    return {
+      fontFamily: String(textStyle?.fontFamily || "").trim(),
+      fontSize: Math.max(6, Math.min(160, Number.isFinite(fontSize) ? fontSize : 24)),
+      color,
+      shadow: Boolean(textStyle?.shadow),
+      shadowColor: /^#[0-9a-f]{6}$/i.test(String(textStyle?.shadowColor || "")) ? String(textStyle.shadowColor) : "#000000",
+      shadowOpacity: Math.max(0, Math.min(1, Number(textStyle?.shadowOpacity ?? 0.45))),
+      shadowBlur: Math.max(0, Math.min(40, Number(textStyle?.shadowBlur ?? 4))),
+      shadowX: Math.max(-80, Math.min(80, Number(textStyle?.shadowX ?? 0))),
+      shadowY: Math.max(-80, Math.min(80, Number(textStyle?.shadowY ?? 2)))
+    };
+  }
+
+  static _normalizePortalContentLayerLayout(layout = {}) {
+    const alignX = ["left", "center", "right"].includes(String(layout?.alignX || "")) ? String(layout.alignX) : "center";
+    const alignY = ["top", "center", "bottom"].includes(String(layout?.alignY || "")) ? String(layout.alignY) : "center";
+    const textAlign = ["left", "center", "right"].includes(String(layout?.textAlign || "")) ? String(layout.textAlign) : alignX;
+    const normalizeNumber = (value, fallback, min, max) => {
+      const numeric = Number(value);
+      return Math.max(min, Math.min(max, Number.isFinite(numeric) ? numeric : fallback));
+    };
+    return {
+      alignX,
+      alignY,
+      textAlign,
+      scale: normalizeNumber(layout?.scale, 1, 0.1, 4),
+      offsetX: normalizeNumber(layout?.offsetX, 0, -100, 100),
+      offsetY: normalizeNumber(layout?.offsetY, 0, -100, 100)
+    };
+  }
+
+  static _normalizePortal(portalData = {}) {
+    const backgroundType = ["image", "video"].includes(String(portalData?.backgroundType || ""))
+      ? String(portalData.backgroundType)
+      : "image";
+    const backgroundFit = ["contain", "cover", "fill", "none"].includes(String(portalData?.settings?.backgroundFit || ""))
+      ? String(portalData.settings.backgroundFit)
+      : "contain";
+    const backgroundPositionMode = ["center", "custom"].includes(String(portalData?.settings?.backgroundPositionMode || ""))
+      ? String(portalData.settings.backgroundPositionMode)
+      : "center";
+    const backgroundRepeat = ["no-repeat", "repeat", "repeat-x", "repeat-y"].includes(String(portalData?.settings?.backgroundRepeat || ""))
+      ? String(portalData.settings.backgroundRepeat)
+      : "no-repeat";
+    const backgroundPositionX = Number(portalData?.settings?.backgroundPositionX);
+    const backgroundPositionY = Number(portalData?.settings?.backgroundPositionY);
+    const backgroundCropWidthRatio = Number(portalData?.settings?.backgroundCropWidthRatio);
+    const backgroundCropHeightRatio = Number(portalData?.settings?.backgroundCropHeightRatio);
+    const backgroundCropOffsetX = Number(portalData?.settings?.backgroundCropOffsetX);
+    const backgroundCropOffsetY = Number(portalData?.settings?.backgroundCropOffsetY);
+    const fullscreenFitMode = ["none", "height", "width"].includes(String(portalData?.settings?.fullscreenFitMode || ""))
+      ? String(portalData.settings.fullscreenFitMode)
+      : "none";
+    return {
+      id: String(portalData?.id || "").trim() || randomId(),
+      name: String(portalData?.name || "").trim() || tr("New Portal"),
+      description: String(portalData?.description || "").trim(),
+      thumbnail: String(portalData?.thumbnail || "").trim(),
+      background: String(portalData?.background || "").trim(),
+      backgroundType,
+      elements: Array.isArray(portalData?.elements)
+        ? portalData.elements.map((element) => this._normalizePortalElement(element))
+        : [],
+      settings: {
+        allowPlayerFullscreenToggle: Boolean(portalData?.settings?.allowPlayerFullscreenToggle),
+        hideFoundryUiInFullscreen: portalData?.settings?.hideFoundryUiInFullscreen === undefined
+          ? true
+          : Boolean(portalData.settings.hideFoundryUiInFullscreen),
+        showGridByDefault: Boolean(portalData?.settings?.showGridByDefault),
+        snapToGrid: portalData?.settings?.snapToGrid === undefined ? true : Boolean(portalData.settings.snapToGrid),
+        gridSize: Math.max(4, Math.min(200, Number(portalData?.settings?.gridSize) || 24)),
+        surfaceOverrideEnabled: Boolean(portalData?.settings?.surfaceOverrideEnabled),
+        surfaceAspectWidth: Math.max(1, Math.min(64, Number(portalData?.settings?.surfaceAspectWidth) || 16)),
+        surfaceAspectHeight: Math.max(1, Math.min(64, Number(portalData?.settings?.surfaceAspectHeight) || 9)),
+        backgroundFit,
+        backgroundPositionMode,
+        backgroundPositionX: Math.max(0, Math.min(100, Number.isFinite(backgroundPositionX) ? backgroundPositionX : 50)),
+        backgroundPositionY: Math.max(0, Math.min(100, Number.isFinite(backgroundPositionY) ? backgroundPositionY : 50)),
+        backgroundCropWidthRatio: Math.max(0.05, Math.min(20, Number.isFinite(backgroundCropWidthRatio) ? backgroundCropWidthRatio : 0)),
+        backgroundCropHeightRatio: Math.max(0.05, Math.min(20, Number.isFinite(backgroundCropHeightRatio) ? backgroundCropHeightRatio : 0)),
+        backgroundCropOffsetX: Math.max(-200, Math.min(200, Number.isFinite(backgroundCropOffsetX) ? backgroundCropOffsetX : 0)),
+        backgroundCropOffsetY: Math.max(-200, Math.min(200, Number.isFinite(backgroundCropOffsetY) ? backgroundCropOffsetY : 0)),
+        backgroundRepeat,
+        fullscreenRoundedBorders: Boolean(portalData?.settings?.fullscreenRoundedBorders),
+        fullscreenBorderRadius: Math.max(0, Math.min(80, Number(portalData?.settings?.fullscreenBorderRadius) || 12)),
+        fullscreenFitMode,
+        fullscreenBackdropMode: ["color", "blur", "image"].includes(String(portalData?.settings?.fullscreenBackdropMode || ""))
+          ? String(portalData.settings.fullscreenBackdropMode)
+          : "color",
+        fullscreenBackdropColor: /^#[0-9a-f]{6}$/i.test(String(portalData?.settings?.fullscreenBackdropColor || ""))
+          ? String(portalData.settings.fullscreenBackdropColor)
+          : "#050910",
+        fullscreenBackdropImage: String(portalData?.settings?.fullscreenBackdropImage || "").trim(),
+        fullscreenBackdropBlur: Math.max(0, Math.min(40, Number(portalData?.settings?.fullscreenBackdropBlur) || 0)),
+        portalAvatarIds: Array.isArray(portalData?.settings?.portalAvatarIds)
+          ? Array.from(new Set(portalData.settings.portalAvatarIds.map((id) => String(id || "").trim()).filter(Boolean)))
+          : [],
+        autoplayPlaylistId: String(portalData?.settings?.autoplayPlaylistId || "").trim(),
+        autoplayPlaylist: Boolean(portalData?.settings?.autoplayPlaylist),
+        autoplayPlaylistLoop: portalData?.settings?.autoplayPlaylistLoop === undefined
+          ? true
+          : Boolean(portalData.settings.autoplayPlaylistLoop)
+      },
+      createdAt: Number.isFinite(Number(portalData?.createdAt)) ? Number(portalData.createdAt) : Date.now(),
+      updatedAt: Number.isFinite(Number(portalData?.updatedAt)) ? Number(portalData.updatedAt) : Date.now()
+    };
+  }
+
+  static _normalizePortalLibraryState(state = {}) {
+    const portalsInput = Array.isArray(state)
+      ? state
+      : (Array.isArray(state?.portals) ? state.portals : []);
+    const portals = portalsInput.map((portal) => this._normalizePortal(portal));
+    const activePortalId = portals.some((portal) => portal.id === state?.activePortalId)
+      ? state.activePortalId
+      : (portals[0]?.id ?? null);
+    return { portals, activePortalId };
+  }
+
+  static getPortalLibraryState() {
+    return this._normalizePortalLibraryState(game.settings.get(MODULE_ID, SETTINGS.PORTAL_LIBRARY) ?? {});
+  }
+
+  static async savePortalLibraryState(state = {}) {
+    return game.settings.set(MODULE_ID, SETTINGS.PORTAL_LIBRARY, this._normalizePortalLibraryState(state));
+  }
+
+  static getPortals() {
+    return this.getPortalLibraryState().portals;
+  }
+
+  static getPortalById(portalId) {
+    const normalizedPortalId = String(portalId || "").trim();
+    if (!normalizedPortalId) return null;
+    return this.getPortals().find((portal) => portal.id === normalizedPortalId) ?? null;
+  }
+
+  static getActivePortal() {
+    const state = this.getPortalLibraryState();
+    return state.portals.find((portal) => portal.id === state.activePortalId) ?? state.portals[0] ?? null;
+  }
+
+  static async setActivePortal(portalId) {
+    const state = this.getPortalLibraryState();
+    const normalizedPortalId = String(portalId || "").trim();
+    if (!state.portals.some((portal) => portal.id === normalizedPortalId)) return null;
+    state.activePortalId = normalizedPortalId;
+    await this.savePortalLibraryState(state);
+    return this.getPortalById(normalizedPortalId);
+  }
+
+  static async upsertPortal(portalData = {}) {
+    const state = this.getPortalLibraryState();
+    const existingPortal = portalData.id ? this.getPortalById(portalData.id) : null;
+    const nextPortal = this._normalizePortal({
+      ...duplicateData(existingPortal ?? {}),
+      ...portalData,
+      id: portalData.id || existingPortal?.id || randomId(),
+      updatedAt: Date.now()
+    });
+    const portalIndex = state.portals.findIndex((portal) => portal.id === nextPortal.id);
+    if (portalIndex === -1) state.portals.push(nextPortal);
+    else state.portals[portalIndex] = nextPortal;
+    state.activePortalId = nextPortal.id;
+    await this.savePortalLibraryState(state);
+    return nextPortal;
+  }
+
+  static async deletePortal(portalId) {
+    const normalizedPortalId = String(portalId || "").trim();
+    if (!normalizedPortalId) return;
+    const state = this.getPortalLibraryState();
+    state.portals = state.portals.filter((portal) => portal.id !== normalizedPortalId);
+    if (!state.portals.length) state.activePortalId = null;
+    else if (state.activePortalId === normalizedPortalId) state.activePortalId = state.portals[0].id;
+    await this.savePortalLibraryState(state);
+  }
+
+  static async duplicatePortal(portalId) {
+    const portal = this.getPortalById(portalId);
+    if (!portal) return null;
+    const duplicated = this._normalizePortal({
+      ...duplicateData(portal),
+      id: randomId(),
+      name: `${portal.name || tr("Portal")} ${tr("(Copy)")}`,
+      elements: Array.isArray(portal.elements)
+        ? portal.elements.map((element) => ({ ...duplicateData(element), id: randomId() }))
+        : [],
+      updatedAt: Date.now()
+    });
+    await this.upsertPortal(duplicated);
+    return duplicated;
+  }
+
   static getMindmapState(plannerId = null) {
     const collection = this._normalizeAdventurePlannerCollection(game.settings.get(MODULE_ID, SETTINGS.MINDMAP) ?? {});
     const targetPlanner = (plannerId
@@ -2254,31 +2945,62 @@ export class TheatreStore {
 
   static async saveStageGoblinPosition(position = {}) {
     const state = this.getStageGoblinState();
+    const barId = String(position.barId || "bar-1").trim() || "bar-1";
+    const bar = state.bars.find((entry) => entry.id === barId) ?? state.bars[0];
+    const minWidth = bar.orientation === "vertical" ? 168 : 240;
+    bar.position = {
+      left: Math.max(0, Number(position.left) || bar.position.left),
+      top: Math.max(0, Number(position.top) || bar.position.top),
+      width: Math.max(minWidth, Number(position.width) || bar.position.width),
+      height: Math.max(30, Number(position.height) || bar.position.height)
+    };
+    if (bar.id === "bar-1") state.position = bar.position;
+    await this.saveStageGoblinState(state);
+    return bar.position;
+  }
+
+  static getGlobalSoundPlayerState() {
+    return this._normalizeGlobalSoundPlayerState(game.settings.get(MODULE_ID, SETTINGS.GLOBAL_SOUND_PLAYER));
+  }
+
+  static async saveGlobalSoundPlayerPosition(position = {}) {
+    const state = this.getGlobalSoundPlayerState();
     state.position = {
       left: Math.max(0, Number(position.left) || state.position.left),
       top: Math.max(0, Number(position.top) || state.position.top),
-      width: Math.max(240, Number(position.width) || state.position.width),
-      height: Math.max(44, Number(position.height) || state.position.height)
+      width: Math.max(420, Number(position.width) || state.position.width)
     };
-    await this.saveStageGoblinState(state);
+    await game.settings.set(MODULE_ID, SETTINGS.GLOBAL_SOUND_PLAYER, this._normalizeGlobalSoundPlayerState(state));
     return state.position;
   }
 
-  static async saveStageGoblinSelectedPlanner(plannerId = null) {
+  static async saveStageGoblinSelectedPlanner(plannerId = null, barId = "bar-1") {
     const state = this.getStageGoblinState();
+    const bar = state.bars.find((entry) => entry.id === String(barId || "bar-1")) ?? state.bars[0];
     const normalizedPlannerId = String(plannerId || "").trim();
-    state.selectedPlannerId = this.getAdventurePlanners().some((planner) => planner.id === normalizedPlannerId)
+    bar.selectedPlannerId = this.getAdventurePlanners().some((planner) => planner.id === normalizedPlannerId)
       ? normalizedPlannerId
       : null;
+    if (bar.id === "bar-1") state.selectedPlannerId = bar.selectedPlannerId;
     await this.saveStageGoblinState(state);
-    return state.selectedPlannerId;
+    return bar.selectedPlannerId;
   }
 
-  static async saveStageGoblinCollapsed(collapsed = false) {
+  static async saveStageGoblinCollapsed(collapsed = false, barId = "bar-1") {
     const state = this.getStageGoblinState();
-    state.collapsed = Boolean(collapsed);
+    const bar = state.bars.find((entry) => entry.id === String(barId || "bar-1")) ?? state.bars[0];
+    bar.collapsed = Boolean(collapsed);
+    if (bar.id === "bar-1") state.collapsed = bar.collapsed;
     await this.saveStageGoblinState(state);
-    return state.collapsed;
+    return bar.collapsed;
+  }
+
+  static async saveStageGoblinBarVisible(visible = true, barId = "bar-1") {
+    const state = this.getStageGoblinState();
+    const bar = state.bars.find((entry) => entry.id === String(barId || "bar-1")) ?? state.bars[0];
+    bar.visible = visible !== false;
+    await this.saveStageGoblinState(state);
+    return bar.visible;
   }
 
   static async addStageGoblinItem(itemData = {}) {
@@ -2286,8 +3008,9 @@ export class TheatreStore {
     const nextItem = this._normalizeStageGoblinItem(itemData);
     const duplicateIndex = state.items.findIndex((item) => (
       nextItem.sourceType === "plannerNode"
-        ? item.sourceType === "plannerNode" && item.plannerId === nextItem.plannerId && item.nodeId === nextItem.nodeId
+        ? item.barId === nextItem.barId && item.sourceType === "plannerNode" && item.plannerId === nextItem.plannerId && item.nodeId === nextItem.nodeId
         : item.sourceType === "document"
+          && item.barId === nextItem.barId
           && (
             (nextItem.documentUuid && item.documentUuid === nextItem.documentUuid)
             || (!nextItem.documentUuid && item.documentType === nextItem.documentType && item.documentId === nextItem.documentId)
@@ -2309,16 +3032,20 @@ export class TheatreStore {
     await this.saveStageGoblinState(state);
   }
 
-  static async toggleStageGoblinPlannerNode(plannerId, nodeId, label = "Entry") {
+  static async toggleStageGoblinPlannerNode(plannerId, nodeId, label = "Entry", barId = "bar-1") {
     const state = this.getStageGoblinState();
-    const existing = state.items.find((item) => item.sourceType === "plannerNode" && item.plannerId === plannerId && item.nodeId === nodeId);
-    if (existing) {
-      state.items = state.items.filter((item) => item.id !== existing.id);
+    const existingItems = state.items.filter((item) => item.sourceType === "plannerNode" && item.plannerId === plannerId && item.nodeId === nodeId);
+    if (existingItems.length) {
+      const existingIds = new Set(existingItems.map((item) => item.id));
+      state.items = state.items.filter((item) => !existingIds.has(item.id));
       await this.saveStageGoblinState(state);
       return false;
     }
 
+    const barIds = new Set(state.bars.map((bar) => bar.id));
+    const targetBarId = barIds.has(String(barId || "")) ? String(barId) : "bar-1";
     state.items.push(this._normalizeStageGoblinItem({
+      barId: targetBarId,
       sourceType: "plannerNode",
       plannerId,
       nodeId,
@@ -2341,15 +3068,48 @@ export class TheatreStore {
     await this.saveStageGoblinState(state);
   }
 
-  static async reorderStageGoblinItemToIndex(draggedItemId, targetIndex) {
+  static async reorderStageGoblinItemToIndex(draggedItemId, targetIndex, targetBarId = null) {
     if (!draggedItemId || !Number.isFinite(targetIndex)) return;
     const state = this.getStageGoblinState();
     const draggedIndex = state.items.findIndex((item) => item.id === draggedItemId);
     if (draggedIndex === -1) return;
 
     const [draggedItem] = state.items.splice(draggedIndex, 1);
-    const clampedIndex = Math.max(0, Math.min(Number(targetIndex), state.items.length));
-    state.items.splice(clampedIndex, 0, draggedItem);
+    const barIds = new Set(state.bars.map((bar) => bar.id));
+    const nextBarId = barIds.has(String(targetBarId || "")) ? String(targetBarId) : draggedItem.barId;
+    draggedItem.barId = nextBarId;
+    const sameBarItems = state.items.filter((item) => item.barId === draggedItem.barId);
+    const targetBarIndex = Math.max(0, Math.min(Number(targetIndex), sameBarItems.length));
+    const beforeItem = sameBarItems[targetBarIndex] ?? null;
+    const lastSameBarIndex = state.items.findLastIndex?.((item) => item.barId === draggedItem.barId) ?? -1;
+    const insertIndex = beforeItem
+      ? state.items.findIndex((item) => item.id === beforeItem.id)
+      : (lastSameBarIndex === -1 ? state.items.length : lastSameBarIndex + 1);
+    state.items.splice(Math.max(0, insertIndex), 0, draggedItem);
+    await this.saveStageGoblinState(state);
+  }
+
+  static async reorderStageGoblinItemRelative(draggedItemId, targetItemId = null, insertAfter = false, targetBarId = null) {
+    if (!draggedItemId) return;
+    const state = this.getStageGoblinState();
+    const draggedIndex = state.items.findIndex((item) => item.id === draggedItemId);
+    if (draggedIndex === -1) return;
+
+    const [draggedItem] = state.items.splice(draggedIndex, 1);
+    const barIds = new Set(state.bars.map((bar) => bar.id));
+    const nextBarId = barIds.has(String(targetBarId || "")) ? String(targetBarId) : draggedItem.barId;
+    draggedItem.barId = nextBarId;
+
+    const normalizedTargetId = String(targetItemId || "").trim();
+    const targetIndex = normalizedTargetId
+      ? state.items.findIndex((item) => item.id === normalizedTargetId)
+      : -1;
+    if (targetIndex !== -1) {
+      state.items.splice(targetIndex + (insertAfter ? 1 : 0), 0, draggedItem);
+    } else {
+      const lastSameBarIndex = state.items.findLastIndex?.((item) => item.barId === nextBarId) ?? -1;
+      state.items.splice(lastSameBarIndex === -1 ? state.items.length : lastSameBarIndex + 1, 0, draggedItem);
+    }
     await this.saveStageGoblinState(state);
   }
 

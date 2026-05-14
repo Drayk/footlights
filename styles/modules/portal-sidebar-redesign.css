@@ -1,0 +1,969 @@
+/* Portal Sidebar Redesign (Structural Layout + Footlights Theming) */
+
+:root {
+  /* Map structural aliases to Footlights theme tokens */
+  --tom-portal-accent: var(--tom-semantic-accent, #54c7c3);
+  --tom-portal-bg: var(--tom-semantic-surface, #0b111c);
+  --tom-portal-bg-darker: var(--tom-semantic-form, rgba(0,0,0,0.42));
+  --tom-portal-border: var(--tom-semantic-border-subtle, rgba(255,255,255,0.1));
+  --tom-portal-border-hover: var(--tom-color-border-strong, rgba(255,255,255,0.2));
+  --tom-portal-text-light: var(--tom-semantic-muted-text, rgba(255,255,255,0.6));
+  --tom-portal-text: var(--tom-semantic-body-text, rgba(255,255,255,0.8));
+  --tom-portal-text-active: var(--tom-color-text-strong, #ffffff);
+  
+  --tom-portal-radius-lg: 8px;
+  --tom-portal-radius-sm: 4px;
+}
+
+/* Sidebar Container */
+.tom-portal-editor-sidebar {
+  background: var(--tom-portal-bg) !important;
+  border: 1px solid var(--tom-portal-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--tom-shadow-panel, 0 25px 50px -12px rgba(0, 0, 0, 0.5)) !important;
+  font-family: var(--tom-font-family-body, 'Inter', sans-serif) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  color: var(--tom-portal-text) !important;
+  width: 320px !important;
+  flex-shrink: 0;
+}
+
+/* Tabs Header */
+.tom-portal-editor-sidebar__tabs {
+  display: flex !important;
+  align-items: center !important;
+  background: var(--tom-portal-bg-darker) !important;
+  border-bottom: 1px solid var(--tom-portal-border) !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+}
+
+.tom-portal-editor-sidebar__tab {
+  flex: 1 !important;
+  padding: 12px 0 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--tom-portal-text-light) !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  transition: all 0.2s ease !important;
+  text-transform: none !important;
+}
+
+.tom-portal-editor-sidebar__tab:hover {
+  color: var(--tom-portal-text) !important;
+}
+
+.tom-portal-editor-sidebar__tab.is-active {
+  color: var(--tom-portal-text-active) !important;
+  border-bottom-color: var(--tom-portal-accent) !important;
+}
+
+.tom-portal-editor-sidebar__foundry-toggle {
+  width: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  background: transparent !important;
+  border-left: 1px solid var(--tom-portal-border) !important;
+  color: var(--tom-portal-text-light) !important;
+  padding: 12px 0 !important;
+}
+
+.tom-portal-editor-sidebar__foundry-toggle:hover,
+.tom-portal-editor-sidebar__foundry-toggle.is-active {
+  color: var(--tom-portal-text-active) !important;
+}
+
+/* Panes and Scrollbar */
+.tom-portal-editor-sidebar__pane {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 0 !important;
+}
+
+.tom-portal-editor-sidebar__pane::-webkit-scrollbar {
+  width: 4px;
+}
+.tom-portal-editor-sidebar__pane::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tom-portal-editor-sidebar__pane::-webkit-scrollbar-thumb {
+  background: var(--tom-content-scrollbar, rgba(255, 255, 255, 0.1));
+  border-radius: 4px;
+}
+.tom-portal-editor-sidebar__pane::-webkit-scrollbar-thumb:hover {
+  background: var(--tom-portal-border-hover, rgba(255, 255, 255, 0.2));
+}
+
+/* Cards / Sections (General Tab) */
+.tom-portal-edit-card {
+  padding: 16px !important;
+  border-bottom: 1px solid var(--tom-portal-border) !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+}
+
+.tom-portal-edit-card:last-child {
+  border-bottom: none !important;
+}
+
+.tom-portal-edit-card h2,
+.tom-portal-edit-card__head h2 {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--tom-portal-text-light) !important;
+  margin: 0 0 12px 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+.tom-portal-edit-card__head {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  margin-bottom: 12px !important;
+}
+
+.tom-portal-edit-card__head h2 {
+  margin: 0 !important;
+}
+
+.tom-portal-edit-card__head .notes {
+  font-size: 10px !important;
+  color: var(--tom-portal-text-light) !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+/* Form Groups & Labels */
+.tom-portal-edit-fields,
+.tom-portal-editor-inspector-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.form-group {
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+}
+
+.form-group > span,
+.form-group > label {
+  font-size: 10px !important;
+  color: var(--tom-portal-text-light) !important;
+  margin-bottom: 4px !important;
+  padding-left: 4px !important;
+  flex: none !important;
+  line-height: 1 !important;
+  text-transform: none !important;
+}
+
+/* Inputs, Selects, Textareas */
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea,
+.tom-input-with-button input {
+  width: 100% !important;
+  background: var(--tom-portal-bg-darker) !important;
+  border: 1px solid var(--tom-portal-border) !important;
+  border-radius: var(--tom-portal-radius-lg) !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  color: var(--tom-portal-text-active) !important;
+  transition: all 0.2s ease !important;
+  height: auto !important;
+  box-shadow: none !important;
+}
+
+.form-group input[type="number"] {
+  font-family: monospace !important;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.tom-input-with-button input:focus {
+  outline: none !important;
+  border-color: var(--tom-portal-accent) !important;
+  box-shadow: 0 0 0 1px var(--tom-portal-accent) !important;
+}
+
+.form-group select {
+  appearance: none !important;
+  padding-right: 32px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+}
+
+.form-group textarea {
+  resize: none !important;
+  padding: 8px 12px !important;
+}
+
+/* Input with button (File Input) */
+.tom-input-with-button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.tom-input-with-button input {
+  flex: 1 !important;
+  color: var(--tom-portal-text) !important;
+  font-family: monospace !important;
+}
+
+.tom-input-with-button .tom-button {
+  height: 30px !important;
+  padding: 0 10px !important;
+  background: var(--tom-portal-bg-darker) !important;
+  border: 1px solid var(--tom-portal-border) !important;
+  border-radius: var(--tom-portal-radius-lg) !important;
+  color: var(--tom-portal-text-light) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.tom-input-with-button .tom-button:hover {
+  background: var(--tom-portal-border) !important;
+  color: var(--tom-portal-text-active) !important;
+}
+
+.tom-input-with-button .tom-button span {
+  display: none !important; /* Hide "Browse" text to save space */
+}
+
+/* Color Picker */
+.form-group input[type="color"] {
+  height: 30px !important;
+  padding: 2px !important;
+  background: var(--tom-portal-bg-darker) !important;
+  border: 1px solid var(--tom-portal-border) !important;
+  border-radius: var(--tom-portal-radius-lg) !important;
+  cursor: pointer !important;
+}
+
+/* Toggle Switches */
+.tom-toggle-switch {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 6px 0 !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+.tom-toggle-switch input[type="checkbox"] {
+  display: none !important;
+}
+
+.tom-toggle-switch__label {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--tom-portal-text-light) !important;
+  transition: color 0.2s ease !important;
+  text-transform: none !important;
+}
+
+.tom-toggle-switch:hover .tom-toggle-switch__label {
+  color: var(--tom-portal-text) !important;
+}
+
+.tom-toggle-switch.is-checked .tom-toggle-switch__label,
+.tom-toggle-switch:has(input:checked) .tom-toggle-switch__label {
+  color: var(--tom-portal-accent) !important;
+}
+
+.tom-toggle-switch__track {
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  width: 32px !important;
+  height: 18px !important;
+  padding: 2px !important;
+  background: var(--tom-portal-border) !important;
+  border-radius: 18px !important;
+  transition: background 0.2s ease !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+}
+
+.tom-toggle-switch.is-checked .tom-toggle-switch__track,
+.tom-toggle-switch:has(input:checked) .tom-toggle-switch__track {
+  background: var(--tom-portal-accent) !important;
+}
+
+.tom-toggle-switch__knob {
+  display: block !important;
+  width: 14px !important;
+  height: 14px !important;
+  background: var(--tom-portal-bg) !important;
+  border-radius: 50% !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
+  position: absolute !important;
+  top: 2px !important;
+  left: 2px !important;
+  margin: 0 !important;
+  transform: translateX(0) !important;
+}
+
+.tom-toggle-switch.is-checked .tom-toggle-switch__knob,
+.tom-toggle-switch:has(input:checked) .tom-toggle-switch__knob {
+  transform: translateX(14px) !important;
+}
+
+/* Range Sliders */
+.tom-portal-editor-range {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.tom-portal-editor-range > span {
+  width: 60px !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.tom-portal-editor-range input[type="range"] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  flex: 1 !important;
+  height: 20px !important; /* Increased hit area so it's not hard to drag */
+  background: transparent !important;
+  outline: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+
+.tom-portal-editor-range input[type="range"]::-webkit-slider-runnable-track {
+  width: 100% !important;
+  height: 4px !important;
+  background: var(--tom-portal-bg-darker) !important;
+  border-radius: 4px !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.tom-portal-editor-range input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  background: var(--tom-portal-accent) !important;
+  cursor: pointer !important;
+  border: 2px solid var(--tom-portal-bg) !important;
+  box-shadow: none !important;
+  margin-top: -4px !important; /* Centers the 12px thumb on the 4px track */
+}
+
+.tom-portal-editor-range input[type="range"]::-moz-range-track {
+  width: 100% !important;
+  height: 4px !important;
+  background: var(--tom-portal-bg-darker) !important;
+  border-radius: 4px !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.tom-portal-editor-range input[type="range"]::-moz-range-thumb {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  background: var(--tom-portal-accent) !important;
+  cursor: pointer !important;
+  border: 2px solid var(--tom-portal-bg) !important;
+  box-shadow: none !important;
+}
+
+/* Elements List */
+.tom-portal-editor-element-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.tom-portal-editor-element-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: var(--tom-portal-bg-darker) !important;
+  border: 1px solid var(--tom-portal-border) !important;
+  border-radius: var(--tom-portal-radius-lg) !important;
+  padding: 6px !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.tom-portal-editor-element-row:hover {
+  border-color: var(--tom-portal-border-hover) !important;
+}
+
+.tom-portal-editor-element-row.is-selected {
+  background: color-mix(in srgb, var(--tom-portal-accent) 10%, transparent) !important;
+  border-color: color-mix(in srgb, var(--tom-portal-accent) 30%, transparent) !important;
+}
+
+.tom-portal-editor-element-row__select {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 0 8px !important;
+  flex: 1 !important;
+  background: transparent !important;
+  border: none !important;
+  text-align: left !important;
+  font-size: 12px !important;
+  color: var(--tom-portal-text-light) !important;
+  min-width: 0 !important; /* Allow truncation */
+}
+
+.tom-portal-editor-element-row__select:hover {
+  color: var(--tom-portal-text-active) !important;
+}
+
+.tom-portal-editor-element-row.is-selected .tom-portal-editor-element-row__select {
+  color: var(--tom-portal-text-active) !important;
+  font-weight: 500 !important;
+}
+
+.tom-portal-editor-element-row__select i {
+  color: color-mix(in srgb, var(--tom-portal-accent) 70%, transparent) !important;
+  font-size: 12px !important;
+}
+
+.tom-portal-editor-element-row.is-selected .tom-portal-editor-element-row__select i {
+  color: var(--tom-portal-accent) !important;
+}
+
+.tom-portal-editor-element-row__select span {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.tom-portal-editor-element-row__actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  opacity: 0.4 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.tom-portal-editor-element-row:hover .tom-portal-editor-element-row__actions,
+.tom-portal-editor-element-row.is-selected .tom-portal-editor-element-row__actions {
+  opacity: 1 !important;
+}
+
+.tom-portal-editor-layer-action {
+  width: 28px !important;
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--tom-portal-radius-sm) !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--tom-portal-text-light) !important;
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+}
+
+.tom-portal-editor-layer-action:hover {
+  background: var(--tom-portal-border) !important;
+  color: var(--tom-portal-text-active) !important;
+}
+
+.tom-portal-editor-layer-action.is-danger:hover {
+  background: var(--tom-button-danger-hover-bg, rgba(239, 68, 68, 0.2)) !important;
+  color: var(--tom-button-danger-text, #f87171) !important;
+}
+
+/* Inspector Top Actions */
+.tom-portal-editor-inspector__actions {
+  padding: 12px !important;
+  background: var(--tom-portal-bg-darker) !important;
+  border-bottom: 1px solid var(--tom-portal-border) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 4px !important;
+}
+
+.tom-portal-editor-inspector__actions .tom-button {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 6px !important;
+  border-radius: var(--tom-portal-radius-sm) !important;
+  font-size: 10px !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.tom-portal-editor-inspector__actions .tom-portal-editor-action--duplicate {
+  background: var(--tom-portal-border) !important;
+  color: var(--tom-portal-text-light) !important;
+}
+
+.tom-portal-editor-inspector__actions .tom-portal-editor-action--duplicate:hover {
+  background: var(--tom-portal-border-hover) !important;
+  color: var(--tom-portal-text-active) !important;
+}
+
+.tom-portal-editor-inspector__actions .tom-portal-editor-action--delete {
+  background: color-mix(in srgb, var(--tom-button-danger-bg, #ef4444) 20%, transparent) !important;
+  color: var(--tom-button-danger-text, #f87171) !important;
+}
+
+.tom-portal-editor-inspector__actions .tom-portal-editor-action--delete:hover {
+  background: color-mix(in srgb, var(--tom-button-danger-bg, #ef4444) 40%, transparent) !important;
+}
+
+.tom-portal-editor-inspector__actions .tom-portal-editor-action--front,
+.tom-portal-editor-inspector__actions .tom-portal-editor-action--back {
+  flex: 0 0 32px !important;
+  width: 32px !important;
+  height: 32px !important;
+  background: transparent !important;
+  color: var(--tom-portal-text-light) !important;
+}
+
+.tom-portal-editor-inspector__actions .tom-portal-editor-action--front:hover,
+.tom-portal-editor-inspector__actions .tom-portal-editor-action--back:hover {
+  background: var(--tom-portal-border) !important;
+  color: var(--tom-portal-text-active) !important;
+}
+
+.tom-portal-editor-inspector__actions .tom-portal-editor-action--front span,
+.tom-portal-editor-inspector__actions .tom-portal-editor-action--back span {
+  display: none !important; /* Hide text */
+}
+
+/* Accordions (Details / Summary) */
+.tom-portal-editor-fieldset {
+  border: none !important;
+  border-bottom: 1px solid var(--tom-portal-border) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.tom-portal-editor-fieldset:last-child {
+  border-bottom: none !important;
+}
+
+.tom-portal-editor-fieldset__summary {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 12px 16px !important;
+  cursor: pointer !important;
+  transition: background 0.2s ease !important;
+}
+
+.tom-portal-editor-fieldset__summary:hover {
+  background: var(--tom-portal-border) !important;
+}
+
+.tom-portal-editor-fieldset__summary::-webkit-details-marker {
+  display: none !important;
+}
+
+.tom-portal-editor-fieldset__summary > i {
+  font-size: 14px !important;
+  color: var(--tom-portal-text-light) !important;
+  transition: transform 0.3s ease !important;
+  /* Make down chevron point right when closed */
+  transform: rotate(-90deg) !important;
+}
+
+.tom-portal-editor-fieldset[open] > .tom-portal-editor-fieldset__summary > i {
+  transform: rotate(0deg) !important;
+}
+
+.tom-portal-editor-fieldset__summary h3 {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--tom-portal-text) !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+.tom-portal-editor-fieldset > div:not(.tom-portal-editor-fieldset__summary) {
+  padding: 0 16px 16px 16px !important;
+}
+
+/* Grid Adjustments */
+.tom-portal-editor-quad-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 8px !important;
+}
+
+.tom-portal-editor-inspector-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
+}
+
+.tom-portal-editor-inspector-grid__wide {
+  grid-column: 1 / -1 !important;
+}
+
+/* Dropzone */
+.tom-portal-editor-document-drop {
+  border: 1px dashed var(--tom-portal-border-hover) !important;
+  border-radius: var(--tom-portal-radius-lg) !important;
+  padding: 16px !important;
+  background: color-mix(in srgb, var(--tom-portal-border) 20%, transparent) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 8px !important;
+  transition: all 0.2s ease !important;
+  margin-top: 12px !important;
+}
+
+.tom-portal-editor-document-drop:hover {
+  border-color: var(--tom-portal-accent) !important;
+  background: color-mix(in srgb, var(--tom-portal-accent) 10%, transparent) !important;
+}
+
+.tom-portal-editor-document-drop > i {
+  font-size: 16px !important;
+  color: var(--tom-portal-text-light) !important;
+}
+
+.tom-portal-editor-document-drop strong {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--tom-portal-text) !important;
+  display: block !important;
+}
+
+.tom-portal-editor-document-drop p.notes {
+  font-size: 9px !important;
+  color: var(--tom-portal-text-light) !important;
+  margin-top: 4px !important;
+}
+
+.tom-portal-editor-document-drop .tom-button {
+  margin-top: 4px !important;
+  padding: 4px 12px !important;
+  border-radius: var(--tom-portal-radius-sm) !important;
+  background: var(--tom-portal-border) !important;
+  color: var(--tom-portal-text-light) !important;
+  font-size: 10px !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.tom-portal-editor-document-drop .tom-button:hover {
+  background: var(--tom-portal-border-hover) !important;
+  color: var(--tom-portal-text-active) !important;
+}
+
+/* Style Section Headings */
+.tom-portal-editor-style-group h4,
+.tom-portal-editor-content-section h4 {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  color: var(--tom-portal-text-light) !important;
+  margin: 0 0 8px 0 !important;
+  display: block !important;
+}
+
+/* Effects Palettes */
+.tom-portal-editor-layer-palette {
+  margin-bottom: 20px !important;
+}
+
+.tom-portal-editor-layer-palette h4 {
+  font-size: 10px !important;
+  color: var(--tom-portal-text-light) !important;
+  margin: 0 0 6px 0 !important;
+  font-weight: normal !important;
+}
+
+.tom-portal-editor-effect-add {
+  display: grid !important;
+  grid-template-columns: repeat(6, 1fr) !important;
+  gap: 4px !important;
+}
+
+.tom-portal-editor-effect-add--content {
+  display: flex !important;
+  gap: 4px !important;
+}
+
+.tom-portal-editor-effect-add__button {
+  aspect-ratio: 1 !important;
+  background: var(--tom-portal-bg-darker) !important;
+  border: 1px solid var(--tom-portal-border) !important;
+  border-radius: var(--tom-portal-radius-sm) !important;
+  color: var(--tom-portal-text-light) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+}
+
+.tom-portal-editor-effect-add--content .tom-portal-editor-effect-add__button {
+  flex: 1 !important;
+  aspect-ratio: auto !important;
+  height: 32px !important;
+  background: var(--tom-portal-border) !important;
+  border: none !important;
+}
+
+.tom-portal-editor-effect-add__button:hover {
+  background: color-mix(in srgb, var(--tom-portal-accent) 20%, transparent) !important;
+  color: var(--tom-portal-accent) !important;
+  border-color: transparent !important;
+}
+
+/* Stack Items (Applied Effects/Layers) */
+.tom-portal-editor-effect-card,
+.tom-portal-editor-content-card {
+  background: var(--tom-portal-bg-darker) !important;
+  border: 1px solid var(--tom-portal-border) !important;
+  border-radius: var(--tom-portal-radius-lg) !important;
+  margin-bottom: 4px !important;
+  overflow: hidden !important;
+}
+
+.tom-portal-editor-effect-card__header,
+.tom-portal-editor-content-card__header {
+  display: flex !important;
+  align-items: center !important;
+  padding: 8px !important;
+  gap: 8px !important;
+}
+
+.tom-portal-editor-effect-card__drag,
+.tom-portal-editor-content-card__drag {
+  cursor: grab !important;
+  color: var(--tom-portal-text-light) !important;
+  font-size: 14px !important;
+  opacity: 0.5 !important;
+}
+
+.tom-portal-editor-effect-card__drag:hover,
+.tom-portal-editor-content-card__drag:hover {
+  opacity: 1 !important;
+}
+
+.tom-portal-editor-effect-card__toggle,
+.tom-portal-editor-content-card__toggle {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--tom-portal-text) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+.tom-portal-editor-effect-card__toggle > i:first-child,
+.tom-portal-editor-content-card__toggle > i:first-child {
+  display: none !important; /* Hide the chevron in the toggle to match React design */
+}
+
+.tom-portal-editor-effect-card__toggle span i,
+.tom-portal-editor-content-card__toggle span i {
+  color: var(--tom-portal-accent) !important;
+}
+
+.tom-portal-editor-effect-card__actions,
+.tom-portal-editor-content-card__actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.tom-portal-editor-effect-action {
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--tom-portal-radius-sm) !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--tom-portal-text-light) !important;
+  font-size: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.tom-portal-editor-effect-action:hover {
+  background: var(--tom-portal-border) !important;
+  color: var(--tom-portal-text) !important;
+}
+
+.tom-portal-editor-effect-action.is-danger:hover {
+  background: color-mix(in srgb, var(--tom-button-danger-bg, #ef4444) 20%, transparent) !important;
+  color: var(--tom-button-danger-text, #f87171) !important;
+}
+
+/* Expanded content inside the effect card */
+.tom-portal-editor-effect-card > .tom-portal-editor-inspector-grid,
+.tom-portal-editor-content-card > .tom-portal-editor-inspector-grid {
+  padding: 12px !important;
+  border-top: 1px solid var(--tom-portal-border) !important;
+  background: color-mix(in srgb, var(--tom-portal-bg) 50%, transparent) !important;
+}
+
+/* Effect subsections inside expanded grid */
+.tom-portal-editor-effect-subsection summary {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 8px 12px !important;
+  background: color-mix(in srgb, var(--tom-portal-border) 10%, transparent) !important;
+  border-radius: var(--tom-portal-radius-sm) !important;
+  cursor: pointer !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  color: var(--tom-portal-text-light) !important;
+  margin-bottom: 0 !important;
+}
+
+.tom-portal-editor-effect-subsection summary:hover {
+  background: color-mix(in srgb, var(--tom-portal-border) 20%, transparent) !important;
+}
+
+.tom-portal-editor-effect-subsection[open] summary {
+  margin-bottom: 8px !important;
+}
+
+.tom-portal-editor-effect-subsection summary::-webkit-details-marker {
+  display: none !important;
+}
+
+/* Enabled Checkbox in effect */
+.tom-portal-editor-effect-enabled {
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--tom-portal-radius-sm) !important;
+  cursor: pointer !important;
+  color: var(--tom-portal-text-light) !important;
+  margin: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.tom-portal-editor-effect-enabled:hover {
+  background: var(--tom-portal-border) !important;
+}
+
+.tom-portal-editor-effect-enabled.is-checked {
+  color: var(--tom-portal-accent) !important;
+}
+
+.tom-portal-editor-effect-enabled input {
+  display: none !important;
+}
+
+/* Empty States */
+.tom-portal-editor-empty {
+  padding: 32px 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 12px !important;
+  color: var(--tom-portal-text-light) !important;
+}
+
+.tom-portal-editor-empty i {
+  font-size: 32px !important;
+  opacity: 0.5 !important;
+}
+
+.tom-portal-editor-empty span {
+  font-size: 12px !important;
+  max-width: 200px !important;
+}
+
+/* Added wrapper classes for structure match */
+.tom-portal-editor-toggles-group {
+  padding-top: 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.tom-portal-editor-inspector__actions-divider {
+  width: 1px !important;
+  height: 16px !important;
+  background: var(--tom-portal-border) !important;
+  margin: 0 4px !important;
+}
+
+.tom-portal-editor-sidebar__content {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.tom-portal-editor-sidebar__content::-webkit-scrollbar {
+  width: 4px;
+}
+.tom-portal-editor-sidebar__content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tom-portal-editor-sidebar__content::-webkit-scrollbar-thumb {
+  background: var(--tom-content-scrollbar, rgba(255, 255, 255, 0.1));
+  border-radius: 4px;
+}
+.tom-portal-editor-sidebar__content::-webkit-scrollbar-thumb:hover {
+  background: var(--tom-portal-border-hover, rgba(255, 255, 255, 0.2));
+}
+
+.tom-portal-editor-sidebar__pane {
+  display: block !important;
+  padding: 0 !important;
+}
+.tom-portal-editor-sidebar__pane[hidden] {
+  display: none !important;
+}

@@ -1,176 +1,226 @@
 <form class="tom-avatar-config tom-theme-root tom-theme-default" style="{{themeInlineStyle}}">
   <input type="hidden" name="id" value="{{avatar.id}}" />
 
-  <section class="tom-theme-content-surface">
-    <div class="form-group">
-      <label>{{tr "Name"}}</label>
-      <input type="text" name="name" value="{{avatar.name}}" required />
-    </div>
-
-    <div class="form-group">
-      <label>{{tr "ACTOR"}}</label>
-      <select name="actorId">
-        {{selectOptions actorOptions selected=avatar.actorId valueAttr="value" labelAttr="label"}}
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>{{tr "Default Image"}}</label>
-      <div class="tom-media-picker tom-theme-card">
-        <div class="tom-media-picker__preview">
-          {{#if avatar.defaultImage}}
-          <img src="{{avatar.defaultImage}}" alt="{{tr "Default image preview"}}" class="tom-media-picker__thumbnail" />
-          {{else}}
-          <div class="tom-media-picker__thumbnail tom-library-thumbnail--placeholder" aria-hidden="true">{{tr "Image"}}</div>
-          {{/if}}
-        </div>
-
-        <div class="tom-media-picker__content">
-          <input type="text" name="defaultImage" value="{{avatar.defaultImage}}" />
-          <button
-            type="button"
-            class="tom-button tom-button-ghost tom-button-icon"
-            data-action="pick-image"
-            data-target="[name='defaultImage']"
-            aria-label="{{tr "Choose default image"}}"
-            title="{{tr "Choose default image"}}"
-          >
-            <i class="fas fa-folder-open" aria-hidden="true"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>{{tr "Frame image"}}</label>
-      <div class="tom-media-picker tom-theme-card">
-        <div class="tom-media-picker__preview">
-          {{#if avatar.frameImage}}
-          <img src="{{avatar.frameImage}}" alt="{{tr "Frame image preview"}}" class="tom-media-picker__thumbnail tom-media-picker__thumbnail--frame" />
-          {{else}}
-          <div class="tom-media-picker__thumbnail tom-library-thumbnail--placeholder" aria-hidden="true">PNG</div>
-          {{/if}}
-        </div>
-
-        <div class="tom-media-picker__content">
-          <input type="text" name="frameImage" value="{{avatar.frameImage}}" />
-          <button
-            type="button"
-            class="tom-button tom-button-ghost tom-button-icon"
-            data-action="pick-image"
-            data-target="[name='frameImage']"
-            aria-label="{{tr "Choose frame image"}}"
-            title="{{tr "Choose frame image"}}"
-          >
-            <i class="fas fa-folder-open" aria-hidden="true"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="tom-avatar-adjustment-grid">
-      <div class="tom-avatar-adjustment-controls">
-        <div class="form-group">
-          <label>{{tr "Circular avatar crop size"}}</label>
-          <div class="tom-theme-card" style="padding:0.8rem 0.9rem;">
-            <div class="tom-theme-control-row">
-              <div class="tom-theme-control-row__fields tom-theme-control-row__fields--size">
-                <input type="range" min="0.70" max="1.30" step="0.01" name="circularCropScale" value="{{avatar.circularCropScale}}" />
-                <span data-avatar-preview-value-for="circularCropScale">{{avatar.circularCropScale}}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>{{tr "Frame-to-image ratio"}}</label>
-          <div class="tom-theme-card" style="padding:0.8rem 0.9rem;">
-            <div class="tom-theme-control-row">
-              <div class="tom-theme-control-row__fields tom-theme-control-row__fields--size">
-                <input type="range" min="0.60" max="1.20" step="0.01" name="frameFitScale" value="{{avatar.frameFitScale}}" />
-                <span data-avatar-preview-value-for="frameFitScale">{{avatar.frameFitScale}}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="tom-avatar-preview-card tom-theme-card" data-avatar-preview>
-        <div class="tom-avatar-preview-stage">
-          <div class="tom-avatar-preview-portrait {{#if avatar.useCircularCrop}}is-circular{{/if}} {{#if avatar.showBackdrop}}has-backdrop{{/if}}" data-avatar-preview-portrait>
-            <div class="tom-avatar-preview-image-stack" data-avatar-preview-stack>
-              {{#if avatar.defaultImage}}
-              <img src="{{avatar.defaultImage}}" alt="" class="tom-avatar-preview-image" data-avatar-preview-image />
-              {{else}}
-              <div class="tom-avatar-preview-placeholder" data-avatar-preview-placeholder>{{tr "Avatar preview"}}</div>
-              {{/if}}
-            </div>
-            {{#if avatar.frameImage}}
-            <img src="{{avatar.frameImage}}" alt="" class="tom-avatar-preview-frame" data-avatar-preview-frame />
-            {{/if}}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="tom-avatar-options-grid">
-      <div class="form-group tom-theme-card tom-avatar-option-card">
-        <label class="checkbox">
-          <input type="checkbox" name="useCircularCrop" {{checked avatar.useCircularCrop}} />
-          {{tr "Round avatar"}}
-        </label>
-      </div>
-
-      <div class="form-group tom-theme-card tom-avatar-option-card">
-        <label class="checkbox">
-          <input type="checkbox" name="showBackdrop" {{checked avatar.showBackdrop}} />
-          {{tr "Backdrop"}}
-        </label>
-      </div>
-    </div>
-  </section>
-
-  <section class="tom-theme-content-surface">
-    <header class="tom-editor-header">
-      <div>
-        <h2>{{tr "Mood Images"}}</h2>
-        <p class="notes">{{tr "You can assign a dedicated image for every global mood."}}</p>
-      </div>
+  <div class="tom-avatar-config__shell">
+    <header class="tom-avatar-config__hero">
+      <span class="tom-avatar-config__hero-icon" aria-hidden="true">
+        <i class="fas fa-user"></i>
+      </span>
+      <span class="tom-avatar-config__hero-copy">
+        <h1>{{#if avatar.name}}{{avatar.name}}{{else}}{{tr "Footlights Avatar"}}{{/if}}</h1>
+        <p>{{tr "Avatar and mood setup"}}</p>
+      </span>
     </header>
 
-    <div class="tom-avatar-mood-list">
-      {{#each moodPresets}}
-      <div class="tom-avatar-mood-card tom-theme-card">
-        <div class="tom-avatar-mood-card__preview">
-          {{#if (lookup ../avatar.moodImages this)}}
-          <img src="{{lookup ../avatar.moodImages this}}" alt="{{tr "{mood} preview" mood=this}}" class="tom-media-picker__thumbnail" />
-          {{else}}
-          <div class="tom-media-picker__thumbnail tom-library-thumbnail--placeholder" aria-hidden="true">{{this}}</div>
-          {{/if}}
-        </div>
+    <div class="tom-avatar-config__layout">
+      <div class="tom-avatar-config__main">
+        <section class="tom-avatar-config__card tom-theme-content-surface">
+          <header class="tom-avatar-config__section-label">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <h3>{{tr "Identity"}}</h3>
+          </header>
 
-        <div class="tom-avatar-mood-card__content">
-          <label>{{this}}</label>
-          <div class="tom-media-picker__content">
-            <input type="text" name="moodImages.{{this}}" value="{{lookup ../avatar.moodImages this}}" />
-            <button
-              type="button"
-              class="tom-button tom-button-ghost tom-button-icon"
-              data-action="pick-image"
-              data-target="[name='moodImages.{{this}}']"
-              aria-label="{{tr "Choose image for {mood}" mood=this}}"
-              title="{{tr "Choose image for {mood}" mood=this}}"
-            >
-              <i class="fas fa-folder-open" aria-hidden="true"></i>
-            </button>
+          <div class="tom-avatar-config__two-column">
+            <div class="form-group tom-avatar-config__field">
+              <label>{{tr "Character Name"}}</label>
+              <input type="text" name="name" value="{{avatar.name}}" required />
+            </div>
+
+            <div class="form-group tom-avatar-config__field">
+              <label>{{tr "Linked Actor"}}</label>
+              <select name="actorId">
+                {{selectOptions actorOptions selected=avatar.actorId valueAttr="value" labelAttr="label"}}
+              </select>
+            </div>
           </div>
-        </div>
-      </div>
-      {{/each}}
-    </div>
-  </section>
+        </section>
 
-  <footer class="sheet-footer flexrow">
+        <section class="tom-avatar-config__card tom-theme-content-surface">
+          <header class="tom-avatar-config__section-label">
+            <i class="fas fa-image" aria-hidden="true"></i>
+            <h3>{{tr "Visual Assets"}}</h3>
+          </header>
+
+          <div class="tom-avatar-config__stack">
+            <div class="form-group tom-avatar-config__field">
+              <label>{{tr "Base Avatar Image"}}</label>
+              <div class="tom-avatar-file-row tom-theme-card">
+                <div class="tom-avatar-file-row__preview">
+                  {{#if avatar.defaultImage}}
+                  <img src="{{avatar.defaultImage}}" alt="{{tr "Default image preview"}}" />
+                  {{else}}
+                  <i class="fas fa-image" aria-hidden="true"></i>
+                  {{/if}}
+                </div>
+
+                <div class="tom-avatar-file-row__path">
+                  <input type="text" name="defaultImage" value="{{avatar.defaultImage}}" placeholder="{{tr "No file selected"}}" />
+                </div>
+
+                <button
+                  type="button"
+                  class="tom-button tom-button-ghost tom-button-icon"
+                  data-action="pick-image"
+                  data-target="[name='defaultImage']"
+                  aria-label="{{tr "Choose default image"}}"
+                  title="{{tr "Choose default image"}}"
+                >
+                  <i class="fas fa-folder-open" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group tom-avatar-config__field">
+              <label>{{tr "Overlay Frame Image"}}</label>
+              <div class="tom-avatar-file-row tom-theme-card">
+                <div class="tom-avatar-file-row__preview tom-avatar-file-row__preview--frame">
+                  {{#if avatar.frameImage}}
+                  <img src="{{avatar.frameImage}}" alt="{{tr "Frame image preview"}}" />
+                  {{else}}
+                  <i class="fas fa-photo-film" aria-hidden="true"></i>
+                  {{/if}}
+                </div>
+
+                <div class="tom-avatar-file-row__path">
+                  <input type="text" name="frameImage" value="{{avatar.frameImage}}" placeholder="{{tr "No file selected"}}" />
+                </div>
+
+                <button
+                  type="button"
+                  class="tom-button tom-button-ghost tom-button-icon"
+                  data-action="pick-image"
+                  data-target="[name='frameImage']"
+                  aria-label="{{tr "Choose frame image"}}"
+                  title="{{tr "Choose frame image"}}"
+                >
+                  <i class="fas fa-folder-open" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tom-avatar-config__card tom-theme-content-surface">
+          <header class="tom-avatar-config__section-label">
+            <i class="fas fa-sliders" aria-hidden="true"></i>
+            <h3>{{tr "Adjustments"}}</h3>
+          </header>
+
+          <div class="tom-avatar-config__two-column tom-avatar-config__slider-grid">
+            <div class="tom-avatar-range-field">
+              <div class="tom-avatar-range-field__label">
+                <label>{{tr "Avatar Crop Scale"}}</label>
+                <span data-avatar-preview-value-for="circularCropScale">{{avatar.circularCropScale}}</span>
+              </div>
+              <input type="range" min="0.70" max="3.00" step="0.01" name="circularCropScale" value="{{avatar.circularCropScale}}" />
+            </div>
+
+            <div class="tom-avatar-range-field">
+              <div class="tom-avatar-range-field__label">
+                <label>{{tr "Frame-to-image ratio"}}</label>
+                <span data-avatar-preview-value-for="frameFitScale">{{avatar.frameFitScale}}</span>
+              </div>
+              <input type="range" min="0.60" max="1.20" step="0.01" name="frameFitScale" value="{{avatar.frameFitScale}}" />
+            </div>
+          </div>
+
+          <div class="tom-avatar-config__two-column tom-avatar-config__toggle-grid">
+            <div class="tom-avatar-toggle-card tom-theme-card">
+              <label class="tom-toggle-switch tom-avatar-option-switch {{#if avatar.useCircularCrop}}is-checked{{/if}}">
+                <input type="checkbox" name="useCircularCrop" {{checked avatar.useCircularCrop}} />
+                <span class="tom-toggle-switch__label">{{tr "Round Avatar Mask"}}</span>
+                <span class="tom-toggle-switch__track" aria-hidden="true"><span class="tom-toggle-switch__knob"></span></span>
+              </label>
+            </div>
+
+            <div class="tom-avatar-toggle-card tom-theme-card">
+              <label class="tom-toggle-switch tom-avatar-option-switch {{#if avatar.showBackdrop}}is-checked{{/if}}">
+                <input type="checkbox" name="showBackdrop" {{checked avatar.showBackdrop}} />
+                <span class="tom-toggle-switch__label">{{tr "Show Backdrop Layer"}}</span>
+                <span class="tom-toggle-switch__track" aria-hidden="true"><span class="tom-toggle-switch__knob"></span></span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="tom-avatar-config__moods">
+          <header class="tom-avatar-config__mood-header">
+            <h2>{{tr "Mood Variations"}}</h2>
+            <p>{{tr "Assign dedicated images for different global states."}}</p>
+          </header>
+
+          <div class="tom-avatar-config__card tom-avatar-config__card--moods tom-theme-content-surface">
+            <div class="tom-avatar-mood-list">
+              {{#each moodPresets}}
+              <div class="tom-avatar-mood-card tom-theme-card">
+                <div class="tom-avatar-mood-card__preview">
+                  {{#if (lookup ../avatar.moodImages this)}}
+                  <img src="{{lookup ../avatar.moodImages this}}" alt="{{tr "{mood} preview" mood=this}}" class="tom-media-picker__thumbnail" />
+                  {{else}}
+                  <div class="tom-media-picker__thumbnail tom-library-thumbnail--placeholder" aria-hidden="true">{{this}}</div>
+                  {{/if}}
+                </div>
+
+                <div class="tom-avatar-mood-card__content">
+                  <label>{{this}}</label>
+                  <div class="tom-media-picker__content">
+                    <input type="text" name="moodImages.{{this}}" value="{{lookup ../avatar.moodImages this}}" placeholder="{{tr "No image assigned"}}" />
+                    <button
+                      type="button"
+                      class="tom-button tom-button-ghost tom-button-icon"
+                      data-action="pick-image"
+                      data-target="[name='moodImages.{{this}}']"
+                      aria-label="{{tr "Choose image for {mood}" mood=this}}"
+                      title="{{tr "Choose image for {mood}" mood=this}}"
+                    >
+                      <i class="fas fa-folder-open" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {{/each}}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="tom-avatar-config__preview-column">
+        <section class="tom-avatar-config__preview-card tom-theme-content-surface" data-avatar-preview>
+          <header class="tom-avatar-config__preview-header">
+            <div class="tom-avatar-config__section-label">
+              <h3>{{tr "Live Preview"}}</h3>
+            </div>
+          </header>
+
+          <div class="tom-avatar-preview-stage">
+            <div class="tom-avatar-preview-portrait {{#if avatar.useCircularCrop}}is-circular{{/if}} {{#if avatar.showBackdrop}}has-backdrop{{/if}}" data-avatar-preview-portrait>
+              <input type="hidden" name="cropOffsetX" value="{{avatar.cropOffsetX}}" />
+              <input type="hidden" name="cropOffsetY" value="{{avatar.cropOffsetY}}" />
+              <div class="tom-avatar-preview-image-stack" data-avatar-preview-stack>
+                {{#if avatar.defaultImage}}
+                <img src="{{avatar.defaultImage}}" alt="" class="tom-avatar-preview-image" data-avatar-preview-image />
+                {{else}}
+                <div class="tom-avatar-preview-placeholder" data-avatar-preview-placeholder>{{tr "Avatar preview"}}</div>
+                {{/if}}
+              </div>
+              {{#if avatar.frameImage}}
+              <img src="{{avatar.frameImage}}" alt="" class="tom-avatar-preview-frame" data-avatar-preview-frame />
+              {{/if}}
+            </div>
+
+            <span class="tom-avatar-preview-stage__meta tom-avatar-preview-stage__meta--scale">
+              {{tr "Scale"}}: <span data-avatar-preview-value-for="circularCropScale">{{avatar.circularCropScale}}</span>
+            </span>
+            <span class="tom-avatar-preview-stage__meta tom-avatar-preview-stage__meta--ratio">
+              {{tr "Ratio"}}: <span data-avatar-preview-value-for="frameFitScale">{{avatar.frameFitScale}}</span>
+            </span>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <footer class="tom-avatar-config__footer">
     <button type="submit" class="tom-button tom-button-primary">{{tr "Save"}}</button>
   </footer>
 </form>

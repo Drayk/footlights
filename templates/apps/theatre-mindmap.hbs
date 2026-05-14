@@ -7,13 +7,13 @@
   </header>
 
   <div class="tom-mindmap-layout {{#if isSourceSidebarCollapsed}}is-source-collapsed{{/if}} {{#if isInspectorCollapsed}}is-inspector-collapsed{{/if}}">
-    <aside class="tom-mindmap-sources tom-panel tom-theme-container">
+    <aside class="tom-mindmap-sources">
       <div class="tom-mindmap-sources__header">
         <h3>{{tr "Footlights Sources"}}</h3>
       </div>
 
       <div class="tom-mindmap-sources__sections">
-        <section class="tom-mindmap-source-section tom-theme-container">
+        <section class="tom-mindmap-source-section tom-theme-content-surface">
           <button
             type="button"
             class="tom-mindmap-source-section__header"
@@ -62,7 +62,56 @@
           </div>
         </section>
 
-        <section class="tom-mindmap-source-section tom-theme-container">
+        <section class="tom-mindmap-source-section tom-theme-content-surface">
+          <button
+            type="button"
+            class="tom-mindmap-source-section__header"
+            data-action="toggle-source-section"
+            data-source-section="portals"
+            aria-expanded="{{#if isSourcePortalsExpanded}}true{{else}}false{{/if}}"
+          >
+            <span>{{tr "Portals"}}</span>
+            <i class="fas {{#if isSourcePortalsExpanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}" aria-hidden="true"></i>
+          </button>
+
+          <div class="tom-mindmap-source-section__content {{#if isSourcePortalsExpanded}}is-expanded{{/if}}">
+          <div class="tom-mindmap-source-section__list">
+            {{#each sourcePortals}}
+            <article class="tom-mindmap-source-item tom-theme-card">
+              <div class="tom-mindmap-source-item__thumb">
+                {{#if thumbnail}}
+                <img src="{{thumbnail}}" alt="{{name}}" class="tom-mindmap-source-item__image" />
+                {{else}}
+                <div class="tom-mindmap-source-item__image tom-library-thumbnail--placeholder" aria-hidden="true">
+                  <i class="{{placeholderIconClass}}"></i>
+                </div>
+                {{/if}}
+              </div>
+              <div class="tom-mindmap-source-item__body">
+                <strong class="tom-mindmap-source-item__label">{{name}}</strong>
+              </div>
+              <button
+                type="button"
+                class="tom-mindmap-source-item__drag"
+                data-drag-planner-portal="true"
+                data-portal-id="{{id}}"
+                draggable="true"
+                title="{{tr "Drag onto board"}}"
+                aria-label="{{tr "Drag onto board"}}"
+              >
+                <span class="tom-mindmap-node__drag-dots" aria-hidden="true">
+                  <i></i><i></i>
+                  <i></i><i></i>
+                  <i></i><i></i>
+                </span>
+              </button>
+            </article>
+            {{/each}}
+          </div>
+          </div>
+        </section>
+
+        <section class="tom-mindmap-source-section tom-theme-content-surface">
           <button
             type="button"
             class="tom-mindmap-source-section__header"
@@ -111,7 +160,7 @@
           </div>
         </section>
 
-        <section class="tom-mindmap-source-section tom-theme-container">
+        <section class="tom-mindmap-source-section tom-theme-content-surface">
           <button
             type="button"
             class="tom-mindmap-source-section__header"
@@ -528,9 +577,9 @@
       </button>
     </div>
 
-    <aside class="tom-mindmap-inspector tom-theme-container">
+    <aside class="tom-mindmap-inspector">
       {{#if selectedNode}}
-      <section class="tom-mindmap-inspector__panel tom-panel tom-theme-container">
+      <section class="tom-mindmap-inspector__panel tom-theme-content-surface">
       <header class="tom-mindmap-inspector__header">
         <div>
           <div class="tom-mindmap-inspector__panel-title" style="{{inspectorHeading2Style}}">{{tr "Details"}}</div>
@@ -556,12 +605,12 @@
       </div>
       </section>
 
-      <section class="tom-mindmap-inspector__panel tom-mindmap-inspector__design-section tom-panel tom-theme-container">
+      <section class="tom-mindmap-inspector__panel tom-mindmap-inspector__design-section tom-theme-content-surface">
         <header class="tom-mindmap-inspector__design-header">
           <div class="tom-mindmap-inspector__panel-title tom-mindmap-inspector__panel-title--design" style="{{inspectorHeading2Style}}">{{tr "Node Design"}}</div>
         </header>
         <div class="tom-mindmap-inspector__fields">
-        <section class="tom-mindmap-source-section tom-mindmap-inspector__section" data-node-design-section-root="true">
+        <section class="tom-mindmap-source-section tom-mindmap-inspector__section tom-theme-content-surface" data-node-design-section-root="true">
           <button
             type="button"
             class="tom-mindmap-source-section__header tom-mindmap-inspector__section-toggle"
@@ -640,7 +689,7 @@
           </div>
         </section>
         {{#each selectedNodeColorSections}}
-        <section class="tom-mindmap-source-section tom-mindmap-inspector__section" data-node-design-section-root="true">
+        <section class="tom-mindmap-source-section tom-mindmap-inspector__section tom-theme-content-surface" data-node-design-section-root="true">
           <button
             type="button"
             class="tom-mindmap-source-section__header tom-mindmap-inspector__section-toggle"
@@ -690,7 +739,7 @@
         </div>
       </section>
       {{else if hasMultiSelection}}
-      <section class="tom-mindmap-inspector__panel tom-panel tom-theme-container">
+      <section class="tom-mindmap-inspector__panel tom-theme-content-surface">
       <header class="tom-mindmap-inspector__header">
         <div>
           <div class="tom-mindmap-inspector__panel-title" style="{{inspectorHeading2Style}}">{{tr "Multiple selection"}}</div>
@@ -711,13 +760,13 @@
       </div>
       </section>
 
-      <section class="tom-mindmap-inspector__panel tom-mindmap-inspector__design-section tom-panel tom-theme-container">
+      <section class="tom-mindmap-inspector__panel tom-mindmap-inspector__design-section tom-theme-content-surface">
         <header class="tom-mindmap-inspector__design-header">
           <div class="tom-mindmap-inspector__panel-title tom-mindmap-inspector__panel-title--design" style="{{inspectorHeading2Style}}">{{tr "Node Design"}}</div>
         </header>
         <div class="tom-mindmap-inspector__fields">
         {{#each selectedBatchColorSections}}
-        <section class="tom-mindmap-source-section tom-mindmap-inspector__section" data-node-design-section-root="true">
+        <section class="tom-mindmap-source-section tom-mindmap-inspector__section tom-theme-content-surface" data-node-design-section-root="true">
           <button
             type="button"
             class="tom-mindmap-source-section__header tom-mindmap-inspector__section-toggle"

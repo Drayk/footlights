@@ -14,11 +14,18 @@
         {{#if avatarSidebarItems.length}}
           {{#each avatarSidebarItems}}
           <article class="tom-scene-avatar-sidebar__item tom-theme-card" draggable="true" data-scene-config-avatar="true" data-avatar-id="{{id}}">
-            {{#if thumbnail}}
-            <img src="{{thumbnail}}" alt="{{name}}" class="tom-scene-avatar-sidebar__thumb" />
-            {{else}}
-            <div class="tom-scene-avatar-sidebar__thumb tom-library-thumbnail--placeholder" aria-hidden="true">{{tr "Avatar"}}</div>
-            {{/if}}
+            <div class="tom-avatar-thumb tom-scene-avatar-sidebar__thumb {{#if useCircularCrop}}is-circular{{/if}} {{#if showBackdrop}}has-backdrop{{/if}}" style="{{thumbnailStyle}}">
+              <div class="tom-avatar-thumb__image-stack">
+                {{#if thumbnail}}
+                <img src="{{thumbnail}}" alt="{{name}}" class="tom-avatar-thumb__image" />
+                {{else}}
+                <div class="tom-avatar-thumb__placeholder" aria-hidden="true">{{tr "Avatar"}}</div>
+                {{/if}}
+              </div>
+              {{#if frameImage}}
+              <img src="{{frameImage}}" alt="" class="tom-avatar-thumb__frame" aria-hidden="true" />
+              {{/if}}
+            </div>
 
             <div class="tom-scene-avatar-sidebar__meta">
               <strong>{{name}}</strong>
@@ -146,9 +153,10 @@
               </div>
 
               <div class="tom-scene-config-toggle-list">
-                <label class="checkbox tom-scene-config-toggle-card">
+                <label class="tom-toggle-switch tom-scene-config-toggle-card {{#if scene.settings.preserveBackgroundAspect}}is-checked{{/if}}">
                   <input type="checkbox" name="settings.preserveBackgroundAspect" {{checked scene.settings.preserveBackgroundAspect}} />
-                  <span>{{tr "Preserve aspect ratio"}}</span>
+                  <span class="tom-toggle-switch__label">{{tr "Preserve aspect ratio"}}</span>
+                  <span class="tom-toggle-switch__track" aria-hidden="true"><span class="tom-toggle-switch__knob"></span></span>
                 </label>
               </div>
 
@@ -167,14 +175,16 @@
               </header>
 
               <div class="tom-scene-config-toggle-list">
-                <label class="checkbox tom-scene-config-toggle-card">
+                <label class="tom-toggle-switch tom-scene-config-toggle-card {{#if scene.settings.uiHidden}}is-checked{{/if}}">
                   <input type="checkbox" name="settings.uiHidden" {{checked scene.settings.uiHidden}} />
-                  <span>{{tr "Hide UI for all clients"}}</span>
+                  <span class="tom-toggle-switch__label">{{tr "Hide UI for all clients"}}</span>
+                  <span class="tom-toggle-switch__track" aria-hidden="true"><span class="tom-toggle-switch__knob"></span></span>
                 </label>
 
-                <label class="checkbox tom-scene-config-toggle-card">
+                <label class="tom-toggle-switch tom-scene-config-toggle-card {{#if scene.settings.allowPlayerMoodChange}}is-checked{{/if}}">
                   <input type="checkbox" name="settings.allowPlayerMoodChange" {{checked scene.settings.allowPlayerMoodChange}} />
-                  <span>{{tr "Players may change their own moods"}}</span>
+                  <span class="tom-toggle-switch__label">{{tr "Players may change their own moods"}}</span>
+                  <span class="tom-toggle-switch__track" aria-hidden="true"><span class="tom-toggle-switch__knob"></span></span>
                 </label>
               </div>
 
@@ -193,14 +203,16 @@
               </header>
 
               <div class="tom-scene-config-toggle-list">
-                <label class="checkbox tom-scene-config-toggle-card">
+                <label class="tom-toggle-switch tom-scene-config-toggle-card {{#if scene.settings.sharedLeftSidebarVisible}}is-checked{{/if}}">
                   <input type="checkbox" name="settings.sharedLeftSidebarVisible" {{checked scene.settings.sharedLeftSidebarVisible}} />
-                  <span>{{tr "Allow left sidebar for all clients"}}</span>
+                  <span class="tom-toggle-switch__label">{{tr "Allow left sidebar for all clients"}}</span>
+                  <span class="tom-toggle-switch__track" aria-hidden="true"><span class="tom-toggle-switch__knob"></span></span>
                 </label>
 
-                <label class="checkbox tom-scene-config-toggle-card">
+                <label class="tom-toggle-switch tom-scene-config-toggle-card {{#if scene.settings.sharedRightSidebarVisible}}is-checked{{/if}}">
                   <input type="checkbox" name="settings.sharedRightSidebarVisible" {{checked scene.settings.sharedRightSidebarVisible}} />
-                  <span>{{tr "Allow right sidebar for all clients"}}</span>
+                  <span class="tom-toggle-switch__label">{{tr "Allow right sidebar for all clients"}}</span>
+                  <span class="tom-toggle-switch__track" aria-hidden="true"><span class="tom-toggle-switch__knob"></span></span>
                 </label>
               </div>
             </section>
@@ -214,9 +226,10 @@
               <div class="tom-scene-config-toggle-list">
                 {{#if soundPlaylistRows.length}}
                   {{#each soundPlaylistRows}}
-                  <label class="checkbox tom-scene-config-toggle-card">
+                  <label class="tom-toggle-switch tom-scene-config-toggle-card {{#if isAssigned}}is-checked{{/if}}">
                     <input type="checkbox" name="soundPlaylistAssignments" value="{{id}}" {{checked isAssigned}} />
-                    <span>{{name}} <small class="notes">({{tr "{trackCount} tracks, {soundboardCount} sounds" trackCount=trackCount soundboardCount=soundboardCount}})</small></span>
+                    <span class="tom-toggle-switch__label">{{name}} <small class="notes">({{tr "{trackCount} tracks, {soundboardCount} sounds" trackCount=trackCount soundboardCount=soundboardCount}})</small></span>
+                    <span class="tom-toggle-switch__track" aria-hidden="true"><span class="tom-toggle-switch__knob"></span></span>
                   </label>
                   {{/each}}
                 {{else}}
@@ -248,9 +261,10 @@
             </header>
 
             <div class="tom-scene-config-toggle-list">
-              <label class="checkbox tom-scene-config-toggle-card">
+              <label class="tom-toggle-switch tom-scene-config-toggle-card {{#if scene.settings.backdropBlurEnabled}}is-checked{{/if}}">
                 <input type="checkbox" name="settings.backdropBlurEnabled" {{checked scene.settings.backdropBlurEnabled}} />
-                <span>{{tr "Enable blur"}}</span>
+                <span class="tom-toggle-switch__label">{{tr "Enable blur"}}</span>
+                <span class="tom-toggle-switch__track" aria-hidden="true"><span class="tom-toggle-switch__knob"></span></span>
               </label>
             </div>
 
@@ -274,7 +288,7 @@
             <div class="form-group">
               <label>{{tr "Image scale"}}</label>
               <div class="tom-range-with-value">
-                <input type="range" min="0.1" max="4" step="0.05" name="settings.backdropImageScale" value="{{scene.settings.backdropImageScale}}" />
+                <input type="range" min="0.1" max="4" step="0.05" name="settings.backdropImageScale" value="{{scene.settings.backdropImageScale}}" data-range-display-suffix="x" />
                 <span>{{scene.settings.backdropImageScale}}x</span>
               </div>
             </div>
@@ -330,7 +344,7 @@
             <div class="form-group">
               <label>{{tr "Duration"}}</label>
               <div class="tom-range-with-value">
-                <input type="range" min="0.3" max="2.8" step="0.05" name="settings.transitionDuration" value="{{scene.settings.transitionDuration}}" />
+                <input type="range" min="0.3" max="2.8" step="0.05" name="settings.transitionDuration" value="{{scene.settings.transitionDuration}}" data-range-display-suffix="s" />
                 <span>{{scene.settings.transitionDuration}}s</span>
               </div>
             </div>
@@ -388,6 +402,10 @@
             <input type="hidden" name="actors.{{index}}.imageOverride" value="{{imageOverride}}" />
             <input type="hidden" name="actors.{{index}}.disableMoods" value="{{disableMoods}}" />
             <input type="hidden" name="actors.{{index}}.useCircularCrop" value="{{useCircularCrop}}" />
+            <input type="hidden" name="actors.{{index}}.circularCropScale" value="{{circularCropScale}}" />
+            <input type="hidden" name="actors.{{index}}.cropOffsetX" value="{{cropOffsetX}}" />
+            <input type="hidden" name="actors.{{index}}.cropOffsetY" value="{{cropOffsetY}}" />
+            <input type="hidden" name="actors.{{index}}.frameFitScale" value="{{frameFitScale}}" />
             <input type="hidden" name="actors.{{index}}.frameImage" value="{{frameImage}}" />
             <input type="hidden" name="actors.{{index}}.showBackdrop" value="{{showBackdrop}}" />
             <input type="hidden" name="actors.{{index}}.mirrored" value="{{mirrored}}" />
@@ -396,9 +414,18 @@
             <input type="hidden" name="actors.{{index}}.offsetX" value="{{offsetX}}" />
             <input type="hidden" name="actors.{{index}}.offsetY" value="{{offsetY}}" />
             <div class="tom-scene-actor-preview">
-              {{#if previewImage}}
-              <img src="{{previewImage}}" alt="{{actorName}}" class="tom-scene-actor-thumbnail" />
-              {{/if}}
+              <div class="tom-avatar-thumb tom-scene-actor-thumbnail {{#if useCircularCrop}}is-circular{{/if}} {{#if showBackdrop}}has-backdrop{{/if}}" style="{{thumbnailStyle}}">
+                <div class="tom-avatar-thumb__image-stack">
+                  {{#if previewImage}}
+                  <img src="{{previewImage}}" alt="{{actorName}}" class="tom-avatar-thumb__image" />
+                  {{else}}
+                  <div class="tom-avatar-thumb__placeholder" aria-hidden="true">{{tr "Avatar"}}</div>
+                  {{/if}}
+                </div>
+                {{#if frameImage}}
+                <img src="{{frameImage}}" alt="" class="tom-avatar-thumb__frame" aria-hidden="true" />
+                {{/if}}
+              </div>
               <div>
                 <strong>{{actorName}}</strong>
               </div>

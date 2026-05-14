@@ -32,7 +32,7 @@
           aria-label="{{#if isContentCollapsed}}{{tr "Show tracks and soundboard"}}{{else}}{{tr "Hide tracks and soundboard"}}{{/if}}"
           aria-pressed="{{#if isContentCollapsed}}true{{else}}false{{/if}}"
         >
-          <i class="fas {{#if isContentCollapsed}}fa-chevron-up{{else}}fa-chevron-down{{/if}}" aria-hidden="true"></i>
+          <i class="fas {{#if isContentCollapsed}}fa-chevron-down{{else}}fa-chevron-up{{/if}}" aria-hidden="true"></i>
         </button>
         <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button tom-global-sound-player__close" data-action="close-global-sound-player" title="{{tr "Close"}}" aria-label="{{tr "Close"}}">
           <i class="fas fa-xmark" aria-hidden="true"></i>
@@ -52,12 +52,14 @@
                 data-track-id="{{id}}"
                 title="{{label}}"
               >
-                <span>{{label}}</span>
-                {{#if playlistName}}<small>{{playlistName}}</small>{{/if}}
+                <span class="tom-global-sound-player__track-copy">
+                  <span class="tom-global-sound-player__track-title">{{label}}</span>
+                  {{#if playlistName}}<small>{{playlistName}}</small>{{/if}}
+                </span>
                 {{#if showPlaybackStatus}}
-                <span class="tom-scene-sound-track__status" aria-hidden="true">
-                  <i class="fas fa-play"></i>
-                  {{#if isLooping}}<i class="fas fa-repeat tom-scene-sound-track__loop"></i>{{/if}}
+                <span class="tom-global-sound-player__track-status {{#if isLooping}}has-loop{{/if}}" aria-hidden="true">
+                  <span class="tom-global-sound-player__track-status-icon {{#if isPaused}}is-pause{{else}}is-play{{/if}}"></span>
+                  {{#if isLooping}}<span class="tom-global-sound-player__track-status-icon is-loop"></span>{{/if}}
                 </span>
                 {{/if}}
               </button>
@@ -71,7 +73,7 @@
         <section class="tom-scene-sound-panel__board">
           <div class="tom-scene-sound-panel__board-header">
             <h3>{{tr "Soundboard"}}</h3>
-            <div class="tom-scene-sound-panel__board-pagination" {{#unless hasMultipleSoundboardPages}}hidden{{/unless}}>
+            <div class="tom-scene-sound-panel__board-pagination tom-global-sound-player__board-pagination" {{#unless hasMultipleSoundboardPages}}hidden{{/unless}}>
               <button type="button" class="tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button" data-action="global-soundboard-page-prev" aria-label="{{tr "Previous soundboard page"}}" title="{{tr "Back"}}">
                 <i class="fas fa-chevron-left" aria-hidden="true"></i>
               </button>

@@ -1,7 +1,14 @@
 import { MODULE_ID, SCENE_TRANSITION_EFFECTS } from "../constants.js";
-import { applyThemeInlineStyleToHost, buildThemeInlineStyle, clearDraggedAvatarId, duplicateData, extractAvatarDropData, getActorById, isVideoMediaPath, normalizeSceneTags, openImagePickerForInput, randomId, resolveFoundryDocumentDrop, setAvatarDragData } from "../helpers.js";
+import { applyThemeInlineStyleToHost, bindFootlightsToggleSwitches, buildThemeInlineStyle, clearDraggedAvatarId, duplicateData, extractAvatarDropData, getActorById, isVideoMediaPath, normalizeSceneTags, openImagePickerForInput, randomId, resolveFoundryDocumentDrop, setAvatarDragData } from "../helpers.js";
 import { translate as tr } from "../localization.js";
 import { TheatreStore } from "../store.js";
+
+const AVATAR_CROP_OFFSET_BASE = 220;
+
+function cropOffsetToPercent(value) {
+  const offset = Math.max(-160, Math.min(160, Number(value) || 0));
+  return `${((offset / AVATAR_CROP_OFFSET_BASE) * 100).toFixed(3)}%`;
+}
 
 export class TheatreSceneConfigApplication extends FormApplication {
   constructor(manager, options = {}) {
@@ -87,11 +94,17 @@ export class TheatreSceneConfigApplication extends FormApplication {
       isDropzoneActive: this.isDropzoneActive,
       avatarSidebarItems: avatars.map((avatar) => {
         const actor = getActorById(avatar.actorId);
+        const thumbnail = avatar.defaultImage || actor?.img || "";
         return {
           id: avatar.id,
           name: avatar.name,
           actorName: actor?.name || tr("No actor"),
-          thumbnail: avatar.defaultImage || actor?.img || ""
+          thumbnail,
+          frameImage: avatar.frameImage || "",
+          useCircularCrop: Boolean(avatar.useCircularCrop),
+          showBackdrop: avatar.showBackdrop !== false,
+          thumbnailStyle: this._buildAvatarThumbnailStyle(avatar),
+          hasAvatarThumbnail: Boolean(thumbnail)
         };
       }),
       sceneActors: this.editableActors.map((sceneActor, index) => {
@@ -104,6 +117,12 @@ export class TheatreSceneConfigApplication extends FormApplication {
           actorImage: actor?.img || "",
           avatarName: avatar.name,
           previewImage: sceneActor.imageOverride || avatar.previewImage || actor?.img || "",
+          frameImage: sceneActor.imageOverride ? sceneActor.frameImage : avatar.frameImage,
+          useCircularCrop: sceneActor.imageOverride ? sceneActor.useCircularCrop : avatar.useCircularCrop,
+          showBackdrop: sceneActor.imageOverride ? sceneActor.showBackdrop : avatar.showBackdrop,
+          thumbnailStyle: sceneActor.imageOverride
+            ? this._buildAvatarThumbnailStyle(sceneActor)
+            : avatar.thumbnailStyle,
           hasLibraryAvatar: Boolean(sceneActor.avatarId && TheatreStore.getAvatarById(sceneActor.avatarId)),
           isDragOver: this.dragOverIndex === index,
           index
@@ -119,6 +138,7 @@ export class TheatreSceneConfigApplication extends FormApplication {
     applyThemeInlineStyleToHost(windowApp, themeState);
     applyThemeInlineStyleToHost(this.element?.[0], themeState);
     applyThemeInlineStyleToHost(this.form, themeState);
+    bindFootlightsToggleSwitches(html?.[0]);
     html.find("[data-scene-config-avatar='true']").on("dragstart", this._onSidebarAvatarDragStart.bind(this));
     html.find("[data-scene-config-avatar='true']").on("dragend", this._onSidebarAvatarDragEnd.bind(this));
     html.find("[data-action='add-avatar-to-scene']").on("click", this._onAddAvatarToScene.bind(this));
@@ -134,8 +154,27 @@ export class TheatreSceneConfigApplication extends FormApplication {
     html.find("[data-scene-actor-index]").on("dragover", this._onActorRowDragOver.bind(this));
     html.find("[data-scene-actor-index]").on("dragleave", this._onActorRowDragLeave.bind(this));
     html.find("[data-scene-actor-index]").on("drop", this._onActorRowDrop.bind(this));
-    html.find("[name='background'], [name='settings.preserveBackgroundAspect'], [name='settings.cinematicBars'], [name='settings.backdropBlurEnabled'], [name='settings.backdropImage'], [name='settings.backdropImageScale'], [name='settings.backdropImageRepeat'], [name='settings.backdropDarkness']").on("input change", this._onLivePreviewInput.bind(this));
+    html.find(".tom-range-with-value input[type='range']").on("input change", this._onRangeValueInput.bind(this));
+    html.find("[name='background'], [name='settings.preserveBackgroundAspect'], [name='settings.cinematicBars'], [name='settings.backdropBlurEnabled'], [name='settings.backdropImage'], [name='settings.backdropImageScale'], [name='settings.backdropImageRepeat'], [name='settings.backdropDarkness'], [name='settings.transitionEffect'], [name='settings.transitionDuration'], [name='settings.transitionIntensity']").on("input change", this._onLivePreviewInput.bind(this));
     html.find("[data-action='toggle-scene-config-section']").on("click", this._onToggleSection.bind(this));
+  }
+
+  _formatRangeDisplayValue(input) {
+    const value = Number(input?.value);
+    if (!Number.isFinite(value)) return String(input?.value ?? "");
+    const step = Number(input?.step);
+    const decimals = Number.isFinite(step) && step > 0 && !Number.isInteger(step)
+      ? Math.min(3, String(input.step).split(".")[1]?.length ?? 0)
+      : 0;
+    return value.toFixed(decimals).replace(/\.?0+$/, "");
+  }
+
+  _onRangeValueInput(event) {
+    const input = event.currentTarget;
+    const display = input?.closest?.(".tom-range-with-value")?.querySelector?.("span");
+    if (!display) return;
+    const suffix = input.dataset.rangeDisplaySuffix || "";
+    display.textContent = `${this._formatRangeDisplayValue(input)}${suffix}`;
   }
 
   _onToggleSection(event) {
@@ -216,6 +255,15 @@ export class TheatreSceneConfigApplication extends FormApplication {
     return TheatreStore.getAvatarLibraryState()?.tokenDefaults ?? { frameImage: "", useCircularCrop: false };
   }
 
+  _buildAvatarThumbnailStyle(avatar = {}) {
+    return [
+      `--tom-avatar-thumb-crop-scale:${Math.max(0.7, Math.min(3, Number(avatar.circularCropScale ?? 1) || 1))}`,
+      `--tom-avatar-thumb-crop-offset-x:${cropOffsetToPercent(avatar.cropOffsetX)}`,
+      `--tom-avatar-thumb-crop-offset-y:${cropOffsetToPercent(avatar.cropOffsetY)}`,
+      `--tom-avatar-thumb-frame-fit-scale:${Math.max(0.6, Math.min(1.2, Number(avatar.frameFitScale ?? 1) || 1))}`
+    ].join(";");
+  }
+
   _normalizeSceneActorEntry(sceneActor = {}) {
     const toBoolean = (value) => value === true || value === "true" || value === 1 || value === "1" || value === "on";
     const actorId = String(sceneActor.actorId || "").trim();
@@ -237,6 +285,18 @@ export class TheatreSceneConfigApplication extends FormApplication {
       imageOverride: String(sceneActor.imageOverride || "").trim(),
       disableMoods: avatarId ? false : toBoolean(sceneActor.disableMoods),
       useCircularCrop: avatar ? Boolean(avatar.useCircularCrop) : toBoolean(sceneActor.useCircularCrop),
+      circularCropScale: avatar
+        ? Math.max(0.7, Math.min(3, Number(avatar.circularCropScale) || 1))
+        : Math.max(0.7, Math.min(3, Number(sceneActor.circularCropScale) || 1)),
+      cropOffsetX: avatar
+        ? Math.max(-160, Math.min(160, Number(avatar.cropOffsetX) || 0))
+        : Math.max(-160, Math.min(160, Number(sceneActor.cropOffsetX) || 0)),
+      cropOffsetY: avatar
+        ? Math.max(-160, Math.min(160, Number(avatar.cropOffsetY) || 0))
+        : Math.max(-160, Math.min(160, Number(sceneActor.cropOffsetY) || 0)),
+      frameFitScale: avatar
+        ? Math.max(0.6, Math.min(1.2, Number(avatar.frameFitScale) || 1))
+        : Math.max(0.6, Math.min(1.2, Number(sceneActor.frameFitScale) || 1)),
       frameImage: avatar ? String(avatar.frameImage || "").trim() : String(sceneActor.frameImage || "").trim(),
       showBackdrop: avatar
         ? avatar.showBackdrop !== false
@@ -301,7 +361,15 @@ export class TheatreSceneConfigApplication extends FormApplication {
     const actor = getActorById(actorId || avatar.actorId);
     return {
       name: avatar.name,
-      previewImage: avatar.moodImages?.[mood] || avatar.defaultImage || actor?.img || ""
+      previewImage: avatar.moodImages?.[mood] || avatar.defaultImage || actor?.img || "",
+      useCircularCrop: Boolean(avatar.useCircularCrop),
+      circularCropScale: Math.max(0.7, Math.min(3, Number(avatar.circularCropScale) || 1)),
+      cropOffsetX: Math.max(-160, Math.min(160, Number(avatar.cropOffsetX) || 0)),
+      cropOffsetY: Math.max(-160, Math.min(160, Number(avatar.cropOffsetY) || 0)),
+      frameFitScale: Math.max(0.6, Math.min(1.2, Number(avatar.frameFitScale) || 1)),
+      frameImage: avatar.frameImage || "",
+      showBackdrop: avatar.showBackdrop !== false,
+      thumbnailStyle: this._buildAvatarThumbnailStyle(avatar)
     };
   }
 
@@ -415,8 +483,12 @@ export class TheatreSceneConfigApplication extends FormApplication {
     entry.initialMood = entry.initialMood || TheatreStore.getMoodPresets()[0] || "neutral";
     entry.disableMoods = false;
     entry.imageOverride = "";
-    entry.useCircularCrop = Boolean(avatar.useCircularCrop);
-    entry.frameImage = avatar.frameImage || "";
+      entry.useCircularCrop = Boolean(avatar.useCircularCrop);
+      entry.circularCropScale = Math.max(0.7, Math.min(3, Number(avatar.circularCropScale) || 1));
+      entry.cropOffsetX = Math.max(-160, Math.min(160, Number(avatar.cropOffsetX) || 0));
+      entry.cropOffsetY = Math.max(-160, Math.min(160, Number(avatar.cropOffsetY) || 0));
+      entry.frameFitScale = Math.max(0.6, Math.min(1.2, Number(avatar.frameFitScale) || 1));
+      entry.frameImage = avatar.frameImage || "";
     entry.showBackdrop = avatar.showBackdrop !== false;
     return true;
   }
@@ -428,7 +500,9 @@ export class TheatreSceneConfigApplication extends FormApplication {
       actorId: String(sceneActor.actorId || "").trim(),
       defaultImage: String(sceneActor.imageOverride || actor?.img || "").trim(),
       useCircularCrop: Boolean(sceneActor.useCircularCrop),
-      circularCropScale: Math.max(0.7, Math.min(1.3, Number(sceneActor.circularCropScale ?? 1) || 1)),
+      circularCropScale: Math.max(0.7, Math.min(3, Number(sceneActor.circularCropScale ?? 1) || 1)),
+      cropOffsetX: Math.max(-160, Math.min(160, Number(sceneActor.cropOffsetX) || 0)),
+      cropOffsetY: Math.max(-160, Math.min(160, Number(sceneActor.cropOffsetY) || 0)),
       frameFitScale: Math.max(0.6, Math.min(1.2, Number(sceneActor.frameFitScale ?? 1) || 1)),
       frameImage: String(sceneActor.frameImage || "").trim(),
       showBackdrop: sceneActor.showBackdrop !== false,
@@ -475,6 +549,53 @@ export class TheatreSceneConfigApplication extends FormApplication {
     clearDraggedAvatarId();
   }
 
+  _captureScrollPosition() {
+    const root = this.element?.[0];
+    if (!(root instanceof HTMLElement)) return [];
+    return [
+      ".window-content",
+      ".tom-scene-config-layout",
+      ".tom-scene-config-layout--inline",
+      ".tom-scene-config-main"
+    ].map((selector) => {
+      const element = root.querySelector(selector);
+      if (!(element instanceof HTMLElement)) return null;
+      return {
+        selector,
+        top: element.scrollTop,
+        left: element.scrollLeft
+      };
+    }).filter(Boolean);
+  }
+
+  _restoreScrollPosition(positions) {
+    if (!Array.isArray(positions) || !positions.length) return;
+    const restore = () => {
+      const root = this.element?.[0];
+      if (!(root instanceof HTMLElement)) return;
+      positions.forEach((position) => {
+        const element = root.querySelector(position.selector);
+        if (!(element instanceof HTMLElement)) return;
+        element.scrollTop = position.top;
+        element.scrollLeft = position.left;
+      });
+    };
+    window.requestAnimationFrame(() => {
+      restore();
+      window.requestAnimationFrame(restore);
+    });
+  }
+
+  _renderPreservingScroll() {
+    const positions = this._captureScrollPosition();
+    const renderResult = this.render();
+    if (renderResult && typeof renderResult.then === "function") {
+      renderResult.finally(() => this._restoreScrollPosition(positions));
+      return;
+    }
+    this._restoreScrollPosition(positions);
+  }
+
   _onAddAvatarToScene(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -487,7 +608,7 @@ export class TheatreSceneConfigApplication extends FormApplication {
     if (!avatar) return;
 
     this.editableActors.push(this._createActorEntry(avatar.id, avatar.actorId || ""));
-    this.render();
+    this._renderPreservingScroll();
   }
 
   async _onCreateSceneActorAvatar(event) {
@@ -533,21 +654,21 @@ export class TheatreSceneConfigApplication extends FormApplication {
       if (droppedDocument?.actor) {
         const tokenEntry = this._createTokenActorEntry(droppedDocument);
         if (tokenEntry) this.editableActors.push(tokenEntry);
-        this.render();
+        this._renderPreservingScroll();
         return;
       }
-      this.render();
+      this._renderPreservingScroll();
       return;
     }
 
     const avatar = TheatreStore.getAvatarById(payload.avatarId);
     if (!avatar) {
-      this.render();
+      this._renderPreservingScroll();
       return;
     }
 
     this.editableActors.push(this._createActorEntry(avatar.id, avatar.actorId || ""));
-    this.render();
+    this._renderPreservingScroll();
   }
 
   _onActorRowDragOver(event) {
@@ -576,7 +697,7 @@ export class TheatreSceneConfigApplication extends FormApplication {
     this._clearDragState();
 
     if (!Number.isInteger(index)) {
-      this.render();
+      this._renderPreservingScroll();
       return;
     }
 
@@ -585,15 +706,15 @@ export class TheatreSceneConfigApplication extends FormApplication {
       if (droppedDocument?.actor) {
         const tokenEntry = this._createTokenActorEntry(droppedDocument);
         if (tokenEntry) this.editableActors[index] = tokenEntry;
-        this.render();
+        this._renderPreservingScroll();
         return;
       }
-      this.render();
+      this._renderPreservingScroll();
       return;
     }
 
     this._applyAvatarToActor(index, payload.avatarId);
-    this.render();
+    this._renderPreservingScroll();
   }
 
   async _updateObject(_event, formData) {

@@ -4,6 +4,19 @@ import { translate as tr } from "../localization.js";
 import { TheatreStore } from "../store.js";
 import { ensureGsap } from "../vendor/gsap-loader.js";
 
+const AVATAR_CROP_OFFSET_BASE = 220;
+const DEFAULT_ACTOR_ANCHOR_Y = 72;
+
+function cropOffsetToPercent(value) {
+  const offset = Math.max(-160, Math.min(160, Number(value) || 0));
+  return `${((offset / AVATAR_CROP_OFFSET_BASE) * 100).toFixed(3)}%`;
+}
+
+function clampActorAnchor(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : fallback;
+}
+
 export class TheatreOverlayApplication extends Application {
   constructor(manager, options = {}) {
     super(options);
@@ -16,15 +29,22 @@ export class TheatreOverlayApplication extends Application {
     this.soundboardPage = 0;
     this._dragState = null;
     this._recentlyDraggedSceneActorId = null;
+    this._recentlyDraggedResetTimeout = null;
     this._transformPersistTimeouts = new Map();
+    this._pendingTransformPatches = new Map();
+    this._boundUiHandlers = new Map();
     this._boundPointerMove = this._onActorPointerMove.bind(this);
     this._boundPointerUp = this._onActorPointerUp.bind(this);
+    this._boundWindowResize = this._onWindowResize.bind(this);
     this._lastActorImages = {};
+    this._boundBackgroundMediaElement = null;
     this._boundBackgroundMediaLoad = this._onBackgroundMediaLoad.bind(this);
+    this._boundMusicAudioEnded = this._onMusicAudioEnded.bind(this);
     this._musicAudio = null;
     this._lastSoundboardTriggerId = null;
     this._musicVolumePollId = null;
     this._lastFoundryMusicVolume = null;
+    this._resizeFrame = null;
   }
 
   static get defaultOptions() {
@@ -133,39 +153,50 @@ export class TheatreOverlayApplication extends Application {
     const audio = document.createElement("audio");
     audio.preload = "auto";
     audio.style.display = "none";
-    audio.addEventListener("ended", () => {
-      const context = this._getSceneSoundContext();
-      const current = this.manager.getSceneAudioState();
-      if (current.loop) return;
-      if (!game.user?.isGM) return;
-      const currentIndex = context.tracks.findIndex((track) => track.id === current.trackId);
-      const nextTrack = currentIndex >= 0 ? context.tracks[currentIndex + 1] : null;
-      if (nextTrack) {
-        void this.manager.setSceneAudioState({
-          trackId: nextTrack.id,
-          src: nextTrack.src,
-          label: nextTrack.label,
-          playbackState: "playing",
-          position: 0
-        }, { skipRender: true }).then(() => {
-          const nextContext = this._getSceneSoundContext();
-          this._syncSceneAudioPlayback(nextContext);
-          this._refreshSoundControlsUi(nextContext);
-        });
-      } else {
-        void this.manager.setSceneAudioState({
-          playbackState: "stopped",
-          position: 0
-        }, { skipRender: true }).then(() => {
-          const nextContext = this._getSceneSoundContext();
-          this._syncSceneAudioPlayback(nextContext);
-          this._refreshSoundControlsUi(nextContext);
-        });
-      }
-    });
+    audio.addEventListener("ended", this._boundMusicAudioEnded);
     document.body.appendChild(audio);
     this._musicAudio = audio;
     return audio;
+  }
+
+  _onMusicAudioEnded() {
+    const context = this._getSceneSoundContext();
+    const current = this.manager.getSceneAudioState();
+    if (current.loop) return;
+    if (!game.user?.isGM) return;
+    const currentIndex = context.tracks.findIndex((track) => track.id === current.trackId);
+    const nextTrack = currentIndex >= 0 ? context.tracks[currentIndex + 1] : null;
+    if (nextTrack) {
+      void this.manager.setSceneAudioState({
+        trackId: nextTrack.id,
+        src: nextTrack.src,
+        label: nextTrack.label,
+        playbackState: "playing",
+        position: 0
+      }, { skipRender: true }).then(() => {
+        const nextContext = this._getSceneSoundContext();
+        this._syncSceneAudioPlayback(nextContext);
+        this._refreshSoundControlsUi(nextContext);
+      });
+      return;
+    }
+
+    void this.manager.setSceneAudioState({
+      playbackState: "stopped",
+      position: 0
+    }, { skipRender: true }).then(() => {
+      const nextContext = this._getSceneSoundContext();
+      this._syncSceneAudioPlayback(nextContext);
+      this._refreshSoundControlsUi(nextContext);
+    });
+  }
+
+  _destroyMusicAudioElement() {
+    if (!this._musicAudio) return;
+    this._musicAudio.removeEventListener("ended", this._boundMusicAudioEnded);
+    this._musicAudio.pause?.();
+    this._musicAudio.remove?.();
+    this._musicAudio = null;
   }
 
   _getFoundryMusicMasterVolume() {
@@ -219,7 +250,8 @@ export class TheatreOverlayApplication extends Application {
     const isGM = Boolean(game.user?.isGM);
     const theatreScene = this.manager.getActiveScene();
     const backgroundPath = String(theatreScene?.background || "").trim();
-    const preserveBackgroundAspect = theatreScene?.settings?.preserveBackgroundAspect !== false;
+    const isBoxed = theatreScene?.settings?.boxed !== false;
+    const fullscreenFit = theatreScene?.settings?.backgroundFullscreenFit === "height" ? "height" : "width";
     const backdropImagePath = String(theatreScene?.settings?.backdropImage || "").trim();
     const backdropBlurEnabled = theatreScene?.settings?.backdropBlurEnabled !== false;
     const backdropDarkness = Number.isFinite(Number(theatreScene?.settings?.backdropDarkness))
@@ -287,7 +319,10 @@ export class TheatreOverlayApplication extends Application {
       backgroundDimPercent: Math.round(this.manager.getBackgroundDim() * 100),
       backgroundPath,
       backgroundIsVideo: isVideoMediaPath(backgroundPath),
-      backgroundFitClass: preserveBackgroundAspect ? "is-cover" : "is-fill",
+      backgroundFitClass: isBoxed
+        ? "is-cover"
+        : (fullscreenFit === "height" ? "is-fit-height" : "is-fit-width"),
+      stageShellClass: isBoxed ? "is-boxed" : "is-unboxed",
       hasCinematicBars: this._getCinematicBarInset(theatreScene) > 0,
       cinematicBarsStyle: this._buildCinematicBarsStyle(theatreScene),
       backdropBlurEnabled,
@@ -310,44 +345,73 @@ export class TheatreOverlayApplication extends Application {
     applyThemeInlineStyleToHost(html?.[0], TheatreStore.getThemeState());
     const theatreScene = this.manager.getActiveScene();
 
-    html.find("[data-action='select-speaker']").on("click", this._onSelectSpeaker.bind(this));
-    html.find("[data-action='toggle-moods']").on("click", this._onToggleMoods.bind(this));
-    html.find("[data-action='remove-actor-from-scene']").on("click", this._onRemoveActorFromScene.bind(this));
-    html.find("[data-action='toggle-actor-mirror']").on("click", this._onToggleActorMirror.bind(this));
-    html.find("[data-action='toggle-actor-name']").on("click", this._onToggleActorName.bind(this));
-    html.find("[data-action='toggle-actor-visibility']").on("click", this._onToggleActorVisibility.bind(this));
-    html.find("[data-action='set-mood']").on("click", this._onSetMood.bind(this));
-    html.find("[data-action='close-scene']").on("click", this._onCloseScene.bind(this));
-    html.find("[data-action='open-scene-library']").on("click", this._onOpenSceneLibrary.bind(this));
-    html.find("[data-action='edit-scene']").on("click", this._onEditScene.bind(this));
-    html.find("[data-action='auto-arrange-actors']").on("click", this._onAutoArrangeActors.bind(this));
-    html.find("[data-action='reveal-scene-to-players']").on("click", this._onRevealSceneToPlayers.bind(this));
-    html.find("[data-action='toggle-gm-bar']").on("click", this._onToggleGmBar.bind(this));
-    html.find("[data-action='toggle-dim-controls']").on("click", this._onToggleDimControls.bind(this));
-    html.find("[data-action='set-background-dim']").on("input change", this._onSetBackgroundDim.bind(this));
-    html.on("click", "[data-action='toggle-sound-controls']", this._onToggleSoundControls.bind(this));
-    html.on("click", "[data-action='play-scene-track']", this._onPlaySceneTrack.bind(this));
-    html.on("click", "[data-action='scene-audio-play']", this._onSceneAudioPlay.bind(this));
-    html.on("click", "[data-action='scene-audio-pause']", this._onSceneAudioPause.bind(this));
-    html.on("click", "[data-action='scene-audio-loop']", this._onSceneAudioLoop.bind(this));
-    html.on("click", "[data-action='scene-audio-stop']", this._onSceneAudioStop.bind(this));
-    html.on("input change", "[data-action='set-scene-audio-volume']", this._onSetSceneAudioVolume.bind(this));
-    html.on("click", "[data-action='toggle-sound-panel-content']", this._onToggleSoundPanelContent.bind(this));
-    html.on("click", "[data-action='play-soundboard-item']", this._onPlaySoundboardItem.bind(this));
-    html.on("click", "[data-action='soundboard-page-prev']", this._onSoundboardPagePrev.bind(this));
-    html.on("click", "[data-action='soundboard-page-next']", this._onSoundboardPageNext.bind(this));
-    html.find("[data-action='toggle-left-sidebar']").on("click", this._onToggleLeftSidebar.bind(this));
-    html.find("[data-action='toggle-right-sidebar']").on("click", this._onToggleRightSidebar.bind(this));
-    html.find(".tom-stage-shell").on("dragenter dragover", this._onStageDragOver.bind(this));
-    html.find(".tom-stage-shell").on("drop", this._onStageDrop.bind(this));
-    html.find(".tom-actor[data-scene-actor-id]").on("pointerdown", this._onActorPointerDown.bind(this));
-    html.find(".tom-actor[data-scene-actor-id]").on("wheel", this._onActorWheel.bind(this));
+    this._bindOverlayUiListeners(html);
     this._bindBackgroundMedia(html?.[0], theatreScene);
     this._startMusicVolumePolling();
     this._syncSceneAudioPlayback(this._getSceneSoundContext(theatreScene));
+    window.removeEventListener("resize", this._boundWindowResize);
+    window.addEventListener("resize", this._boundWindowResize);
     this._playPendingSceneTransition(html?.[0]).catch((error) => {
       console.warn(`${MODULE_ID} | Scene transition fallback`, error);
     });
+  }
+
+  _bindOverlayUiListeners(html) {
+    this._bindUiActionMap(html, [
+      ["select-speaker", "_onSelectSpeaker"],
+      ["toggle-moods", "_onToggleMoods"],
+      ["remove-actor-from-scene", "_onRemoveActorFromScene"],
+      ["toggle-actor-mirror", "_onToggleActorMirror"],
+      ["toggle-actor-name", "_onToggleActorName"],
+      ["toggle-actor-visibility", "_onToggleActorVisibility"],
+      ["set-mood", "_onSetMood"],
+      ["close-scene", "_onCloseScene"],
+      ["open-scene-library", "_onOpenSceneLibrary"],
+      ["edit-scene", "_onEditScene"],
+      ["auto-arrange-actors", "_onAutoArrangeActors"],
+      ["reveal-scene-to-players", "_onRevealSceneToPlayers"],
+      ["toggle-gm-bar", "_onToggleGmBar"],
+      ["toggle-dim-controls", "_onToggleDimControls"],
+      ["toggle-sound-controls", "_onToggleSoundControls"],
+      ["play-scene-track", "_onPlaySceneTrack"],
+      ["scene-audio-play", "_onSceneAudioPlay"],
+      ["scene-audio-pause", "_onSceneAudioPause"],
+      ["scene-audio-loop", "_onSceneAudioLoop"],
+      ["scene-audio-stop", "_onSceneAudioStop"],
+      ["toggle-sound-panel-content", "_onToggleSoundPanelContent"],
+      ["play-soundboard-item", "_onPlaySoundboardItem"],
+      ["soundboard-page-prev", "_onSoundboardPagePrev"],
+      ["soundboard-page-next", "_onSoundboardPageNext"],
+      ["toggle-left-sidebar", "_onToggleLeftSidebar"],
+      ["toggle-right-sidebar", "_onToggleRightSidebar"]
+    ]);
+    this._bindUiEvent(html, "[data-action='set-background-dim']", "input change", "_onSetBackgroundDim");
+    this._bindUiEvent(html, "[data-action='set-scene-audio-volume']", "input change", "_onSetSceneAudioVolume");
+    this._bindUiEvent(html, ".tom-stage-shell", "dragenter dragover", "_onStageDragOver");
+    this._bindUiEvent(html, ".tom-stage-shell", "drop", "_onStageDrop");
+    this._bindUiEvent(html, ".tom-actor[data-scene-actor-id]", "pointerdown", "_onActorPointerDown");
+    this._bindUiEvent(html, ".tom-actor[data-scene-actor-id]", "wheel", "_onActorWheel");
+  }
+
+  _bindUiActionMap(html, entries, eventName = "click") {
+    for (const [action, methodName] of entries) {
+      this._bindUiEvent(html, `[data-action='${action}']`, eventName, methodName);
+    }
+  }
+
+  _bindUiEvent(html, selector, eventName, methodName) {
+    html.on(eventName, selector, this._getBoundUiHandler(methodName));
+  }
+
+  _getBoundUiHandler(methodName) {
+    if (!this._boundUiHandlers.has(methodName)) {
+      const handler = this[methodName];
+      if (typeof handler !== "function") {
+        throw new Error(`${MODULE_ID} | Missing theatre overlay UI handler: ${methodName}`);
+      }
+      this._boundUiHandlers.set(methodName, handler.bind(this));
+    }
+    return this._boundUiHandlers.get(methodName);
   }
 
   canSyncRuntimeState() {
@@ -375,7 +439,8 @@ export class TheatreOverlayApplication extends Application {
     const theatreScene = this.manager.getActiveScene();
     const backgroundPath = String(theatreScene?.background || "").trim();
     const backgroundIsVideo = isVideoMediaPath(backgroundPath);
-    const preserveBackgroundAspect = theatreScene?.settings?.preserveBackgroundAspect !== false;
+    const isBoxed = theatreScene?.settings?.boxed !== false;
+    const fullscreenFit = theatreScene?.settings?.backgroundFullscreenFit === "height" ? "height" : "width";
     const backdropElement = root.querySelector(".tom-overlay-backdrop");
     const backdropMedia = root.querySelector(".tom-overlay-backdrop__media");
     const backdropImagePath = String(theatreScene?.settings?.backdropImage || "").trim();
@@ -391,11 +456,15 @@ export class TheatreOverlayApplication extends Application {
     const stageStyle = `${this._buildStageStyle(stageMetrics)};${this._buildCinematicBarsStyle(theatreScene)}`;
     if (stageShell) {
       stageShell.setAttribute("style", stageStyle);
+      stageShell.classList.toggle("is-boxed", isBoxed);
+      stageShell.classList.toggle("is-unboxed", !isBoxed);
     }
     const backgroundElement = root.querySelector(".tom-background");
     if (backgroundElement) {
-      backgroundElement.classList.toggle("is-cover", preserveBackgroundAspect);
-      backgroundElement.classList.toggle("is-fill", !preserveBackgroundAspect);
+      backgroundElement.classList.toggle("is-cover", isBoxed);
+      backgroundElement.classList.toggle("is-fill", false);
+      backgroundElement.classList.toggle("is-fit-width", !isBoxed && fullscreenFit === "width");
+      backgroundElement.classList.toggle("is-fit-height", !isBoxed && fullscreenFit === "height");
       const currentMedia = backgroundElement.querySelector(".tom-background__media");
       const currentTag = currentMedia?.tagName?.toLowerCase?.() || "";
       const desiredTag = backgroundIsVideo ? "video" : "img";
@@ -438,6 +507,7 @@ export class TheatreOverlayApplication extends Application {
     }
     this._bindBackgroundMedia(root, theatreScene);
     this._updateStageShellLayout(root, theatreScene);
+    this._updateActorPlaneLayout(root, theatreScene);
 
     const animationTasks = [];
 
@@ -447,6 +517,10 @@ export class TheatreOverlayApplication extends Application {
 
       actorElement.classList.toggle("is-highlighted", actor.isHighlighted);
       actorElement.classList.toggle("is-hidden", actor.isVisible === false);
+      actorElement.dataset.anchorX = String(actor.anchorX ?? 50);
+      actorElement.dataset.anchorY = String(actor.anchorY ?? DEFAULT_ACTOR_ANCHOR_Y);
+      actorElement.dataset.referencePlaneWidth = String(actor.referencePlaneWidth ?? 0);
+      actorElement.dataset.referencePlaneHeight = String(actor.referencePlaneHeight ?? 0);
       actorElement.dataset.offsetX = String(actor.offsetX ?? 0);
       actorElement.dataset.offsetY = String(actor.offsetY ?? 0);
       actorElement.dataset.scale = String(actor.scale ?? 1);
@@ -457,7 +531,9 @@ export class TheatreOverlayApplication extends Application {
         portrait.classList.toggle("is-circular", Boolean(actor.useCircularCrop));
         portrait.classList.toggle("has-backdrop", Boolean(actor.showBackdrop) && !actor.useCircularCrop);
         portrait.classList.toggle("is-mirrored", Boolean(actor.isMirrored));
-        portrait.style.setProperty("--tom-actor-crop-scale", String(Math.max(0.7, Math.min(1.3, Number(actor.circularCropScale ?? 1) || 1))));
+        portrait.style.setProperty("--tom-actor-crop-scale", String(Math.max(0.7, Math.min(3, Number(actor.circularCropScale ?? 1) || 1))));
+        portrait.style.setProperty("--tom-actor-crop-offset-x", cropOffsetToPercent(actor.cropOffsetX));
+        portrait.style.setProperty("--tom-actor-crop-offset-y", cropOffsetToPercent(actor.cropOffsetY));
         portrait.style.setProperty("--tom-actor-frame-fit-scale", String(Math.max(0.6, Math.min(1.2, Number(actor.frameFitScale ?? 1) || 1))));
         const frameOverlay = portrait.querySelector(".tom-actor-frame-overlay");
         if (actor.frameImage) {
@@ -579,6 +655,8 @@ export class TheatreOverlayApplication extends Application {
       dimRange.value = String(Math.round(this.manager.getBackgroundDim() * 100));
     }
 
+    this._updateActorPlaneLayout(root, theatreScene);
+
     const soundContext = this._getSceneSoundContext(theatreScene);
     this._refreshSoundControlsUi(soundContext);
     this._syncSceneAudioPlayback(soundContext);
@@ -596,7 +674,8 @@ export class TheatreOverlayApplication extends Application {
 
     const backgroundPath = String(sceneDraft.background || "").trim();
     const backgroundIsVideo = isVideoMediaPath(backgroundPath);
-    const preserveBackgroundAspect = sceneDraft?.settings?.preserveBackgroundAspect !== false;
+    const isBoxed = sceneDraft?.settings?.boxed !== false;
+    const fullscreenFit = sceneDraft?.settings?.backgroundFullscreenFit === "height" ? "height" : "width";
     const managerActors = this.manager.getRenderableActors();
     const highlightedNames = managerActors.filter((actor) => actor.isHighlighted).map((actor) => actor.actorName);
     const stageMetrics = this._getStageMetrics(managerActors.length, Boolean(game.user?.isGM), highlightedNames.length);
@@ -609,12 +688,16 @@ export class TheatreOverlayApplication extends Application {
 
     if (stageShell instanceof HTMLElement) {
       stageShell.setAttribute("style", `${this._buildStageStyle(stageMetrics)};${this._buildCinematicBarsStyle(sceneDraft)}`);
+      stageShell.classList.toggle("is-boxed", isBoxed);
+      stageShell.classList.toggle("is-unboxed", !isBoxed);
     }
 
     const backgroundElement = root.querySelector(".tom-background");
     if (backgroundElement) {
-      backgroundElement.classList.toggle("is-cover", preserveBackgroundAspect);
-      backgroundElement.classList.toggle("is-fill", !preserveBackgroundAspect);
+      backgroundElement.classList.toggle("is-cover", isBoxed);
+      backgroundElement.classList.toggle("is-fill", false);
+      backgroundElement.classList.toggle("is-fit-width", !isBoxed && fullscreenFit === "width");
+      backgroundElement.classList.toggle("is-fit-height", !isBoxed && fullscreenFit === "height");
       const currentMedia = backgroundElement.querySelector(".tom-background__media");
       const currentTag = currentMedia?.tagName?.toLowerCase?.() || "";
       const desiredTag = backgroundIsVideo ? "video" : "img";
@@ -675,6 +758,7 @@ export class TheatreOverlayApplication extends Application {
 
     this._bindBackgroundMedia(root, sceneDraft);
     this._updateStageShellLayout(root, sceneDraft);
+    this._updateActorPlaneLayout(root, sceneDraft);
     return true;
   }
 
@@ -721,12 +805,16 @@ export class TheatreOverlayApplication extends Application {
       `order:${order}`,
       `z-index:${Math.max(1, Number(actor.zIndex) || 1)}`,
       `--tom-actor-z-index:${Math.max(1, Number(actor.zIndex) || 1)}`,
+      `--tom-actor-anchor-x:${clampActorAnchor(actor.anchorX, 50)}%`,
+      `--tom-actor-anchor-y:${clampActorAnchor(actor.anchorY, DEFAULT_ACTOR_ANCHOR_Y)}%`,
       `--tom-actor-offset-x:${Number(actor.offsetX ?? 0)}px`,
       `--tom-actor-offset-y:${Number(actor.offsetY ?? 0)}px`,
       `--tom-actor-scale:${actorScale}`,
       `--tom-actor-highlight-scale:${activeScale}`,
       `--tom-actor-label-compensation:${labelCompensation}`,
-      `--tom-actor-crop-scale:${Math.max(0.7, Math.min(1.3, Number(actor.circularCropScale ?? 1) || 1))}`,
+      `--tom-actor-crop-scale:${Math.max(0.7, Math.min(3, Number(actor.circularCropScale ?? 1) || 1))}`,
+      `--tom-actor-crop-offset-x:${cropOffsetToPercent(actor.cropOffsetX)}`,
+      `--tom-actor-crop-offset-y:${cropOffsetToPercent(actor.cropOffsetY)}`,
       `--tom-actor-frame-fit-scale:${Math.max(0.6, Math.min(1.2, Number(actor.frameFitScale ?? 1) || 1))}`
     ].join(";");
   }
@@ -804,20 +892,49 @@ export class TheatreOverlayApplication extends Application {
     if (!(root instanceof HTMLElement)) return;
     const media = root.querySelector(".tom-background__media");
     if (!(media instanceof HTMLImageElement || media instanceof HTMLVideoElement)) {
+      this._unbindBackgroundMedia();
       this._updateStageShellLayout(root, theatreScene);
+      this._updateActorPlaneLayout(root, theatreScene);
       return;
+    }
+    if (this._boundBackgroundMediaElement && this._boundBackgroundMediaElement !== media) {
+      this._unbindBackgroundMedia();
     }
     media.removeEventListener("load", this._boundBackgroundMediaLoad);
     media.removeEventListener("loadedmetadata", this._boundBackgroundMediaLoad);
     media.addEventListener("load", this._boundBackgroundMediaLoad);
     media.addEventListener("loadedmetadata", this._boundBackgroundMediaLoad);
+    this._boundBackgroundMediaElement = media;
     this._updateStageShellLayout(root, theatreScene);
+    this._updateActorPlaneLayout(root, theatreScene);
+  }
+
+  _unbindBackgroundMedia() {
+    if (!this._boundBackgroundMediaElement) return;
+    this._boundBackgroundMediaElement.removeEventListener("load", this._boundBackgroundMediaLoad);
+    this._boundBackgroundMediaElement.removeEventListener("loadedmetadata", this._boundBackgroundMediaLoad);
+    this._boundBackgroundMediaElement = null;
   }
 
   _onBackgroundMediaLoad() {
     const root = this.element?.[0];
     if (!root) return;
     this._updateStageShellLayout(root, this.manager.getActiveScene());
+    this._updateActorPlaneLayout(root, this.manager.getActiveScene());
+  }
+
+  _onWindowResize() {
+    if (this._resizeFrame) {
+      window.cancelAnimationFrame(this._resizeFrame);
+    }
+    this._resizeFrame = window.requestAnimationFrame(() => {
+      this._resizeFrame = null;
+      const root = this.element?.[0];
+      if (!root) return;
+      const theatreScene = this.manager.getActiveScene();
+      this._updateStageShellLayout(root, theatreScene);
+      this._updateActorPlaneLayout(root, theatreScene);
+    });
   }
 
   _getBackgroundAspectRatio(root) {
@@ -835,6 +952,176 @@ export class TheatreOverlayApplication extends Application {
     return 0;
   }
 
+  _getBackgroundMediaNaturalSize(media) {
+    if (media instanceof HTMLVideoElement) {
+      return {
+        width: Number(media.videoWidth) || 0,
+        height: Number(media.videoHeight) || 0
+      };
+    }
+    if (media instanceof HTMLImageElement) {
+      return {
+        width: Number(media.naturalWidth) || 0,
+        height: Number(media.naturalHeight) || 0
+      };
+    }
+    return { width: 0, height: 0 };
+  }
+
+  _getRenderedBackgroundContentRect(root, theatreScene) {
+    const stageShell = root?.querySelector(".tom-stage-shell");
+    const background = root?.querySelector(".tom-background");
+    const media = root?.querySelector(".tom-background__media");
+    if (!(stageShell instanceof HTMLElement) || !(background instanceof HTMLElement)) return null;
+
+    const stageRect = stageShell.getBoundingClientRect();
+    const backgroundRect = background.getBoundingClientRect();
+    const mediaRect = media?.getBoundingClientRect?.();
+    if (!(stageRect.width > 0) || !(stageRect.height > 0) || !(backgroundRect.width > 0) || !(backgroundRect.height > 0)) return null;
+
+    const naturalSize = this._getBackgroundMediaNaturalSize(media);
+    const hasNaturalSize = naturalSize.width > 0 && naturalSize.height > 0;
+    const isBoxed = theatreScene?.settings?.boxed !== false;
+    const fullscreenFit = theatreScene?.settings?.backgroundFullscreenFit === "height" ? "height" : "width";
+    const fallbackRect = {
+      left: backgroundRect.left - stageRect.left,
+      top: backgroundRect.top - stageRect.top,
+      width: backgroundRect.width,
+      height: backgroundRect.height
+    };
+
+    if (!hasNaturalSize) {
+      if (mediaRect?.width > 0 && mediaRect?.height > 0) {
+        return {
+          left: mediaRect.left - stageRect.left,
+          top: mediaRect.top - stageRect.top,
+          width: mediaRect.width,
+          height: mediaRect.height
+        };
+      }
+      return fallbackRect;
+    }
+
+    if (!isBoxed && (fullscreenFit === "width" || fullscreenFit === "height") && mediaRect?.width > 0 && mediaRect?.height > 0) {
+      return {
+        left: mediaRect.left - stageRect.left,
+        top: mediaRect.top - stageRect.top,
+        width: mediaRect.width,
+        height: mediaRect.height
+      };
+    }
+
+    const scale = Math.min(backgroundRect.width / naturalSize.width, backgroundRect.height / naturalSize.height);
+    const width = naturalSize.width * scale;
+    const height = naturalSize.height * scale;
+    return {
+      left: (backgroundRect.left - stageRect.left) + ((backgroundRect.width - width) / 2),
+      top: (backgroundRect.top - stageRect.top) + ((backgroundRect.height - height) / 2),
+      width,
+      height
+    };
+  }
+
+  _updateActorPlaneLayout(root, theatreScene) {
+    const stageShell = root?.querySelector(".tom-stage-shell");
+    const actorsContainer = root?.querySelector(".tom-actors");
+    if (!(stageShell instanceof HTMLElement) || !(actorsContainer instanceof HTMLElement)) return;
+
+    const stageRect = stageShell.getBoundingClientRect();
+    const contentRect = this._getRenderedBackgroundContentRect(root, theatreScene);
+    if (!contentRect || !(contentRect.width > 0) || !(contentRect.height > 0)) {
+      actorsContainer.style.setProperty("--tom-actor-plane-left", "0px");
+      actorsContainer.style.setProperty("--tom-actor-plane-top", "0px");
+      actorsContainer.style.setProperty("--tom-actor-plane-width", "100%");
+      actorsContainer.style.setProperty("--tom-actor-plane-height", "100%");
+      actorsContainer.style.setProperty("--tom-actor-plane-scale", "1");
+      actorsContainer.querySelectorAll(".tom-actor[data-scene-actor-id]").forEach((actorElement) => {
+        actorElement.style.setProperty("--tom-actor-plane-scale", "1");
+      });
+      return;
+    }
+
+    const planeScale = Math.max(
+      0.35,
+      Math.min(
+        1.35,
+        Math.min(contentRect.width / Math.max(stageRect.width, 1), contentRect.height / Math.max(stageRect.height, 1))
+      )
+    );
+    actorsContainer.style.setProperty("--tom-actor-plane-left", `${contentRect.left}px`);
+    actorsContainer.style.setProperty("--tom-actor-plane-top", `${contentRect.top}px`);
+    actorsContainer.style.setProperty("--tom-actor-plane-width", `${contentRect.width}px`);
+    actorsContainer.style.setProperty("--tom-actor-plane-height", `${contentRect.height}px`);
+    actorsContainer.style.setProperty("--tom-actor-plane-scale", String(planeScale));
+
+    actorsContainer.querySelectorAll(".tom-actor[data-scene-actor-id]").forEach((actorElement) => {
+      const storedReferenceWidth = Number(actorElement.dataset.referencePlaneWidth) || 0;
+      const storedReferenceHeight = Number(actorElement.dataset.referencePlaneHeight) || 0;
+      const referenceWidth = storedReferenceWidth || contentRect.width;
+      const referenceHeight = storedReferenceHeight || contentRect.height;
+      const actorPlaneScale = Math.max(
+        0.35,
+        Math.min(
+          1.35,
+          Math.min(contentRect.width / Math.max(referenceWidth, 1), contentRect.height / Math.max(referenceHeight, 1))
+        )
+      );
+      actorElement.style.setProperty("--tom-actor-plane-scale", String(actorPlaneScale));
+      if (!storedReferenceWidth) {
+        actorElement.dataset.referencePlaneWidth = String(contentRect.width);
+      }
+      if (!storedReferenceHeight) {
+        actorElement.dataset.referencePlaneHeight = String(contentRect.height);
+      }
+      if (game.user?.isGM && actorElement.dataset.sceneActorId && (!storedReferenceWidth || !storedReferenceHeight)) {
+        this._scheduleTransformPersist(actorElement.dataset.sceneActorId, {
+          referencePlaneWidth: contentRect.width,
+          referencePlaneHeight: contentRect.height
+        });
+      }
+    });
+  }
+
+  _getSharedLeftSidebarInset() {
+    if (!this.manager.isSharedLeftSidebarVisible?.()) return null;
+
+    const measuredRight = [
+      document.getElementById("navigation"),
+      document.getElementById("controls")
+    ].reduce((right, element) => {
+      if (!(element instanceof HTMLElement)) return right;
+      const rect = element.getBoundingClientRect();
+      if (!(rect.width > 0) || !(rect.height > 0)) return right;
+      return Math.max(right, rect.right);
+    }, 0);
+
+    return Math.max(96, Math.min(128, measuredRight + 12));
+  }
+
+  _getSharedRightSidebarInset() {
+    if (!this.manager.isSharedRightSidebarVisible?.()) return null;
+
+    const element = document.getElementById("ui-right") || document.getElementById("sidebar");
+    if (element instanceof HTMLElement) {
+      const rect = element.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        return Math.max(240, Math.min(420, (window.innerWidth - rect.left) + 18));
+      }
+    }
+
+    return 332;
+  }
+
+  _updateStageSideToggleOffsets(root, { leftInset = 0, rightInset = 0 } = {}) {
+    const stageShell = root?.querySelector(".tom-stage-shell");
+    if (!(stageShell instanceof HTMLElement)) return;
+
+    const isBoxed = stageShell.classList.contains("is-boxed");
+    const baseOffset = 14;
+    stageShell.style.setProperty("--tom-stage-left-toggle-offset", `${isBoxed ? baseOffset : Math.max(baseOffset, leftInset + baseOffset)}px`);
+    stageShell.style.setProperty("--tom-stage-right-toggle-offset", `${isBoxed ? baseOffset : Math.max(baseOffset, rightInset + baseOffset)}px`);
+  }
+
   _updateStageShellLayout(root, theatreScene) {
     const stageShell = root?.querySelector(".tom-stage-shell");
     if (!(stageShell instanceof HTMLElement)) return;
@@ -844,21 +1131,29 @@ export class TheatreOverlayApplication extends Application {
     const hasSharedLeftSidebar = body?.classList?.contains("tom-shared-left-sidebar-open") || this.manager.isSharedLeftSidebarVisible?.();
     const hasSharedRightSidebar = body?.classList?.contains("tom-shared-right-sidebar-open") || this.manager.isSharedRightSidebarVisible?.();
 
+    const boxedSideInset = isGMPreview ? 92 : 32;
+    const boxedVerticalInset = isGMPreview ? { top: 72, bottom: 56 } : { top: 32, bottom: 32 };
+    const sharedLeftInset = this._getSharedLeftSidebarInset();
+    const sharedRightInset = this._getSharedRightSidebarInset();
     const baseInsets = {
-      top: isGMPreview ? 72 : 16,
-      right: hasSharedRightSidebar ? 332 : (isGMPreview ? 20 : 16),
-      bottom: isGMPreview ? 56 : 16,
-      left: hasSharedLeftSidebar ? 304 : (isGMPreview ? 92 : 16)
+      top: boxedVerticalInset.top,
+      right: hasSharedRightSidebar ? (sharedRightInset ?? 332) : boxedSideInset,
+      bottom: boxedVerticalInset.bottom,
+      left: hasSharedLeftSidebar ? (sharedLeftInset ?? 128) : boxedSideInset
     };
 
-    const preserveAspect = theatreScene?.settings?.preserveBackgroundAspect !== false;
-    if (!preserveAspect) {
+    const isBoxed = theatreScene?.settings?.boxed !== false;
+    this._updateStageSideToggleOffsets(root, {
+      leftInset: hasSharedLeftSidebar ? baseInsets.left : 0,
+      rightInset: hasSharedRightSidebar ? baseInsets.right : 0
+    });
+    if (!isBoxed) {
       stageShell.style.width = "";
       stageShell.style.height = "";
-      stageShell.style.left = `${baseInsets.left}px`;
-      stageShell.style.top = `${baseInsets.top}px`;
-      stageShell.style.right = `${baseInsets.right}px`;
-      stageShell.style.bottom = `${baseInsets.bottom}px`;
+      stageShell.style.left = "0px";
+      stageShell.style.top = "0px";
+      stageShell.style.right = "0px";
+      stageShell.style.bottom = "0px";
       return;
     }
 
@@ -915,12 +1210,18 @@ export class TheatreOverlayApplication extends Application {
       root.insertBefore(snapshot, stageShell);
     }
 
+    root.classList.add("is-scene-transitioning");
     try {
       await this._runSceneTransition(gsap, root, stageShell, snapshot, transition.settings);
     } finally {
+      root.classList.remove("is-scene-transitioning");
       snapshot?.remove();
       root.querySelectorAll(".tom-scene-transition-curtain, .tom-scene-transition-veil, .tom-scene-transition-stripes").forEach((element) => element.remove());
       gsap.set(stageShell, { clearProps: "autoAlpha,scale,scaleY,x,y" });
+      const backdropTarget = root.querySelector(".tom-overlay-backdrop__media");
+      if (backdropTarget) {
+        gsap.set(backdropTarget, { clearProps: "autoAlpha,scale,scaleY,x,y" });
+      }
       gsap.set(stageShell.querySelectorAll(".tom-actor, .tom-actor-frame, .tom-stage-heading, .tom-gm-bar, .tom-background, .tom-background__media"), {
         clearProps: "autoAlpha,scale,scaleY,x,y"
       });
@@ -945,15 +1246,20 @@ export class TheatreOverlayApplication extends Application {
     const heading = stageShell.querySelector(".tom-stage-heading");
     const gmBar = stageShell.querySelector(".tom-gm-bar");
     const backgroundTarget = stageShell.querySelector(".tom-background__media") || stageShell.querySelector(".tom-background");
+    const backdropTarget = root.querySelector(".tom-overlay-backdrop__media:not([hidden])");
+    const backdropBaseScale = backdropTarget?.closest?.(".tom-overlay-backdrop")?.classList?.contains("is-blurred") ? 1.05 : 1;
     const actorFrames = Array.from(stageShell.querySelectorAll(".tom-actor-frame"));
     const duration = Math.max(0.3, Number(settings?.duration) || 0.9);
     const intensity = Math.max(0.6, Number(settings?.intensity) || 1);
     const effect = settings?.effect || "blurZoom";
     const contentTargets = [heading, gmBar, ...actorFrames].filter(Boolean);
+    const backgroundMotionTargets = [backgroundTarget].filter(Boolean);
 
     const timeline = gsap.timeline({
       defaults: { ease: "power2.out" }
     });
+    const hold = { progress: 0 };
+    timeline.to(hold, { progress: 1, duration, ease: "none" }, 0);
 
     const finish = new Promise((resolve) => {
       timeline.eventCallback("onComplete", resolve);
@@ -967,6 +1273,15 @@ export class TheatreOverlayApplication extends Application {
         y: -3 * intensity,
         scale: 1.008
       });
+      if (backdropTarget) {
+        gsap.set(backdropTarget, {
+          autoAlpha: 1,
+          x: 8 * intensity,
+          y: -3 * intensity,
+          scale: backdropBaseScale * 1.008,
+          transformOrigin: "50% 50%"
+        });
+      }
       gsap.set(veil, { autoAlpha: 0.22 });
       gsap.set(contentTargets, { autoAlpha: 0.35, y: 8 * intensity });
       if (snapshot) {
@@ -974,101 +1289,142 @@ export class TheatreOverlayApplication extends Application {
           x: 10 * intensity,
           y: -4 * intensity,
           autoAlpha: 0.38,
-          duration: duration * 0.12,
+          duration: duration * 0.18,
           ease: "steps(2)"
         }, 0);
         timeline.to(snapshot, {
           x: -8 * intensity,
           y: 5 * intensity,
           autoAlpha: 0,
-          duration: duration * 0.14,
+          duration: duration * 0.2,
           ease: "steps(2)"
-        }, duration * 0.12);
+        }, duration * 0.18);
       }
       timeline.to(stageShell, {
         x: 0,
         y: 0,
         scale: 1,
-        duration: duration * 0.34,
+        duration: duration * 0.78,
         ease: "steps(4)"
       }, duration * 0.06);
+      if (backdropTarget) {
+        timeline.to(backdropTarget, {
+          x: 0,
+          y: 0,
+          scale: backdropBaseScale,
+          duration: duration * 0.78,
+          ease: "steps(4)"
+        }, duration * 0.06);
+      }
       timeline.to(contentTargets, {
         autoAlpha: 1,
         y: 0,
-        duration: duration * 0.3,
+        duration: duration * 0.56,
         stagger: 0.03
-      }, duration * 0.12);
+      }, duration * 0.18);
       timeline.to(veil, {
         autoAlpha: 0,
-        duration: duration * 0.24
-      }, duration * 0.18);
+        duration: duration * 0.52
+      }, duration * 0.34);
     } else if (effect === "scanlineBoot") {
       const veil = this._createTransitionVeil(root, "tom-scene-transition-veil--scanline");
       const stripes = this._createTransitionStripes(root);
       gsap.set(stageShell, {
         autoAlpha: 1,
-        scaleY: 0.985,
-        y: 10
+        scaleY: 1 - (0.018 * intensity),
+        y: 12 * intensity
       });
-      gsap.set(contentTargets, { autoAlpha: 0.28, y: 14 });
+      if (backdropTarget) {
+        gsap.set(backdropTarget, {
+          autoAlpha: 1,
+          scale: backdropBaseScale,
+          scaleY: 1 - (0.018 * intensity),
+          y: 12 * intensity,
+          transformOrigin: "50% 50%"
+        });
+      }
+      gsap.set(contentTargets, { autoAlpha: 0.28, y: 14 * intensity });
       gsap.set(veil, { autoAlpha: 0.2 });
       gsap.set(stripes, { autoAlpha: 0.34, yPercent: -100 });
       if (snapshot) {
         timeline.to(snapshot, {
           autoAlpha: 0,
-          duration: duration * 0.2
+          duration: duration * 0.32
         }, 0);
       }
       timeline.to(stripes, {
         yPercent: 100,
-        duration: duration * 0.5,
+        duration: duration * 0.9,
         ease: "none"
       }, 0.02);
       timeline.to(stageShell, {
         scaleY: 1,
         y: 0,
-        duration: duration * 0.38,
+        duration: duration * 0.72,
         ease: "power2.out"
-      }, duration * 0.06);
+      }, duration * 0.08);
+      if (backdropTarget) {
+        timeline.to(backdropTarget, {
+          scale: backdropBaseScale,
+          scaleY: 1,
+          y: 0,
+          duration: duration * 0.72,
+          ease: "power2.out"
+        }, duration * 0.08);
+      }
       timeline.to(contentTargets, {
         autoAlpha: 1,
         y: 0,
-        duration: duration * 0.28,
+        duration: duration * 0.48,
         stagger: 0.04
-      }, duration * 0.16);
+      }, duration * 0.28);
       timeline.to([veil, stripes], {
         autoAlpha: 0,
-        duration: duration * 0.2
-      }, duration * 0.26);
+        duration: duration * 0.42
+      }, duration * 0.5);
     } else {
       const veil = this._createTransitionVeil(root);
+      const zoomScale = 1.025 + ((intensity - 1) * 0.035);
       gsap.set(stageShell, { autoAlpha: 1 });
-      if (backgroundTarget) {
-        gsap.set(backgroundTarget, {
-          scale: 1.018 + ((intensity - 1) * 0.015),
+      if (backgroundMotionTargets.length) {
+        gsap.set(backgroundMotionTargets, {
+          scale: zoomScale,
           transformOrigin: "50% 50%"
         });
       }
-      gsap.set(veil, { autoAlpha: 0.12 });
+      if (backdropTarget) {
+        gsap.set(backdropTarget, {
+          scale: backdropBaseScale * zoomScale,
+          transformOrigin: "50% 50%"
+        });
+      }
+      gsap.set(veil, { autoAlpha: 0.1 + (0.06 * intensity) });
       if (snapshot) {
         timeline.to(snapshot, {
           autoAlpha: 0,
-          duration: duration * 0.26,
+          duration: duration * 0.42,
           ease: "power1.out"
         }, 0);
       }
-      if (backgroundTarget) {
-        timeline.to(backgroundTarget, {
+      if (backgroundMotionTargets.length) {
+        timeline.to(backgroundMotionTargets, {
           scale: 1,
-          duration: duration * 0.4,
+          duration: duration * 0.9,
+          ease: "power2.out"
+        }, 0.02);
+      }
+      if (backdropTarget) {
+        timeline.to(backdropTarget, {
+          scale: backdropBaseScale,
+          duration: duration * 0.9,
           ease: "power2.out"
         }, 0.02);
       }
       timeline.to(veil, {
         autoAlpha: 0,
-        duration: duration * 0.22,
+        duration: duration * 0.58,
         ease: "power1.out"
-      }, 0.08);
+      }, duration * 0.1);
     }
 
     await finish;
@@ -1618,6 +1974,11 @@ export class TheatreOverlayApplication extends Application {
 
   _scheduleTransformPersist(sceneActorId, patch = {}) {
     if (!sceneActorId) return;
+    const nextPatch = {
+      ...(this._pendingTransformPatches.get(sceneActorId) ?? {}),
+      ...patch
+    };
+    this._pendingTransformPatches.set(sceneActorId, nextPatch);
     const existingTimeout = this._transformPersistTimeouts.get(sceneActorId);
     if (existingTimeout) {
       window.clearTimeout(existingTimeout);
@@ -1625,7 +1986,9 @@ export class TheatreOverlayApplication extends Application {
 
     const timeoutId = window.setTimeout(async () => {
       this._transformPersistTimeouts.delete(sceneActorId);
-      await this.manager.setSceneActorTransform(sceneActorId, patch, { skipRender: true });
+      const pendingPatch = this._pendingTransformPatches.get(sceneActorId) ?? {};
+      this._pendingTransformPatches.delete(sceneActorId);
+      await this.manager.setSceneActorTransform(sceneActorId, pendingPatch, { skipRender: true });
     }, 120);
     this._transformPersistTimeouts.set(sceneActorId, timeoutId);
   }
@@ -1638,12 +2001,24 @@ export class TheatreOverlayApplication extends Application {
 
     event.preventDefault();
     actorElement.classList.add("is-dragging");
+    const actorsContainer = actorElement.closest(".tom-actors");
+    const containerRect = actorsContainer?.getBoundingClientRect?.();
+    const actorRect = actorElement.getBoundingClientRect();
+    const fallbackAnchorX = containerRect?.width
+      ? ((actorRect.left + (actorRect.width / 2) - containerRect.left) / containerRect.width) * 100
+      : 50;
+    const fallbackAnchorY = containerRect?.height
+      ? ((actorRect.top + (actorRect.height / 2) - containerRect.top) / containerRect.height) * 100
+      : DEFAULT_ACTOR_ANCHOR_Y;
 
     this._dragState = {
       actorElement,
+      actorsContainer,
       sceneActorId: actorElement.dataset.sceneActorId,
       startX: event.clientX,
       startY: event.clientY,
+      originAnchorX: clampActorAnchor(actorElement.dataset.anchorX, fallbackAnchorX),
+      originAnchorY: clampActorAnchor(actorElement.dataset.anchorY, fallbackAnchorY),
       originOffsetX: Number(actorElement.dataset.offsetX) || 0,
       originOffsetY: Number(actorElement.dataset.offsetY) || 0,
       dragged: false
@@ -1659,12 +2034,24 @@ export class TheatreOverlayApplication extends Application {
     const deltaY = event.clientY - this._dragState.startY;
     if (!this._dragState.dragged && Math.hypot(deltaX, deltaY) < 2) return;
     this._dragState.dragged = true;
-    const nextOffsetX = this._dragState.originOffsetX + deltaX;
-    const nextOffsetY = this._dragState.originOffsetY + deltaY;
-    this._dragState.actorElement.dataset.offsetX = String(nextOffsetX);
-    this._dragState.actorElement.dataset.offsetY = String(nextOffsetY);
-    this._dragState.actorElement.style.setProperty("--tom-actor-offset-x", `${nextOffsetX}px`);
-    this._dragState.actorElement.style.setProperty("--tom-actor-offset-y", `${nextOffsetY}px`);
+    const containerRect = this._dragState.actorsContainer?.getBoundingClientRect?.();
+    if (!containerRect?.width || !containerRect?.height) return;
+    const nextAnchorX = clampActorAnchor(
+      this._dragState.originAnchorX + ((this._dragState.originOffsetX + deltaX) / containerRect.width) * 100,
+      this._dragState.originAnchorX
+    );
+    const nextAnchorY = clampActorAnchor(
+      this._dragState.originAnchorY + ((this._dragState.originOffsetY + deltaY) / containerRect.height) * 100,
+      this._dragState.originAnchorY
+    );
+    this._dragState.actorElement.dataset.anchorX = String(nextAnchorX);
+    this._dragState.actorElement.dataset.anchorY = String(nextAnchorY);
+    this._dragState.actorElement.dataset.offsetX = "0";
+    this._dragState.actorElement.dataset.offsetY = "0";
+    this._dragState.actorElement.style.setProperty("--tom-actor-anchor-x", `${nextAnchorX}%`);
+    this._dragState.actorElement.style.setProperty("--tom-actor-anchor-y", `${nextAnchorY}%`);
+    this._dragState.actorElement.style.setProperty("--tom-actor-offset-x", "0px");
+    this._dragState.actorElement.style.setProperty("--tom-actor-offset-y", "0px");
   }
 
   async _onActorPointerUp() {
@@ -1674,18 +2061,34 @@ export class TheatreOverlayApplication extends Application {
 
     const sceneActorId = this._dragState.sceneActorId;
     const wasDragged = this._dragState.dragged;
+    const finalAnchorX = Number(this._dragState.actorElement.dataset.anchorX) || 50;
+    const finalAnchorY = Number(this._dragState.actorElement.dataset.anchorY) || DEFAULT_ACTOR_ANCHOR_Y;
     const finalOffsetX = Number(this._dragState.actorElement.dataset.offsetX) || 0;
     const finalOffsetY = Number(this._dragState.actorElement.dataset.offsetY) || 0;
+    const referenceRect = this._dragState.actorsContainer?.getBoundingClientRect?.();
+    const referencePlaneWidth = referenceRect?.width || Number(this._dragState.actorElement.dataset.referencePlaneWidth) || 0;
+    const referencePlaneHeight = referenceRect?.height || Number(this._dragState.actorElement.dataset.referencePlaneHeight) || 0;
     this._dragState.actorElement.classList.remove("is-dragging");
     this._dragState = null;
     if (!wasDragged) return;
     this._recentlyDraggedSceneActorId = sceneActorId;
-    window.setTimeout(() => {
+    if (this._recentlyDraggedResetTimeout) {
+      window.clearTimeout(this._recentlyDraggedResetTimeout);
+    }
+    this._recentlyDraggedResetTimeout = window.setTimeout(() => {
+      this._recentlyDraggedResetTimeout = null;
       if (this._recentlyDraggedSceneActorId === sceneActorId) {
         this._recentlyDraggedSceneActorId = null;
       }
     }, 60);
-    await this.manager.setSceneActorTransform(sceneActorId, { offsetX: finalOffsetX, offsetY: finalOffsetY }, { skipRender: true });
+    await this.manager.setSceneActorTransform(sceneActorId, {
+      anchorX: finalAnchorX,
+      anchorY: finalAnchorY,
+      referencePlaneWidth,
+      referencePlaneHeight,
+      offsetX: finalOffsetX,
+      offsetY: finalOffsetY
+    }, { skipRender: true });
   }
 
   async _onActorWheel(event) {
@@ -1702,11 +2105,19 @@ export class TheatreOverlayApplication extends Application {
       : (Number(actorElement.dataset.scale) || 1);
     const direction = event.originalEvent?.deltaY ?? event.deltaY;
     const nextScale = Math.max(0.4, Math.min(2.4, currentScale + (direction > 0 ? -0.05 : 0.05)));
+    const actorsContainer = actorElement.closest(".tom-actors");
+    const referenceRect = actorsContainer?.getBoundingClientRect?.();
+    const referencePatch = {
+      referencePlaneWidth: referenceRect?.width || Number(actorElement.dataset.referencePlaneWidth) || 0,
+      referencePlaneHeight: referenceRect?.height || Number(actorElement.dataset.referencePlaneHeight) || 0
+    };
+    actorElement.dataset.referencePlaneWidth = String(referencePatch.referencePlaneWidth);
+    actorElement.dataset.referencePlaneHeight = String(referencePatch.referencePlaneHeight);
     if (isHighlighted) {
       actorElement.dataset.activeScale = String(nextScale);
       actorElement.style.setProperty("--tom-actor-highlight-scale", String(nextScale));
       actorElement.style.setProperty("--tom-actor-label-compensation", String(this._buildActorLabelCompensation(nextScale)));
-      this._scheduleTransformPersist(sceneActorId, { activeScale: nextScale });
+      this._scheduleTransformPersist(sceneActorId, { activeScale: nextScale, ...referencePatch });
       return;
     }
 
@@ -1715,7 +2126,7 @@ export class TheatreOverlayApplication extends Application {
     actorElement.style.setProperty("--tom-actor-scale", String(nextScale));
     actorElement.style.setProperty("--tom-actor-highlight-scale", String(currentActiveScale));
     actorElement.style.setProperty("--tom-actor-label-compensation", String(this._buildActorLabelCompensation(nextScale)));
-    this._scheduleTransformPersist(sceneActorId, { scale: nextScale });
+    this._scheduleTransformPersist(sceneActorId, { scale: nextScale, ...referencePatch });
   }
 
   _onEditScene(event) {
@@ -1744,15 +2155,16 @@ export class TheatreOverlayApplication extends Application {
         const currentOffsetX = Number(element.dataset.offsetX) || 0;
         const currentOffsetY = Number(element.dataset.offsetY) || 0;
         const scale = Number(element.dataset.scale) || 1;
+        const activeScale = Number(element.dataset.activeScale) || (scale * 1.4);
         return {
           element,
           sceneActorId: element.dataset.sceneActorId,
           rect,
           width: rect.width,
           centerX: rect.left - containerRect.left + (rect.width / 2),
-          currentOffsetX,
-          currentOffsetY,
-          scale
+          centerY: rect.top - containerRect.top + (rect.height / 2),
+          scale,
+          activeScale
         };
       })
       .sort((left, right) => left.centerX - right.centerX);
@@ -1778,20 +2190,36 @@ export class TheatreOverlayApplication extends Application {
       const targetCenterX = cursorX + (actor.width / 2);
       cursorX += actor.width + gap;
       const deltaX = targetCenterX - actor.centerX;
-      const nextOffsetX = actor.currentOffsetX + deltaX;
+      const nextAnchorX = clampActorAnchor(
+        ((actor.centerX + deltaX) / containerRect.width) * 100,
+        50
+      );
+      const nextAnchorY = clampActorAnchor(
+        (actor.centerY / containerRect.height) * 100,
+        DEFAULT_ACTOR_ANCHOR_Y
+      );
+      const nextOffsetX = 0;
       const nextOffsetY = 0;
 
+      actor.element.dataset.anchorX = String(nextAnchorX);
+      actor.element.dataset.anchorY = String(nextAnchorY);
       actor.element.dataset.offsetX = String(nextOffsetX);
       actor.element.dataset.offsetY = String(nextOffsetY);
+      actor.element.style.setProperty("--tom-actor-anchor-x", `${nextAnchorX}%`);
+      actor.element.style.setProperty("--tom-actor-anchor-y", `${nextAnchorY}%`);
       actor.element.style.setProperty("--tom-actor-offset-x", `${nextOffsetX}px`);
       actor.element.style.setProperty("--tom-actor-offset-y", `${nextOffsetY}px`);
       actor.element.style.setProperty("--tom-actor-scale", String(actor.scale));
-      actor.element.style.setProperty("--tom-actor-highlight-scale", String(actor.activeScale ?? (actor.scale * 1.4)));
+      actor.element.style.setProperty("--tom-actor-highlight-scale", String(actor.activeScale));
       transformPatches[actor.sceneActorId] = {
+        anchorX: nextAnchorX,
+        anchorY: nextAnchorY,
+        referencePlaneWidth: containerRect.width,
+        referencePlaneHeight: containerRect.height,
         offsetX: nextOffsetX,
         offsetY: nextOffsetY,
         scale: actor.scale,
-        activeScale: actor.activeScale ?? (actor.scale * 1.4)
+        activeScale: actor.activeScale
       };
     }
 
@@ -1801,13 +2229,26 @@ export class TheatreOverlayApplication extends Application {
   async close(options) {
     window.removeEventListener("pointermove", this._boundPointerMove);
     window.removeEventListener("pointerup", this._boundPointerUp);
+    window.removeEventListener("resize", this._boundWindowResize);
+    if (this._resizeFrame) {
+      window.cancelAnimationFrame(this._resizeFrame);
+      this._resizeFrame = null;
+    }
     this._dragState = null;
+    if (this._recentlyDraggedResetTimeout) {
+      window.clearTimeout(this._recentlyDraggedResetTimeout);
+      this._recentlyDraggedResetTimeout = null;
+    }
+    this._recentlyDraggedSceneActorId = null;
     for (const timeoutId of this._transformPersistTimeouts.values()) {
       window.clearTimeout(timeoutId);
     }
     this._transformPersistTimeouts.clear();
+    this._pendingTransformPatches.clear();
     this._lastActorImages = {};
+    this._unbindBackgroundMedia();
     this._stopMusicVolumePolling();
+    this._destroyMusicAudioElement();
     return super.close(options);
   }
 }

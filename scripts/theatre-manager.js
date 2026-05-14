@@ -3,6 +3,19 @@ import { clampScale, duplicateData, getActorById, hasActorOwnerPermission, norma
 import { translate as tr } from "./localization.js";
 import { TheatreStore } from "./store.js";
 
+const DEFAULT_ACTOR_ANCHOR_Y = 72;
+
+function clampActorAnchor(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : fallback;
+}
+
+function getDefaultActorAnchorX(position = "center") {
+  if (position === "left") return 34;
+  if (position === "right") return 66;
+  return 50;
+}
+
 export class TheatreManager {
   constructor() {
     this.overlay = null;
@@ -11,6 +24,8 @@ export class TheatreManager {
     this._lastActiveSceneId = null;
     this._bypassNextOverlaySync = false;
     this._previewRuntimeState = null;
+    this._suppressNextSceneTransition = false;
+    this._suppressNextEntranceAnimation = false;
   }
 
   _applyElementStyles(element, styles = {}) {
@@ -29,7 +44,7 @@ export class TheatreManager {
   }
 
   _notifyRenderError(error) {
-      console.error(`${MODULE_ID} | Overlay render failed`, error);
+    console.error(`${MODULE_ID} | Overlay render failed`, error);
     ui.notifications?.error(tr("Footlights Overlay could not be rendered. Details are available in the browser console."));
   }
 
@@ -167,6 +182,10 @@ export class TheatreManager {
         ? ""
         : (sceneActor.initialMood || "neutral");
       sceneActorTransforms[sceneActorId] = {
+        anchorX: clampActorAnchor(sceneActor.anchorX, getDefaultActorAnchorX(sceneActor.position)),
+        anchorY: clampActorAnchor(sceneActor.anchorY, DEFAULT_ACTOR_ANCHOR_Y),
+        referencePlaneWidth: Number.isFinite(Number(sceneActor.referencePlaneWidth)) ? Math.max(1, Number(sceneActor.referencePlaneWidth)) : 0,
+        referencePlaneHeight: Number.isFinite(Number(sceneActor.referencePlaneHeight)) ? Math.max(1, Number(sceneActor.referencePlaneHeight)) : 0,
         offsetX: Number.isFinite(Number(sceneActor.offsetX)) ? Number(sceneActor.offsetX) : 0,
         offsetY: Number.isFinite(Number(sceneActor.offsetY)) ? Number(sceneActor.offsetY) : 0,
         zIndex: Number.isFinite(Number(sceneActor.zIndex)) ? Number(sceneActor.zIndex) : (index + 1),
@@ -220,6 +239,11 @@ export class TheatreManager {
   }
 
   _setLeftSidebarDomState(visible) {
+    if (!visible) {
+      this._clearLeftSidebarDomState();
+      return;
+    }
+
     const uiLeftElement = document.getElementById("ui-left");
     const navigationElement = document.getElementById("navigation");
     const controlsElement = document.getElementById("controls");
@@ -231,8 +255,9 @@ export class TheatreManager {
       top: "0",
       left: "0",
       bottom: "0",
-      width: "18rem",
-      maxWidth: "18rem",
+      width: "max-content",
+      minWidth: "5.75rem",
+      maxWidth: "8rem",
       zIndex: "200"
     });
 
@@ -247,6 +272,11 @@ export class TheatreManager {
   }
 
   _setRightSidebarDomState(visible) {
+    if (!visible) {
+      this._clearRightSidebarDomState({ restoreSidebar: false });
+      return;
+    }
+
     const uiRightElement = document.getElementById("ui-right");
     const sidebarElement = document.getElementById("sidebar");
     const sidebarTabsElement = document.getElementById("sidebar-tabs");
@@ -292,7 +322,7 @@ export class TheatreManager {
     }
   }
 
-  _clearRightSidebarDomState() {
+  _clearRightSidebarDomState({ restoreSidebar = true } = {}) {
     const uiRightElement = document.getElementById("ui-right");
     const sidebarElement = document.getElementById("sidebar");
     const sidebarTabsElement = document.getElementById("sidebar-tabs");
@@ -313,10 +343,22 @@ export class TheatreManager {
         "right",
         "bottom",
         "width",
+        "minWidth",
         "maxWidth",
         "zIndex",
-        "flexDirection"
+        "flexDirection",
+        "visibility",
+        "pointerEvents",
+        "opacity",
+        "transform"
       ]);
+    }
+
+    if (!restoreSidebar) {
+      uiRightElement?.classList.add("collapsed");
+      sidebarElement?.classList.add("collapsed");
+      if (ui.sidebar) ui.sidebar._collapsed = true;
+      return;
     }
 
     uiRightElement?.classList.remove("collapsed");
@@ -445,11 +487,27 @@ export class TheatreManager {
   getSceneActorTransform(sceneActorId, theatreSceneActor = null) {
     const runtime = this.getRuntimeState();
     const runtimeTransform = runtime.sceneActorTransforms?.[sceneActorId] ?? {};
+    const hasAnchorX = Number.isFinite(Number(runtimeTransform.anchorX)) || Number.isFinite(Number(theatreSceneActor?.anchorX));
+    const hasAnchorY = Number.isFinite(Number(runtimeTransform.anchorY)) || Number.isFinite(Number(theatreSceneActor?.anchorY));
     const baseScale = clampScale(
       runtimeTransform.scale,
       clampScale(theatreSceneActor?.scale, 1)
     );
     return {
+      hasAnchorX,
+      hasAnchorY,
+      anchorX: Number.isFinite(Number(runtimeTransform.anchorX))
+        ? clampActorAnchor(runtimeTransform.anchorX, getDefaultActorAnchorX(theatreSceneActor?.position))
+        : clampActorAnchor(theatreSceneActor?.anchorX, getDefaultActorAnchorX(theatreSceneActor?.position)),
+      anchorY: Number.isFinite(Number(runtimeTransform.anchorY))
+        ? clampActorAnchor(runtimeTransform.anchorY, DEFAULT_ACTOR_ANCHOR_Y)
+        : clampActorAnchor(theatreSceneActor?.anchorY, DEFAULT_ACTOR_ANCHOR_Y),
+      referencePlaneWidth: Number.isFinite(Number(runtimeTransform.referencePlaneWidth))
+        ? Math.max(1, Number(runtimeTransform.referencePlaneWidth))
+        : (Number.isFinite(Number(theatreSceneActor?.referencePlaneWidth)) ? Math.max(1, Number(theatreSceneActor.referencePlaneWidth)) : 0),
+      referencePlaneHeight: Number.isFinite(Number(runtimeTransform.referencePlaneHeight))
+        ? Math.max(1, Number(runtimeTransform.referencePlaneHeight))
+        : (Number.isFinite(Number(theatreSceneActor?.referencePlaneHeight)) ? Math.max(1, Number(theatreSceneActor.referencePlaneHeight)) : 0),
       offsetX: Number.isFinite(Number(runtimeTransform.offsetX))
         ? Number(runtimeTransform.offsetX)
         : (Number.isFinite(Number(theatreSceneActor?.offsetX)) ? Number(theatreSceneActor.offsetX) : 0),
@@ -582,7 +640,7 @@ export class TheatreManager {
 
     const highlightedSceneActorIds = this.getHighlightedSceneActorIds();
 
-    return theatreScene.actors
+    const actors = theatreScene.actors
       .map((sceneActor, index) => {
         const actor = getActorById(sceneActor.actorId);
         if (!actor && !sceneActor?.imageOverride) return null;
@@ -596,16 +654,27 @@ export class TheatreManager {
         const isHighlighted = highlightedSceneActorIds.includes(sceneActorId);
         const availableMoods = this.getAvailableMoods(actor?.id || sceneActor.actorId || "", mood || "neutral", sceneActor);
 
+        const usesLibraryAvatar = Boolean(libraryAvatar);
+        const frameImage = usesLibraryAvatar ? (libraryAvatar.frameImage || "") : (sceneActor?.frameImage || "");
+        const useCircularCrop = usesLibraryAvatar ? Boolean(libraryAvatar.useCircularCrop) : Boolean(sceneActor?.useCircularCrop);
+        const circularCropScale = usesLibraryAvatar ? libraryAvatar.circularCropScale : sceneActor?.circularCropScale;
+        const cropOffsetX = usesLibraryAvatar ? libraryAvatar.cropOffsetX : sceneActor?.cropOffsetX;
+        const cropOffsetY = usesLibraryAvatar ? libraryAvatar.cropOffsetY : sceneActor?.cropOffsetY;
+        const frameFitScale = usesLibraryAvatar ? libraryAvatar.frameFitScale : sceneActor?.frameFitScale;
+        const showBackdrop = usesLibraryAvatar ? libraryAvatar.showBackdrop !== false : sceneActor?.showBackdrop !== false;
+
         return {
           sceneActorId,
           actorId: actor?.id || sceneActor.actorId || sceneActorId,
           actorName: this.getDisplayedActorName(actor?.id || sceneActor.actorId || "", sceneActor),
           actorImage: this.getDisplayedImage(actor?.id || sceneActor.actorId || "", sceneActorId, sceneActor),
-          frameImage: sceneActor?.frameImage || libraryAvatar?.frameImage || "",
-          useCircularCrop: sceneActor?.useCircularCrop ?? Boolean(libraryAvatar?.useCircularCrop),
-          circularCropScale: Math.max(0.7, Math.min(1.3, Number(sceneActor?.circularCropScale ?? libraryAvatar?.circularCropScale ?? 1) || 1)),
-          frameFitScale: Math.max(0.6, Math.min(1.2, Number(sceneActor?.frameFitScale ?? libraryAvatar?.frameFitScale ?? 1) || 1)),
-          showBackdrop: sceneActor?.showBackdrop ?? (libraryAvatar?.showBackdrop !== false),
+          frameImage,
+          useCircularCrop,
+          circularCropScale: Math.max(0.7, Math.min(3, Number(circularCropScale ?? 1) || 1)),
+          cropOffsetX: Math.max(-160, Math.min(160, Number(cropOffsetX ?? 0) || 0)),
+          cropOffsetY: Math.max(-160, Math.min(160, Number(cropOffsetY ?? 0) || 0)),
+          frameFitScale: Math.max(0.6, Math.min(1.2, Number(frameFitScale ?? 1) || 1)),
+          showBackdrop,
           isMirrored: Boolean(sceneActor?.mirrored),
           showName: sceneActor?.showName !== false,
           isVisible: sceneActor?.isVisible !== false,
@@ -615,6 +684,12 @@ export class TheatreManager {
           scale: actorTransform.scale,
           activeScale: actorTransform.activeScale,
           zIndex: actorTransform.zIndex,
+          hasAnchorX: actorTransform.hasAnchorX,
+          hasAnchorY: actorTransform.hasAnchorY,
+          anchorX: actorTransform.anchorX,
+          anchorY: actorTransform.anchorY,
+          referencePlaneWidth: actorTransform.referencePlaneWidth,
+          referencePlaneHeight: actorTransform.referencePlaneHeight,
           offsetX: actorTransform.offsetX,
           offsetY: actorTransform.offsetY,
           isHighlighted,
@@ -630,6 +705,20 @@ export class TheatreManager {
       })
       .filter(Boolean)
       .sort((left, right) => this.getActorOrder(left.position) - this.getActorOrder(right.position));
+
+    return actors.map((actor, index) => {
+      if (actor.hasAnchorX && actor.hasAnchorY) return actor;
+      const count = Math.max(actors.length, 1);
+      const edgePadding = count <= 1 ? 0 : (count <= 2 ? 32 : (count === 3 ? 24 : 16));
+      const span = 100 - (edgePadding * 2);
+      return {
+        ...actor,
+        anchorX: actor.hasAnchorX
+          ? actor.anchorX
+          : (count <= 1 ? actor.anchorX : edgePadding + ((span / Math.max(count - 1, 1)) * index)),
+        anchorY: actor.hasAnchorY ? actor.anchorY : DEFAULT_ACTOR_ANCHOR_Y
+      };
+    });
   }
 
   getActorOrder(position) {
@@ -663,19 +752,26 @@ export class TheatreManager {
     return hasActorOwnerPermission(actor);
   }
 
-  async activateScene(sceneId) {
+  async activateScene(sceneId, options = {}) {
     const theatreScene = TheatreStore.getSceneById(sceneId);
     if (!theatreScene) return false;
     const nextRuntimeState = this._buildSceneRuntimeState(theatreScene);
+    const suppressTransition = Boolean(options?.suppressTransition);
+    const suppressEntrance = Boolean(options?.suppressEntrance || suppressTransition);
+    const refreshOverlay = async () => {
+      this._suppressNextSceneTransition = suppressTransition;
+      this._suppressNextEntranceAnimation = suppressEntrance;
+      return this.onSettingsChanged(true);
+    };
 
     if (game.user?.isGM) {
       this._previewRuntimeState = nextRuntimeState;
-      return this.onSettingsChanged(true);
+      return refreshOverlay();
     }
 
     await this._saveWorkingRuntimeState(nextRuntimeState, { shared: true });
 
-    const rendered = await this.onSettingsChanged(true);
+    const rendered = await refreshOverlay();
     if (rendered) return true;
 
     await this._saveWorkingRuntimeState(duplicateData(DEFAULT_RUNTIME_STATE), { shared: true });
@@ -816,13 +912,28 @@ export class TheatreManager {
     const theatreScene = this.getActiveScene();
     if (!theatreScene) return null;
 
-    const validSceneActorIds = theatreScene.actors.map((sceneActor, index) => this.getSceneActorRuntimeId(sceneActor, index));
-    if (!validSceneActorIds.includes(sceneActorId)) return null;
+    const sceneActorIndex = theatreScene.actors.findIndex((sceneActor, index) => this.getSceneActorRuntimeId(sceneActor, index) === sceneActorId);
+    if (sceneActorIndex === -1) return null;
+    const theatreSceneActor = theatreScene.actors[sceneActorIndex];
 
     const runtime = this.getRuntimeState();
-    const current = runtime.sceneActorTransforms?.[sceneActorId] ?? { offsetX: 0, offsetY: 0, zIndex: 1, scale: 1, activeScale: 1.4 };
+    const current = runtime.sceneActorTransforms?.[sceneActorId] ?? {
+      anchorX: clampActorAnchor(theatreSceneActor?.anchorX, getDefaultActorAnchorX(theatreSceneActor?.position)),
+      anchorY: clampActorAnchor(theatreSceneActor?.anchorY, DEFAULT_ACTOR_ANCHOR_Y),
+      referencePlaneWidth: Number.isFinite(Number(theatreSceneActor?.referencePlaneWidth)) ? Math.max(1, Number(theatreSceneActor.referencePlaneWidth)) : 0,
+      referencePlaneHeight: Number.isFinite(Number(theatreSceneActor?.referencePlaneHeight)) ? Math.max(1, Number(theatreSceneActor.referencePlaneHeight)) : 0,
+      offsetX: 0,
+      offsetY: 0,
+      zIndex: 1,
+      scale: 1,
+      activeScale: 1.4
+    };
     runtime.sceneActorTransforms ??= {};
     runtime.sceneActorTransforms[sceneActorId] = {
+      anchorX: clampActorAnchor(patch.anchorX, clampActorAnchor(current.anchorX, getDefaultActorAnchorX(theatreSceneActor?.position))),
+      anchorY: clampActorAnchor(patch.anchorY, clampActorAnchor(current.anchorY, DEFAULT_ACTOR_ANCHOR_Y)),
+      referencePlaneWidth: Number.isFinite(Number(patch.referencePlaneWidth)) ? Math.max(1, Number(patch.referencePlaneWidth)) : (Number(current.referencePlaneWidth) || 0),
+      referencePlaneHeight: Number.isFinite(Number(patch.referencePlaneHeight)) ? Math.max(1, Number(patch.referencePlaneHeight)) : (Number(current.referencePlaneHeight) || 0),
       offsetX: Number.isFinite(Number(patch.offsetX)) ? Number(patch.offsetX) : Number(current.offsetX) || 0,
       offsetY: Number.isFinite(Number(patch.offsetY)) ? Number(patch.offsetY) : Number(current.offsetY) || 0,
       zIndex: Number.isFinite(Number(patch.zIndex)) ? Number(patch.zIndex) : Number(current.zIndex) || 1,
@@ -853,8 +964,24 @@ export class TheatreManager {
     for (const [sceneActorId, patch] of Object.entries(patchesById)) {
       if (!validSceneActorIds.includes(sceneActorId)) continue;
 
-      const current = runtime.sceneActorTransforms?.[sceneActorId] ?? { offsetX: 0, offsetY: 0, zIndex: 1, scale: 1, activeScale: 1.4 };
+      const actorIndex = nextScene.actors.findIndex((sceneActor, index) => this.getSceneActorRuntimeId(sceneActor, index) === sceneActorId);
+      const theatreSceneActor = actorIndex !== -1 ? nextScene.actors[actorIndex] : null;
+      const current = runtime.sceneActorTransforms?.[sceneActorId] ?? {
+        anchorX: clampActorAnchor(theatreSceneActor?.anchorX, getDefaultActorAnchorX(theatreSceneActor?.position)),
+        anchorY: clampActorAnchor(theatreSceneActor?.anchorY, DEFAULT_ACTOR_ANCHOR_Y),
+        referencePlaneWidth: Number.isFinite(Number(theatreSceneActor?.referencePlaneWidth)) ? Math.max(1, Number(theatreSceneActor.referencePlaneWidth)) : 0,
+        referencePlaneHeight: Number.isFinite(Number(theatreSceneActor?.referencePlaneHeight)) ? Math.max(1, Number(theatreSceneActor.referencePlaneHeight)) : 0,
+        offsetX: 0,
+        offsetY: 0,
+        zIndex: 1,
+        scale: 1,
+        activeScale: 1.4
+      };
       const nextTransform = {
+        anchorX: clampActorAnchor(patch?.anchorX, clampActorAnchor(current.anchorX, getDefaultActorAnchorX(theatreSceneActor?.position))),
+        anchorY: clampActorAnchor(patch?.anchorY, clampActorAnchor(current.anchorY, DEFAULT_ACTOR_ANCHOR_Y)),
+        referencePlaneWidth: Number.isFinite(Number(patch?.referencePlaneWidth)) ? Math.max(1, Number(patch.referencePlaneWidth)) : (Number(current.referencePlaneWidth) || 0),
+        referencePlaneHeight: Number.isFinite(Number(patch?.referencePlaneHeight)) ? Math.max(1, Number(patch.referencePlaneHeight)) : (Number(current.referencePlaneHeight) || 0),
         offsetX: Number.isFinite(Number(patch?.offsetX)) ? Number(patch.offsetX) : Number(current.offsetX) || 0,
         offsetY: Number.isFinite(Number(patch?.offsetY)) ? Number(patch.offsetY) : Number(current.offsetY) || 0,
         zIndex: Number.isFinite(Number(patch?.zIndex)) ? Number(patch.zIndex) : Number(current.zIndex) || 1,
@@ -868,7 +995,6 @@ export class TheatreManager {
       runtime.sceneActorTransforms[sceneActorId] = nextTransform;
       appliedTransforms[sceneActorId] = nextTransform;
 
-      const actorIndex = nextScene.actors.findIndex((sceneActor, index) => this.getSceneActorRuntimeId(sceneActor, index) === sceneActorId);
       if (actorIndex !== -1) {
         nextScene.actors[actorIndex] = {
           ...nextScene.actors[actorIndex],
@@ -1007,6 +1133,10 @@ export class TheatreManager {
       showName: true,
       showBackdrop: libraryAvatar?.showBackdrop !== false,
       isVisible: true,
+      anchorX: 50,
+      anchorY: DEFAULT_ACTOR_ANCHOR_Y,
+      referencePlaneWidth: 0,
+      referencePlaneHeight: 0,
       offsetX: 0,
       offsetY: 0,
       zIndex: (Array.isArray(theatreScene.actors) ? theatreScene.actors.length : 0) + 1,
@@ -1022,6 +1152,10 @@ export class TheatreManager {
     runtime.sceneActorMoods[sceneActor.sceneActorId] = sceneActor.initialMood || "";
     runtime.sceneActorTransforms ??= {};
     runtime.sceneActorTransforms[sceneActor.sceneActorId] = {
+      anchorX: 50,
+      anchorY: DEFAULT_ACTOR_ANCHOR_Y,
+      referencePlaneWidth: 0,
+      referencePlaneHeight: 0,
       offsetX: 0,
       offsetY: 0,
       zIndex: (Array.isArray(theatreScene.actors) ? theatreScene.actors.length : 0) + 1,
@@ -1037,19 +1171,32 @@ export class TheatreManager {
     const previousScene = this._lastActiveSceneId ? TheatreStore.getSceneById(this._lastActiveSceneId) : null;
     const nextScene = this.getActiveScene();
     const sceneChanged = (previousScene?.id || null) !== (nextScene?.id || null);
+    const suppressSceneTransition = Boolean(this._suppressNextSceneTransition);
+    const suppressEntranceAnimation = Boolean(this._suppressNextEntranceAnimation || sceneChanged);
     let hasCustomTransition = false;
 
     if (sceneChanged) {
-      this._queueSceneTransition(previousScene, nextScene);
-      hasCustomTransition = Boolean(this._pendingSceneTransition?.settings?.effect && this._pendingSceneTransition.settings.effect !== "none");
-      force = !hasCustomTransition;
-      this._bypassNextOverlaySync = hasCustomTransition;
+      if (suppressSceneTransition) {
+        this._pendingSceneTransition = null;
+        this._bypassNextOverlaySync = false;
+        force = true;
+      } else {
+        this._queueSceneTransition(previousScene, nextScene);
+        hasCustomTransition = Boolean(this._pendingSceneTransition?.settings?.effect && this._pendingSceneTransition.settings.effect !== "none");
+        force = !hasCustomTransition;
+        this._bypassNextOverlaySync = hasCustomTransition;
+      }
     }
 
-    this.applyUiVisibility();
-    const rendered = await this.renderOverlay(force);
-    this._lastActiveSceneId = nextScene?.id ?? null;
-    return rendered;
+    try {
+      this.applyUiVisibility();
+      const rendered = await this.renderOverlay(force, { suppressEntranceAnimation });
+      this._lastActiveSceneId = nextScene?.id ?? null;
+      return rendered;
+    } finally {
+      this._suppressNextSceneTransition = false;
+      this._suppressNextEntranceAnimation = false;
+    }
   }
 
   applyUiVisibility() {
@@ -1073,7 +1220,7 @@ export class TheatreManager {
     }
   }
 
-  async renderOverlay(force = false) {
+  async renderOverlay(force = false, { suppressEntranceAnimation = false } = {}) {
     if (!this.overlay) return false;
 
     if (!this.getActiveScene()) {
@@ -1103,7 +1250,7 @@ export class TheatreManager {
         this._bypassNextOverlaySync = false;
 
         if (force) {
-          this.overlay.playEntranceAnimation = !this._pendingSceneTransition;
+          this.overlay.playEntranceAnimation = !this._pendingSceneTransition && !suppressEntranceAnimation;
         }
 
       const renderResult = this.overlay.render(true);

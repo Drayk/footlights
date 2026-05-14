@@ -1,5 +1,5 @@
 import { MODULE_ID } from "../constants.js";
-import { applyTheatreDialogTheme, applyThemeInlineStyleToHost, buildThemeInlineStyle, clearDraggedAvatarId, getActorById, isVideoMediaPath, randomId, readTransferJson, scheduleTheatreDialogTheme, setAvatarDragData, setTheatreSceneDragData, setWorldMapDragData } from "../helpers.js";
+import { applyTheatreDialogTheme, applyThemeInlineStyleToHost, buildThemeInlineStyle, clearDraggedAvatarId, escapeHtml, getActorById, isVideoMediaPath, randomId, readTransferJson, scheduleTheatreDialogTheme, setAvatarDragData, setPortalDragData, setTheatreSceneDragData, setWorldMapDragData } from "../helpers.js";
 import { translate as tr } from "../localization.js";
 import { TheatreStore } from "../store.js";
 
@@ -21,6 +21,7 @@ export class TheatreMindmapApplication extends Application {
     this._isSourceScenesExpanded = true;
     this._isSourceAvatarsExpanded = true;
     this._isSourceMapsExpanded = true;
+    this._isSourcePortalsExpanded = true;
     this._nodeDesignSectionStates = {
       presets: false,
       background: false,
@@ -29,7 +30,11 @@ export class TheatreMindmapApplication extends Application {
     };
     this._suppressNodeClickUntil = 0;
     this._boardCreateMenu = null;
+    this._stageGoblinTargetMenu = null;
     this._windowResizeClassTimeout = null;
+    this._pendingResizeEdgeRefreshFrame = null;
+    this._pendingResizeEdgeRefreshNodeId = null;
+    this._onStageGoblinTargetMenuPointerDown = this._onStageGoblinTargetMenuPointerDown.bind(this);
   }
 
   static get defaultOptions() {
@@ -520,6 +525,13 @@ export class TheatreMindmapApplication extends Application {
       placeholderIconClass: "fas fa-map-location-dot",
       hasTiles: Boolean(worldMap.tileUrlTemplate)
     }));
+    const sourcePortals = TheatreStore.getPortals().map((portal) => ({
+      id: portal.id,
+      name: portal.name || tr("Portal"),
+      thumbnail: portal.thumbnail || (portal.backgroundType !== "video" ? portal.background : ""),
+      placeholderIconClass: portal.backgroundType === "video" ? "fas fa-film" : "fas fa-door-open",
+      elementCount: Array.isArray(portal.elements) ? portal.elements.length : 0
+    }));
       const nodes = state.nodes.map((node) => ({
       ...node,
       iconClass: this._getNodeIcon(node),
@@ -528,15 +540,17 @@ export class TheatreMindmapApplication extends Application {
         isGroupNode: node.type === "group",
         isSceneLaunchNode: node.type === "theatreScene" || node.documentType === "Scene",
         isMapLaunchNode: node.type === "worldMap",
+        isPortalLaunchNode: node.type === "portal",
         isJournalNode: node.type === "document" && ["JournalEntry", "JournalEntryPage"].includes(node.documentType),
         isRollTableNode: node.type === "document" && node.documentType === "RollTable",
         isMacroNode: node.type === "document" && node.documentType === "Macro",
         isActorDocumentNode: node.type === "document" && node.documentType === "Actor" && Boolean(node.documentId || node.documentUuid),
         hasInlineOpenAction: node.type !== "note"
           && node.type !== "group"
-          && !(node.type === "theatreScene" || node.documentType === "Scene")
-          && node.type !== "worldMap"
-          && !(node.type === "document" && ["JournalEntry", "JournalEntryPage"].includes(node.documentType)),
+            && !(node.type === "theatreScene" || node.documentType === "Scene")
+            && node.type !== "worldMap"
+            && node.type !== "portal"
+            && !(node.type === "document" && ["JournalEntry", "JournalEntryPage"].includes(node.documentType)),
         canToggleStageGoblin: this._canToggleStageGoblinForNode(node),
         isInStageGoblin: stageGoblinNodeIds.has(node.id),
         hasNoteDisplay: this._hasNodeDisplayNote(node),
@@ -550,10 +564,12 @@ export class TheatreMindmapApplication extends Application {
             && node.type !== "group"
             && !(node.type === "theatreScene" || node.documentType === "Scene")
             && node.type !== "worldMap"
+            && node.type !== "portal"
             && !(node.type === "document" && ["JournalEntry", "JournalEntryPage"].includes(node.documentType)))
           || this._canToggleStageGoblinForNode(node)
           || node.type === "theatreScene"
           || node.type === "worldMap"
+          || node.type === "portal"
           || node.documentType === "Scene"
           || (node.type === "document" && ["JournalEntry", "JournalEntryPage"].includes(node.documentType))
           || (node.type === "document" && node.documentType === "RollTable")
@@ -650,9 +666,11 @@ export class TheatreMindmapApplication extends Application {
       isSourceScenesExpanded: this._isSourceScenesExpanded,
       isSourceAvatarsExpanded: this._isSourceAvatarsExpanded,
       isSourceMapsExpanded: this._isSourceMapsExpanded,
+      isSourcePortalsExpanded: this._isSourcePortalsExpanded,
       sourceScenes,
       sourceAvatars,
       sourceMaps,
+      sourcePortals,
       boardCreateMenu: this._boardCreateMenu ? {
         style: `left:${this._boardCreateMenu.left}px;top:${this._boardCreateMenu.top}px;`,
         x: this._boardCreateMenu.x,
@@ -767,6 +785,7 @@ export class TheatreMindmapApplication extends Application {
     html.find("[data-drag-planner-avatar='true']").on("dragend", this._onPlannerAvatarDragEnd.bind(this));
     html.find("[data-drag-planner-scene='true']").on("dragstart", this._onPlannerSceneDragStart.bind(this));
     html.find("[data-drag-planner-map='true']").on("dragstart", this._onPlannerMapDragStart.bind(this));
+    html.find("[data-drag-planner-portal='true']").on("dragstart", this._onPlannerPortalDragStart.bind(this));
     html.find("[data-action='drag-node']").on("mousedown", this._onNodeDragStart.bind(this));
     html.find(".tom-mindmap-node").on("mousedown", this._onNodeSurfaceDragStart.bind(this));
     html.find("[data-action='start-edge-port']").on("mousedown", this._onEdgePortStart.bind(this));
@@ -1253,7 +1272,10 @@ export class TheatreMindmapApplication extends Application {
         close: () => finish(null)
       });
       dialog.render(true);
-      window.setTimeout(() => applyTheatreDialogTheme(dialog, MODULE_ID, "24rem"), 30);
+      window.setTimeout(() => {
+        applyTheatreDialogTheme(dialog, MODULE_ID, "24rem");
+        dialog.element?.addClass("tom-edge-style-dialog-host");
+      }, 30);
     });
   }
 
@@ -1303,10 +1325,22 @@ export class TheatreMindmapApplication extends Application {
     }
   }
 
+  _scheduleResizeEdgeRefresh(nodeId) {
+    this._pendingResizeEdgeRefreshNodeId = nodeId;
+    if (this._pendingResizeEdgeRefreshFrame) return;
+    this._pendingResizeEdgeRefreshFrame = requestAnimationFrame(() => {
+      const pendingNodeId = this._pendingResizeEdgeRefreshNodeId;
+      this._pendingResizeEdgeRefreshFrame = null;
+      this._pendingResizeEdgeRefreshNodeId = null;
+      if (pendingNodeId) this._refreshConnectedEdges(pendingNodeId);
+    });
+  }
+
   _getNodeIcon(node) {
     if (node.type === "group") return "fas fa-object-group";
     if (node.type === "theatreScene") return "fas fa-masks-theater";
     if (node.type === "worldMap") return "fas fa-map-location-dot";
+    if (node.type === "portal") return "fas fa-door-open";
     if (node.documentType === "Actor") return "fas fa-user";
     if (node.documentType === "Item") return "fas fa-suitcase";
     if (node.documentType === "JournalEntry" || node.documentType === "JournalEntryPage") return "fas fa-book-open";
@@ -1326,6 +1360,7 @@ export class TheatreMindmapApplication extends Application {
     if (node.documentType === "Scene") return tr("FOUNDRY SCENE");
     if (node.type === "theatreScene") return tr("FOOTLIGHTS SCENE");
     if (node.type === "worldMap") return tr("WORLD MAP");
+    if (node.type === "portal") return tr("PORTAL");
     return String(node.type || tr("document")).toUpperCase();
   }
 
@@ -1333,6 +1368,7 @@ export class TheatreMindmapApplication extends Application {
     if (!node || node.type === "group" || node.type === "note") return false;
     if (node.type === "theatreScene") return true;
     if (node.type === "worldMap") return true;
+    if (node.type === "portal") return true;
     return node.type === "document"
       && ["Scene", "Actor", "Item", "JournalEntry", "JournalEntryPage", "Token", "TokenDocument", "RollTable", "Macro"].includes(node.documentType);
   }
@@ -1341,6 +1377,7 @@ export class TheatreMindmapApplication extends Application {
     if (node.type === "group") return "#54c7c3";
     if (node.type === "theatreScene") return "#54c7c3";
     if (node.type === "worldMap") return "#6fc5ff";
+    if (node.type === "portal") return "#b9d77a";
     if (node.documentType === "Actor") return "#6fc5ff";
     if (node.documentType === "Item") return "#f2c778";
     if (node.documentType === "JournalEntry" || node.documentType === "JournalEntryPage") return "#b298ff";
@@ -1594,6 +1631,21 @@ export class TheatreMindmapApplication extends Application {
       return true;
     }
 
+    if (payload.type === "Portal") {
+      const portal = TheatreStore.getPortalById(payload.portalId);
+      if (!portal) return false;
+      await this._createNode({
+        type: "portal",
+        portalId: portal.id,
+        label: portal.name || tr("Portal"),
+        x: position.x,
+        y: position.y,
+        thumbnail: portal.thumbnail || (portal.backgroundType !== "video" ? portal.background : ""),
+        icon: "fas fa-door-open"
+      });
+      return true;
+    }
+
     if (payload.type === "TheatreAvatar") {
       const avatar = TheatreStore.getAvatarById(payload.avatarId);
       if (!avatar) return false;
@@ -1633,8 +1685,7 @@ export class TheatreMindmapApplication extends Application {
     const resolvedDocumentType = resolvedDocument?.documentName || documentType;
     const resolvedDocumentId = resolvedDocument?.id || payload.id || payload._id || "";
     if (!resolvedDocumentId && !documentUuid) {
-        console.debug(`${MODULE_ID} | mindmap document payload missing id/uuid`, payload);
-      ui.notifications?.warn(tr("Adventure Planner could not resolve this document. Please check the browser console."));
+      ui.notifications?.warn(tr("Adventure Planner could not resolve this document."));
       return null;
     }
 
@@ -1664,8 +1715,7 @@ export class TheatreMindmapApplication extends Application {
     } else if (resolvedDocumentType === "JournalEntryPage") {
       label = resolvedDocument?.name || payload.name || tr("Journal page");
     } else {
-      console.debug(`${MODULE_ID} | mindmap unsupported document payload`, payload);
-      ui.notifications?.warn(tr("Adventure Planner cannot process the document type \"{type}\" yet. Please check the browser console.", {
+      ui.notifications?.warn(tr("Adventure Planner cannot process the document type \"{type}\" yet.", {
         type: resolvedDocumentType || documentType
       }));
       return null;
@@ -1823,6 +1873,7 @@ export class TheatreMindmapApplication extends Application {
     if (section === "scenes") this._isSourceScenesExpanded = !this._isSourceScenesExpanded;
     if (section === "avatars") this._isSourceAvatarsExpanded = !this._isSourceAvatarsExpanded;
     if (section === "maps") this._isSourceMapsExpanded = !this._isSourceMapsExpanded;
+    if (section === "portals") this._isSourcePortalsExpanded = !this._isSourcePortalsExpanded;
 
     const button = event.currentTarget;
     const content = button.closest(".tom-mindmap-source-section")?.querySelector(".tom-mindmap-source-section__content");
@@ -1831,6 +1882,8 @@ export class TheatreMindmapApplication extends Application {
       ? this._isSourceScenesExpanded
       : section === "maps"
         ? this._isSourceMapsExpanded
+        : section === "portals"
+          ? this._isSourcePortalsExpanded
         : this._isSourceAvatarsExpanded;
 
     if (!content || !icon) {
@@ -1968,6 +2021,12 @@ export class TheatreMindmapApplication extends Application {
     setWorldMapDragData(event, mapId);
   }
 
+  _onPlannerPortalDragStart(event) {
+    const portalId = event.currentTarget.dataset.portalId;
+    if (!portalId) return;
+    setPortalDragData(event, portalId);
+  }
+
   _onStartInlineTitleEdit(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -2066,6 +2125,11 @@ export class TheatreMindmapApplication extends Application {
       return;
     }
 
+    if (node.type === "portal") {
+      await this._openPortalNode(node);
+      return;
+    }
+
     if (node.type === "note") {
       this._setSelection([nodeId]);
       this._renderPreservingViewport(false);
@@ -2088,8 +2152,8 @@ export class TheatreMindmapApplication extends Application {
 
   async _promptWorldMapMode(title = tr("Open world map")) {
     const content = `
-      <div class="tom-theme-root tom-theme-default tom-world-map-open-mode-dialog">
-        <p class="notes">${tr("Choose how this map should be opened.")}</p>
+      <div class="tom-world-map-open-mode-dialog">
+        <p class="notes">${tr("Choose how this entry should be opened.")}</p>
       </div>
     `;
 
@@ -2117,7 +2181,11 @@ export class TheatreMindmapApplication extends Application {
         close: () => resolve(null)
       });
       dialog.render(true);
-      scheduleTheatreDialogTheme(dialog, MODULE_ID, "420px", TheatreStore.getThemeState());
+      const markDialog = () => dialog.element?.addClass("tom-world-map-open-mode-dialog-host");
+      markDialog();
+      scheduleTheatreDialogTheme(dialog, MODULE_ID, "360px", TheatreStore.getThemeState());
+      requestAnimationFrame(markDialog);
+      window.setTimeout(markDialog, 50);
     });
   }
 
@@ -2132,6 +2200,19 @@ export class TheatreMindmapApplication extends Application {
     const api = game.modules.get(MODULE_ID)?.api;
     if (mode === "stage") api?.openWorldMapStage?.(worldMap.id);
     else api?.openWorldMap?.(worldMap.id);
+  }
+
+  async _openPortalNode(node) {
+    const portal = TheatreStore.getPortalById(node?.portalId);
+    if (!portal) {
+      ui.notifications?.warn(tr("No portal available."));
+      return;
+    }
+    const mode = await this._promptWorldMapMode(tr("Open portal"));
+    if (!mode) return;
+    const api = game.modules.get(MODULE_ID)?.api;
+    if (mode === "stage") api?.openPortalStage?.(portal.id);
+    else api?.openPortal?.(portal.id);
   }
 
   async _onRollTableNode(event) {
@@ -2161,15 +2242,90 @@ export class TheatreMindmapApplication extends Application {
   async _onToggleStageGoblinNode(event) {
     event.preventDefault();
     event.stopPropagation();
-    const nodeId = event.currentTarget.closest("[data-mindmap-node-id]")?.dataset.mindmapNodeId;
+    const button = event.currentTarget;
+    const nodeId = button.closest("[data-mindmap-node-id]")?.dataset.mindmapNodeId;
     if (!nodeId) return;
 
     const node = this._getStateNode(nodeId);
     if (!this._canToggleStageGoblinForNode(node)) return;
 
-    await TheatreStore.toggleStageGoblinPlannerNode(this.plannerId, nodeId, node.label || "Entry");
+    const isPinned = TheatreStore.getStageGoblinState().items.some((item) => (
+      item.sourceType === "plannerNode"
+      && item.plannerId === this.plannerId
+      && item.nodeId === nodeId
+    ));
+    if (isPinned) {
+      await TheatreStore.toggleStageGoblinPlannerNode(this.plannerId, nodeId, node.label || "Entry");
+      game.modules.get(MODULE_ID)?.api?.renderStageGoblin?.();
+      this._renderPreservingViewport(false);
+      return;
+    }
+
+    const bars = this._getVisibleStageGoblinBars();
+    if (bars.length > 1) {
+      this._openStageGoblinTargetMenu(button, { nodeId, label: node.label || "Entry" }, bars);
+      return;
+    }
+
+    await TheatreStore.toggleStageGoblinPlannerNode(this.plannerId, nodeId, node.label || "Entry", bars[0]?.id || "bar-1");
     game.modules.get(MODULE_ID)?.api?.renderStageGoblin?.();
     this._renderPreservingViewport(false);
+  }
+
+  _getVisibleStageGoblinBars() {
+    const state = TheatreStore.getStageGoblinState();
+    return (state.bars ?? []).slice(0, Math.max(1, Number(state.barCount) || 1));
+  }
+
+  _openStageGoblinTargetMenu(anchor, payload, bars = this._getVisibleStageGoblinBars()) {
+    this._closeStageGoblinTargetMenu();
+    const menu = document.createElement("div");
+    menu.className = "tom-stage-goblin-target-menu tom-theme-root tom-theme-default";
+    menu.style.cssText = buildThemeInlineStyle(TheatreStore.getThemeState());
+    menu.setAttribute("role", "menu");
+    menu.innerHTML = `
+      <span class="tom-stage-goblin-target-menu__title">${escapeHtml(tr("Choose StageGoblin bar"))}</span>
+      ${bars.map((bar, index) => `
+        <button type="button" class="tom-stage-goblin-target-menu__item" data-stage-goblin-target-bar-id="${escapeHtml(bar.id)}" role="menuitem">
+          <i class="fas fa-hat-wizard" aria-hidden="true"></i>
+          <span>${escapeHtml(bar.label || tr("Stage Goblin Bar {number}", { number: index + 1 }))}</span>
+        </button>
+      `).join("")}
+    `;
+    document.body.appendChild(menu);
+
+    const rect = anchor?.getBoundingClientRect?.();
+    const menuRect = menu.getBoundingClientRect();
+    const left = Math.max(8, Math.min(window.innerWidth - menuRect.width - 8, rect?.left ?? 8));
+    const top = Math.max(8, Math.min(window.innerHeight - menuRect.height - 8, (rect?.bottom ?? 8) + 6));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+
+    menu.querySelectorAll("[data-stage-goblin-target-bar-id]").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const barId = event.currentTarget?.dataset?.stageGoblinTargetBarId || "bar-1";
+        this._closeStageGoblinTargetMenu();
+        await TheatreStore.toggleStageGoblinPlannerNode(this.plannerId, payload.nodeId, payload.label || "Entry", barId);
+        game.modules.get(MODULE_ID)?.api?.renderStageGoblin?.();
+        this._renderPreservingViewport(false);
+      });
+    });
+
+    this._stageGoblinTargetMenu = menu;
+    document.addEventListener("pointerdown", this._onStageGoblinTargetMenuPointerDown, true);
+  }
+
+  _onStageGoblinTargetMenuPointerDown(event) {
+    if (this._stageGoblinTargetMenu?.contains?.(event.target)) return;
+    this._closeStageGoblinTargetMenu();
+  }
+
+  _closeStageGoblinTargetMenu() {
+    document.removeEventListener("pointerdown", this._onStageGoblinTargetMenuPointerDown, true);
+    this._stageGoblinTargetMenu?.remove?.();
+    this._stageGoblinTargetMenu = null;
   }
 
   async _onDeleteNode(event) {
@@ -2465,6 +2621,7 @@ export class TheatreMindmapApplication extends Application {
     const node = this._getStateNode(nodeId);
     if (!node) return;
 
+    nodeElement.classList.add("is-resizing");
     this._startPointerInteraction("_resizeState", {
       nodeId,
       edge: event.currentTarget.dataset.resizeEdge || "corner",
@@ -2520,18 +2677,25 @@ export class TheatreMindmapApplication extends Application {
         width: nextWidth
       })}px`);
     }
-    this._refreshConnectedEdges(this._resizeState.nodeId);
+    this._scheduleResizeEdgeRefresh(this._resizeState.nodeId);
   }
 
   async _onResizeEnd() {
     if (!this._resizeState) return;
 
     const nodeElement = this.element?.[0]?.querySelector(`[data-mindmap-node-id="${this._resizeState.nodeId}"]`);
+    nodeElement?.classList.remove("is-resizing");
     const x = Number.parseFloat(nodeElement?.style.left || `${this._resizeState.initialNodeX}`);
     const y = Number.parseFloat(nodeElement?.style.top || `${this._resizeState.initialNodeY}`);
     const width = Number.parseFloat(nodeElement?.style.width || `${this._resizeState.initialWidth}`);
     const height = Number.parseFloat(nodeElement?.style.height || `${this._resizeState.initialHeight}`);
     const nodeId = this._resizeState.nodeId;
+    if (this._pendingResizeEdgeRefreshFrame) {
+      cancelAnimationFrame(this._pendingResizeEdgeRefreshFrame);
+      this._pendingResizeEdgeRefreshFrame = null;
+      this._pendingResizeEdgeRefreshNodeId = null;
+    }
+    this._refreshConnectedEdges(nodeId);
     const stateNode = this._getStateNode(nodeId);
     this._resizeState = null;
     const noteExpansionHeight = stateNode && this._isNodeNoteExpanded(stateNode)
@@ -2767,9 +2931,13 @@ export class TheatreMindmapApplication extends Application {
       return { type: "WorldMap", mapId: worldMapPayload.mapId };
     }
 
+    const portalPayload = readTransferJson(event, "application/x-footlights-portal");
+    if (portalPayload?.portalId) {
+      return { type: "Portal", portalId: portalPayload.portalId };
+    }
+
     const foundryPayload = globalThis.TextEditor?.getDragEventData?.(nativeEvent);
     if (foundryPayload?.type) {
-        console.debug(`${MODULE_ID} | mindmap foundry drop payload`, foundryPayload);
       return foundryPayload;
     }
 
@@ -2778,10 +2946,8 @@ export class TheatreMindmapApplication extends Application {
 
     try {
       const parsed = JSON.parse(plain);
-        console.debug(`${MODULE_ID} | mindmap plain drop payload`, parsed);
       return parsed;
     } catch (_error) {
-      console.debug(`${MODULE_ID} | mindmap unparsed text drop payload`, plain);
       return null;
     }
   }
@@ -2791,11 +2957,7 @@ export class TheatreMindmapApplication extends Application {
     const boardElement = event.currentTarget.querySelector(".tom-mindmap-board");
     const payload = this._extractDropData(event);
     if (!boardElement || !payload) {
-    console.debug(`${MODULE_ID} | mindmap unsupported drop`, {
-        boardFound: Boolean(boardElement),
-        payload
-      });
-      ui.notifications?.warn(tr("An Adventure Planner drop was detected, but the payload could not be processed. Please check the browser console."));
+      ui.notifications?.warn(tr("An Adventure Planner drop was detected, but the payload could not be processed."));
       return;
     }
 
@@ -2812,6 +2974,12 @@ export class TheatreMindmapApplication extends Application {
   async close(options) {
     clearTimeout(this._windowResizeClassTimeout);
     this._windowResizeClassTimeout = null;
+    if (this._pendingResizeEdgeRefreshFrame) {
+      cancelAnimationFrame(this._pendingResizeEdgeRefreshFrame);
+      this._pendingResizeEdgeRefreshFrame = null;
+      this._pendingResizeEdgeRefreshNodeId = null;
+    }
+    this._closeStageGoblinTargetMenu();
     this._setResizeVisualState(false);
     const viewport = this.element?.[0]?.querySelector(".tom-mindmap-board-viewport");
     if (viewport) {

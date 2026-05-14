@@ -2,7 +2,7 @@
   background: var(--tom-app-background-solid, #08121f) !important;
 }
 
-:is(
+:where(
   .tom-scene-library,
   form.tom-scene-config,
   form.tom-avatar-config,
@@ -34,6 +34,7 @@
   background-position: center center;
   background-repeat: var(--tom-content-surface-image-repeat);
   background-size: var(--tom-content-surface-image-size, 100% auto);
+  filter: var(--tom-content-surface-image-filter, none);
   opacity: var(--tom-content-surface-image-alpha);
 }
 
@@ -88,15 +89,15 @@
   z-index: 1;
 }
 
-:is(.theatre-mindmap, .tom-mindmap) .tom-mindmap-node.tom-theme-card {
+:where(.theatre-mindmap, .tom-mindmap) .tom-mindmap-node.tom-theme-card {
   overflow: visible;
 }
 
-:is(.theatre-mindmap, .tom-mindmap) .tom-mindmap-node.tom-theme-card::before {
+:where(.theatre-mindmap, .tom-mindmap) .tom-mindmap-node.tom-theme-card::before {
   display: none;
 }
 
-:is(.theatre-mindmap, .tom-mindmap) .tom-mindmap-node.tom-theme-card > :is(
+:where(.theatre-mindmap, .tom-mindmap) .tom-mindmap-node.tom-theme-card > :where(
   .tom-mindmap-node__port,
   .tom-mindmap-node__tools,
   .tom-mindmap-node__action-bar,
@@ -106,15 +107,15 @@
   position: absolute;
 }
 
-:is(.theatre-mindmap, .tom-mindmap) .tom-mindmap-source-item.tom-theme-card {
+:where(.theatre-mindmap, .tom-mindmap) .tom-mindmap-source-item.tom-theme-card {
   overflow: visible;
 }
 
-:is(.theatre-mindmap, .tom-mindmap) .tom-mindmap-source-item.tom-theme-card::before {
+:where(.theatre-mindmap, .tom-mindmap) .tom-mindmap-source-item.tom-theme-card::before {
   display: none;
 }
 
-:is(.theatre-mindmap, .tom-mindmap) .tom-mindmap-source-item.tom-theme-card > * {
+:where(.theatre-mindmap, .tom-mindmap) .tom-mindmap-source-item.tom-theme-card > * {
   position: static;
   z-index: auto;
 }

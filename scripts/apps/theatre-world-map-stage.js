@@ -10,6 +10,7 @@ export class TheatreWorldMapStageApplication extends TheatreWorldMapApplication 
     this._stageLeftSidebarVisible = null;
     this._stageRightSidebarVisible = null;
     this._boundStageResize = this._onStageResize.bind(this);
+    this._isStageResizeBound = false;
     this._stageResizeObserver = null;
   }
 
@@ -57,14 +58,13 @@ export class TheatreWorldMapStageApplication extends TheatreWorldMapApplication 
     this._applyStageBodyState();
     this._updateStageSidebarButtons();
     this._updateStageShellLayout();
-    window.addEventListener("resize", this._boundStageResize);
+    this._bindStageResizeListener();
     this._bindStageResizeObserver();
   }
 
   async close(options) {
-    window.removeEventListener("resize", this._boundStageResize);
-    this._stageResizeObserver?.disconnect?.();
-    this._stageResizeObserver = null;
+    this._unbindStageResizeListener();
+    this._unbindStageResizeObserver();
     this._clearSharedFoundrySidebarInlineState();
     this._clearStageBodyState();
     return super.close(options);
@@ -103,8 +103,26 @@ export class TheatreWorldMapStageApplication extends TheatreWorldMapApplication 
     }, 40);
   }
 
+  _bindStageResizeListener() {
+    if (this._isStageResizeBound) return;
+    window.addEventListener("resize", this._boundStageResize);
+    this._isStageResizeBound = true;
+  }
+
+  _unbindStageResizeListener() {
+    if (!this._isStageResizeBound) return;
+    window.removeEventListener("resize", this._boundStageResize);
+    this._isStageResizeBound = false;
+  }
+
+  _unbindStageResizeObserver() {
+    this._stageResizeObserver?.disconnect?.();
+    this._stageResizeObserver = null;
+  }
+
   _bindStageResizeObserver() {
-    if (typeof ResizeObserver === "undefined" || this._stageResizeObserver) return;
+    this._unbindStageResizeObserver();
+    if (typeof ResizeObserver === "undefined") return;
     const root = this.element?.[0];
     const doc = root?.ownerDocument;
     const body = doc?.body;

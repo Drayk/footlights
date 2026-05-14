@@ -53,29 +53,145 @@ body.tom-world-map-stage-ui-hidden #pause {
 }
 
 .dialog.theatre-canvas-drop-dialog {
-  color: var(--tom-color-text);
+  color: var(--tom-content-text, var(--tom-color-text));
   background: var(--tom-app-background, var(--tom-app-background-solid, #08121f));
 }
 
 .dialog.theatre-canvas-drop-dialog .window-content,
 .dialog.theatre-canvas-drop-dialog .dialog-content {
   background: var(--tom-app-background, var(--tom-app-background-solid, #08121f)) !important;
-  color: var(--tom-color-text) !important;
+  color: var(--tom-content-text, var(--tom-color-text)) !important;
 }
 
-.dialog.theatre-canvas-drop-dialog .dialog-content,
-.dialog.theatre-canvas-drop-dialog .dialog-content p,
-.dialog.theatre-canvas-drop-dialog .dialog-content .notes {
-  color: var(--tom-color-sub-text, var(--tom-content-muted-text, var(--tom-color-muted))) !important;
+.dialog.theatre-canvas-drop-dialog .dialog-content .notes,
+.dialog.theatre-canvas-drop-dialog .dialog-content p.notes,
+.dialog.theatre-canvas-drop-dialog .dialog-content small.notes {
+  color: var(--tom-content-text, var(--tom-color-text)) !important;
   font-family: var(--tom-font-family-sub-text, inherit);
   font-size: var(--tom-font-sub-text);
   line-height: 1.4;
 }
 
-:is(.footlights-themed-window, .theatre-canvas-drop-dialog) .window-header {
-  color: var(--tom-nav-text, var(--tom-color-text));
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host {
+  min-width: 24rem !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .window-content,
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .dialog-content {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .window-content {
+  padding: 0 !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .dialog-content {
+  padding: 0.75rem 0.85rem 0.35rem !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .dialog-content p {
+  margin: 0 0 0.45rem !important;
+  line-height: 1.35;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .dialog-content p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .dialog-buttons {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem !important;
+  margin: 0 !important;
+  padding: 0.5rem 0.85rem 0.75rem !important;
+  background: var(--tom-app-background, var(--tom-app-background-solid, #08121f)) !important;
+  border-top: var(--tom-content-border-3-width, 1px) solid var(--tom-content-border-3, rgba(255, 255, 255, 0.12));
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .dialog-buttons .dialog-button,
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .dialog-buttons .dialog-button.default {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 1.85rem !important;
+  height: auto !important;
+  padding: 0.28rem 0.55rem !important;
+  border-radius: min(var(--tom-content-action-generic-radius, 6px), 8px) !important;
+  border: var(--tom-content-action-generic-border-width, 1px) solid var(--tom-library-action-generic-border, var(--tom-content-action-generic-border, rgba(128, 181, 232, 0.3))) !important;
+  color: var(--tom-library-action-generic-text, var(--tom-content-action-generic-text, var(--tom-color-text))) !important;
+  background: var(--tom-library-action-generic-bg, var(--tom-content-action-generic-bg, rgba(36, 52, 70, 0.92))) !important;
+  box-shadow: none !important;
+  font-family: var(--tom-font-family-button, var(--tom-font-family-sub-text, inherit));
+  font-size: var(--tom-font-sub-text, 0.82rem) !important;
+  font-weight: var(--tom-font-weight-button, 600);
+  line-height: 1.1 !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .dialog-buttons .dialog-button:where(:hover, :focus),
+.dialog.theatre-canvas-drop-dialog.tom-avatar-drop-mode-dialog-host .dialog-buttons .dialog-button.default:where(:hover, :focus) {
+  border-color: var(--tom-library-action-generic-hover-border, var(--tom-library-action-generic-border, var(--tom-content-action-generic-border))) !important;
+  color: var(--tom-library-action-generic-hover-text, var(--tom-library-action-generic-text, var(--tom-content-action-generic-text))) !important;
+  background: var(--tom-library-action-generic-hover-bg, var(--tom-library-action-generic-bg, var(--tom-content-action-generic-bg))) !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-open-mode-dialog-host {
+  width: 360px !important;
+  min-width: 360px !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-open-mode-dialog-host .window-content,
+.dialog.theatre-canvas-drop-dialog.tom-world-map-open-mode-dialog-host .dialog-content {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-open-mode-dialog-host .window-content {
+  padding: 0 !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-open-mode-dialog-host .dialog-content {
+  padding: 0.65rem 0.75rem 0.3rem !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-open-mode-dialog-host .dialog-content p {
+  margin: 0 !important;
+  line-height: 1.3;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-open-mode-dialog-host .dialog-buttons {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.38rem !important;
+  margin: 0 !important;
+  padding: 0.35rem 0.75rem 0.65rem !important;
+  background: var(--tom-app-background, var(--tom-app-background-solid, #08121f)) !important;
+}
+
+.dialog.theatre-canvas-drop-dialog.tom-world-map-open-mode-dialog-host .dialog-buttons .dialog-button,
+.dialog.theatre-canvas-drop-dialog.tom-world-map-open-mode-dialog-host .dialog-buttons .dialog-button.default {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 1.72rem !important;
+  height: auto !important;
+  padding: 0.24rem 0.45rem !important;
+  border-radius: min(var(--tom-content-action-generic-radius, 6px), 8px) !important;
+  font-family: var(--tom-font-family-button, var(--tom-font-family-sub-text, inherit));
+  font-size: var(--tom-font-sub-text, 0.82rem) !important;
+  line-height: 1.05 !important;
+}
+
+:where(.footlights-themed-window, .theatre-canvas-drop-dialog) .window-header {
+  color: var(--tom-nav-text, var(--tom-content-text, var(--tom-color-text)));
   background: var(--tom-nav-titlebar-bg, linear-gradient(180deg, rgba(10, 23, 39, 0.98), rgba(7, 16, 28, 0.98)));
-  border-bottom: var(--tom-nav-border-1-width, var(--tom-content-border-1-width)) solid var(--tom-nav-border-1, var(--tom-content-border-1));
+  border-bottom: none !important;
 }
 
 .theatre-scene-config.window-app .window-header {
@@ -93,18 +209,16 @@ body.tom-world-map-stage-ui-hidden #pause {
 
 .theatre-scene-library .window-header {
   background: var(--tom-nav-titlebar-bg, linear-gradient(180deg, rgba(10, 23, 39, 0.98), rgba(7, 16, 28, 0.98))) !important;
-  border-bottom-color: var(--tom-nav-border-1, var(--tom-content-border-1)) !important;
 }
 
-:is(.footlights-themed-window, .theatre-canvas-drop-dialog) :is(.window-title, .header-button) {
-  color: var(--tom-color-heading-3, var(--tom-content-label, var(--tom-color-text)));
+:where(.footlights-themed-window, .theatre-canvas-drop-dialog) :where(.window-title, .header-button) {
+  color: var(--tom-color-heading-3, var(--tom-content-label, var(--tom-content-text, var(--tom-color-text))));
 }
 
-:is(.footlights-themed-window, .theatre-canvas-drop-dialog) .window-title {
+:where(.footlights-themed-window, .theatre-canvas-drop-dialog) .window-title {
   font-size: inherit;
 }
 
-:is(.footlights-themed-window, .theatre-canvas-drop-dialog) .header-button:is(:hover, :focus) {
-  color: color-mix(in srgb, var(--tom-color-heading-3, var(--tom-content-label, var(--tom-color-text))) 84%, white 16%);
+:where(.footlights-themed-window, .theatre-canvas-drop-dialog) .header-button:where(:hover, :focus) {
+  color: color-mix(in srgb, var(--tom-color-heading-3, var(--tom-content-label, var(--tom-content-text, var(--tom-color-text)))) 84%, white 16%);
 }
-

@@ -3,7 +3,7 @@
     <div class="tom-overlay-backdrop__media" style="{{backdropMediaStyle}}" {{#unless hasBackdropMedia}}hidden{{/unless}}></div>
     <div class="tom-overlay-backdrop__dim" style="{{backdropDimStyle}}"></div>
   </div>
-  <div class="tom-stage-shell tom-theme-surface" style="{{stageStyle}}">
+  <div class="tom-stage-shell tom-theme-surface {{stageShellClass}}" style="{{stageStyle}}">
     <div class="tom-background {{backgroundFitClass}}">
       {{#if backgroundPath}}
         {{#if backgroundIsVideo}}
@@ -244,6 +244,10 @@
         <article
           class="tom-actor tom-position-{{positionClass}} {{#if isHighlighted}}is-highlighted{{/if}} {{#unless isVisible}}is-hidden{{/unless}}"
           data-scene-actor-id="{{sceneActorId}}"
+          data-anchor-x="{{anchorX}}"
+          data-anchor-y="{{anchorY}}"
+          data-reference-plane-width="{{referencePlaneWidth}}"
+          data-reference-plane-height="{{referencePlaneHeight}}"
           data-offset-x="{{offsetX}}"
           data-offset-y="{{offsetY}}"
           data-scale="{{scale}}"
@@ -274,7 +278,7 @@
 
             {{#if showVisibilityToggle}}
             <div class="tom-actor-status-row">
-              <div class="tom-actor-icon-group tom-theme-surface">
+              <div class="tom-actor-icon-group">
                 <button
                   type="button"
                   class="tom-actor-delete-toggle tom-button tom-button-ghost tom-button-icon tom-theatre-icon-button"

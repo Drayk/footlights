@@ -1,120 +1,94 @@
-<section class="tom-stage-goblin tom-theme-root tom-theme-default" style="{{themeInlineStyle}}">
-  <div class="tom-stage-goblin__shell tom-theme-content-surface {{#if isCollapsed}}is-collapsed{{/if}}" data-stage-goblin-dropzone="true">
-    <span class="tom-stage-goblin__resize-handle tom-stage-goblin__resize-handle--top" data-action="resize-stage-goblin" data-edge="top" aria-hidden="true"></span>
-    <span class="tom-stage-goblin__resize-handle tom-stage-goblin__resize-handle--left" data-action="resize-stage-goblin" data-edge="left" aria-hidden="true"></span>
-    <div class="tom-stage-goblin__controls">
-      <button
-        type="button"
-        class="tom-stage-goblin__drag-handle"
-        data-action="drag-stage-goblin"
-        title="{{tr "Move bar"}}"
-        aria-label="{{tr "Move bar"}}"
-      >
-        <i class="fas fa-arrows-up-down-left-right" aria-hidden="true"></i>
-      </button>
-
-      {{#if hasPlannerOptions}}
-      <div class="tom-stage-goblin__planner {{#if plannerMenuOpen}}is-open{{/if}}">
-        <button
-          type="button"
-          class="tom-stage-goblin__planner-toggle"
-          data-action="toggle-stage-goblin-planner-menu"
-          title="{{tr "Choose Adventure Planner"}}"
-          aria-label="{{tr "Choose Adventure Planner"}}"
-          aria-expanded="{{#if plannerMenuOpen}}true{{else}}false{{/if}}"
-        >
-          <i class="fas fa-diagram-project" aria-hidden="true"></i>
+<section class="tom-stage-goblin-stack tom-theme-root tom-theme-default" style="{{themeInlineStyle}}">
+  {{#each bars}}
+  <section class="tom-stage-goblin {{tagPositionClass}} {{#if plannerMenuOpen}}is-planner-menu-open{{/if}}" data-stage-goblin-bar-id="{{id}}" style="{{tagStyle}}">
+    {{#if showLabel}}
+    <span class="tom-stage-goblin__tag" title="{{label}}"><span class="tom-stage-goblin__tag-text">{{label}}</span></span>
+    {{/if}}
+    <div class="tom-stage-goblin__shell tom-theme-content-surface {{#if isCollapsed}}is-collapsed{{/if}}" data-stage-goblin-dropzone="true">
+      <span class="tom-stage-goblin__resize-handle tom-stage-goblin__resize-handle--top" data-action="resize-stage-goblin" data-edge="top" aria-hidden="true"></span>
+      <span class="tom-stage-goblin__resize-handle tom-stage-goblin__resize-handle--left" data-action="resize-stage-goblin" data-edge="left" aria-hidden="true"></span>
+      <div class="tom-stage-goblin__controls">
+        <button type="button" class="tom-stage-goblin__drag-handle" data-action="drag-stage-goblin" title="{{tr "Move bar"}}" aria-label="{{tr "Move bar"}}">
+          <i class="fas fa-arrows-up-down-left-right" aria-hidden="true"></i>
         </button>
 
-        {{#if plannerMenuOpen}}
-        <div class="tom-stage-goblin__planner-menu tom-theme-card">
-          {{#each plannerOptions}}
-          <div
-            class="tom-stage-goblin__planner-option {{#if isSelected}}is-selected{{/if}}"
-            data-planner-id="{{id}}"
-          >
-            <button
-              type="button"
-              class="tom-stage-goblin__planner-option-main"
-              data-action="select-stage-goblin-planner"
-              data-planner-id="{{id}}"
-              title="{{name}}"
-              aria-label="{{tr "Select {name}" name=name}}"
-            >
-              <span class="tom-stage-goblin__planner-option-name">{{name}}</span>
-            </button>
-            <span class="tom-stage-goblin__planner-option-count">{{pinnedCount}}</span>
-            <button
-              type="button"
-              class="tom-stage-goblin__planner-option-open"
-              data-action="open-stage-goblin-planner"
-              data-planner-id="{{id}}"
-              title="{{tr "Open {name} in Adventure Planner" name=name}}"
-              aria-label="{{tr "Open {name} in Adventure Planner" name=name}}"
-            >
-              <i class="fas fa-up-right-from-square" aria-hidden="true"></i>
-            </button>
+        {{#if hasPlannerOptions}}
+        <div class="tom-stage-goblin__planner {{#if plannerMenuOpen}}is-open{{/if}}">
+          <button type="button" class="tom-stage-goblin__planner-toggle" data-action="toggle-stage-goblin-planner-menu" title="{{tr "Choose Adventure Planner"}}" aria-label="{{tr "Choose Adventure Planner"}}" aria-expanded="{{#if plannerMenuOpen}}true{{else}}false{{/if}}">
+            <i class="fas fa-diagram-project" aria-hidden="true"></i>
+          </button>
+
+          {{#unless isVertical}}
+          {{#if plannerMenuOpen}}
+          <div class="tom-stage-goblin__planner-menu">
+            {{#each plannerOptions}}
+            <div class="tom-stage-goblin__planner-option {{#if isSelected}}is-selected{{/if}}" data-planner-id="{{id}}">
+              <button type="button" class="tom-stage-goblin__planner-option-main" data-action="select-stage-goblin-planner" data-planner-id="{{id}}" title="{{name}}" aria-label="{{tr "Select {name}" name=name}}">
+                <span class="tom-stage-goblin__planner-option-name">{{name}}</span>
+              </button>
+              {{#if id}}
+              <span class="tom-stage-goblin__planner-option-count">{{pinnedCount}}</span>
+              <button type="button" class="tom-stage-goblin__planner-option-open" data-action="open-stage-goblin-planner" data-planner-id="{{id}}" title="{{tr "Open {name} in Adventure Planner" name=name}}" aria-label="{{tr "Open {name} in Adventure Planner" name=name}}">
+                <i class="fas fa-up-right-from-square" aria-hidden="true"></i>
+              </button>
+              {{/if}}
+            </div>
+            {{/each}}
           </div>
+          {{/if}}
+          {{/unless}}
+        </div>
+        {{/if}}
+
+        <button type="button" class="tom-stage-goblin__collapse-toggle" data-action="toggle-stage-goblin-collapse" title="{{#if isCollapsed}}{{tr "Show StageGoblin"}}{{else}}{{tr "Collapse StageGoblin"}}{{/if}}" aria-label="{{#if isCollapsed}}{{tr "Show StageGoblin"}}{{else}}{{tr "Collapse StageGoblin"}}{{/if}}" aria-expanded="{{#if isCollapsed}}false{{else}}true{{/if}}">
+          <i class="fas {{#if isCollapsed}}fa-angles-right{{else}}fa-angles-left{{/if}}" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="tom-stage-goblin__items {{#if isCollapsed}}is-collapsed{{/if}}">
+        {{#if hasItems}}
+          {{#each items}}
+          <article class="tom-stage-goblin__item" data-stage-goblin-item-id="{{id}}" style="{{accentStyle}}" title="{{tooltip}}">
+            <button type="button" class="tom-stage-goblin__item-handle" data-action="drag-stage-goblin-item" draggable="true" title="{{tr "Move entry"}}" aria-label="{{tr "Move entry"}}">
+              <span class="tom-mindmap-node__drag-dots" aria-hidden="true">
+                <i></i><i></i>
+                <i></i><i></i>
+                <i></i><i></i>
+              </span>
+            </button>
+            <button type="button" class="tom-stage-goblin__item-main" data-action="open-stage-goblin-item" title="{{tr "{tooltip} | right-click removes" tooltip=tooltip}}" aria-label="{{tr "Open {label}" label=label}}">
+              <span class="tom-stage-goblin__item-label">{{label}}</span>
+            </button>
+          </article>
           {{/each}}
+        {{else}}
+        <div class="tom-stage-goblin__empty">
+          <span>{{tr "Drop scenes, actors, journals, or items here"}}</span>
         </div>
         {{/if}}
       </div>
-      {{/if}}
-
-      <button
-        type="button"
-        class="tom-stage-goblin__collapse-toggle"
-        data-action="toggle-stage-goblin-collapse"
-        title="{{#if isCollapsed}}{{tr "Show StageGoblin"}}{{else}}{{tr "Collapse StageGoblin"}}{{/if}}"
-        aria-label="{{#if isCollapsed}}{{tr "Show StageGoblin"}}{{else}}{{tr "Collapse StageGoblin"}}{{/if}}"
-        aria-expanded="{{#if isCollapsed}}false{{else}}true{{/if}}"
-      >
-        <i class="fas {{#if isCollapsed}}fa-angles-right{{else}}fa-angles-left{{/if}}" aria-hidden="true"></i>
-      </button>
+      <span class="tom-stage-goblin__resize-handle tom-stage-goblin__resize-handle--right" data-action="resize-stage-goblin" data-edge="right" aria-hidden="true"></span>
+      <span class="tom-stage-goblin__resize-handle tom-stage-goblin__resize-handle--bottom" data-action="resize-stage-goblin" data-edge="bottom" aria-hidden="true"></span>
     </div>
-
-    <div class="tom-stage-goblin__items {{#if isCollapsed}}is-collapsed{{/if}}">
-      {{#if hasItems}}
-        {{#each items}}
-        <article
-          class="tom-stage-goblin__item tom-theme-card"
-          data-stage-goblin-item-id="{{id}}"
-          style="{{accentStyle}}"
-          title="{{tooltip}}"
-        >
-          <button
-            type="button"
-            class="tom-stage-goblin__item-handle"
-            data-action="drag-stage-goblin-item"
-            draggable="true"
-            title="{{tr "Move entry"}}"
-            aria-label="{{tr "Move entry"}}"
-          >
-            <span class="tom-mindmap-node__drag-dots" aria-hidden="true">
-              <i></i><i></i>
-              <i></i><i></i>
-              <i></i><i></i>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            class="tom-stage-goblin__item-main"
-            data-action="open-stage-goblin-item"
-            title="{{tr "{tooltip} | right-click removes" tooltip=tooltip}}"
-            aria-label="{{tr "Open {label}" label=label}}"
-          >
-            <span class="tom-stage-goblin__item-label">{{label}}</span>
-          </button>
-        </article>
-        {{/each}}
-      {{else}}
-      <div class="tom-stage-goblin__empty tom-theme-card">
-        <span>{{tr "Drop scenes, actors, journals, or items here"}}</span>
+    {{#if isVertical}}
+    {{#if plannerMenuOpen}}
+    <div class="tom-stage-goblin__planner-menu">
+      {{#each plannerOptions}}
+      <div class="tom-stage-goblin__planner-option {{#if isSelected}}is-selected{{/if}}" data-planner-id="{{id}}">
+        <button type="button" class="tom-stage-goblin__planner-option-main" data-action="select-stage-goblin-planner" data-planner-id="{{id}}" title="{{name}}" aria-label="{{tr "Select {name}" name=name}}">
+          <span class="tom-stage-goblin__planner-option-name">{{name}}</span>
+        </button>
+        {{#if id}}
+        <span class="tom-stage-goblin__planner-option-count">{{pinnedCount}}</span>
+        <button type="button" class="tom-stage-goblin__planner-option-open" data-action="open-stage-goblin-planner" data-planner-id="{{id}}" title="{{tr "Open {name} in Adventure Planner" name=name}}" aria-label="{{tr "Open {name} in Adventure Planner" name=name}}">
+          <i class="fas fa-up-right-from-square" aria-hidden="true"></i>
+        </button>
+        {{/if}}
       </div>
-      {{/if}}
+      {{/each}}
     </div>
-    <span class="tom-stage-goblin__resize-handle tom-stage-goblin__resize-handle--right" data-action="resize-stage-goblin" data-edge="right" aria-hidden="true"></span>
-    <span class="tom-stage-goblin__resize-handle tom-stage-goblin__resize-handle--bottom" data-action="resize-stage-goblin" data-edge="bottom" aria-hidden="true"></span>
-  </div>
+    {{/if}}
+    {{/if}}
+  </section>
+  {{/each}}
 </section>

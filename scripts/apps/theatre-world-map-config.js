@@ -2,6 +2,8 @@ import { MODULE_ID } from "../constants.js";
 import { applyTheatreDialogTheme, applyThemeInlineStyleToHost, buildThemeInlineStyle, openImagePickerForInput, randomId } from "../helpers.js";
 import { translate as tr } from "../localization.js";
 import { TheatreStore } from "../store.js";
+import { collectWorldMapCategorySource, getDefaultWorldMapCategories, getWorldMapCategories, normalizeWorldMapCategoryList } from "../world-map/category-utils.js";
+import { FOG_DEFAULTS, normalizeFogImageTileSize, normalizeFogMode, normalizeFogOpacity } from "../world-map/fog-utils.js";
 
 function clampNumber(value, fallback, min, max) {
   const numeric = Number(value);
@@ -70,7 +72,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
     super({}, options);
     this.mapId = options.mapId ?? null;
     this._mapDraftOverride = null;
-    this._collapsedSections = new Set(["setup", "fullscreen", "categories", "styling", "advanced"]);
+    this._collapsedSections = new Set(["fog", "fullscreen", "categories", "styling", "advanced"]);
     this._tileProgress = {
       running: false,
       percent: 0,
@@ -118,7 +120,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
         y: 512,
         zoom: 1
       },
-      categories: TheatreStore._getDefaultWorldMapCategories(),
+      categories: getDefaultWorldMapCategories(),
       overlays: [],
       fogSettings: TheatreStore._normalizeWorldMapFogSettings(),
       styling: TheatreStore._getDefaultWorldMapStyling(),
@@ -183,7 +185,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
   _syncSharedCategoryAliases(draft) {
     const categories = Array.isArray(draft?.categories) && draft.categories.length
       ? draft.categories
-      : TheatreStore._getDefaultWorldMapCategories();
+      : getDefaultWorldMapCategories();
     draft.categories = categories;
     // Preserve legacy fields for maps created before categories became shared.
     draft.pinCategories = categories;
@@ -223,14 +225,8 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
       ...(Array.isArray(expanded.objectCategories) ? expanded.objectCategories : Object.values(expanded.objectCategories ?? {})),
       ...(Array.isArray(expanded.regionCategories) ? expanded.regionCategories : Object.values(expanded.regionCategories ?? {}))
     ];
-    const fallbackCategories = Array.isArray(fallback.categories) && fallback.categories.length
-      ? fallback.categories
-      : [
-          ...(Array.isArray(fallback.pinCategories) ? fallback.pinCategories : []),
-          ...(Array.isArray(fallback.objectCategories) ? fallback.objectCategories : []),
-          ...(Array.isArray(fallback.regionCategories) ? fallback.regionCategories : [])
-        ];
-    const categories = (categoriesInput.length ? categoriesInput : legacyCategoryInput)
+    const fallbackCategories = collectWorldMapCategorySource(fallback);
+    const categories = normalizeWorldMapCategoryList((categoriesInput.length ? categoriesInput : legacyCategoryInput)
       .map((entry, index) => ({
         ...this._createDefaultCategoryData(),
         ...(fallbackCategories?.[index] ?? {}),
@@ -239,7 +235,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
         iconClass: String(entry?.iconClass || fallbackCategories?.[index]?.iconClass || "fa-location-dot").trim() || "fa-location-dot",
         color: /^#[0-9a-f]{6}$/i.test(String(entry?.color || "").trim()) ? String(entry.color).trim().toLowerCase() : String(fallbackCategories?.[index]?.color || "#33475f").trim().toLowerCase()
       }))
-      .filter((entry) => entry.name);
+      .filter((entry) => entry.name));
     return this._syncSharedCategoryAliases({
       ...fallback,
       id: String(expanded.id || fallback.id || "").trim(),
@@ -262,20 +258,18 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
         y: clampNumber(expanded?.initialView?.y, fallback.initialView.y, 0, Math.max(tileSize, Number(expanded.height) || fallback.height)),
         zoom: clampNumber(expanded?.initialView?.zoom, fallback.initialView.zoom, -8, 24)
       },
-      categories: categories.length ? categories : TheatreStore._getDefaultWorldMapCategories(),
+      categories: categories.length ? categories : getDefaultWorldMapCategories(),
       overlays,
       fogSettings: {
         ...TheatreStore._normalizeWorldMapFogSettings(fallback.fogSettings),
         enabled: Boolean(expanded?.fogSettings?.enabled),
-        mode: ["color", "image"].includes(String(expanded?.fogSettings?.mode || "").trim())
-          ? String(expanded.fogSettings.mode).trim()
-          : String(fallback?.fogSettings?.mode || "color"),
+        mode: normalizeFogMode(expanded?.fogSettings?.mode || fallback?.fogSettings?.mode),
         color: /^#[0-9a-f]{6}$/i.test(String(expanded?.fogSettings?.color || "").trim())
           ? String(expanded.fogSettings.color).trim().toLowerCase()
-          : String(fallback?.fogSettings?.color || "#07111f").trim().toLowerCase(),
-        opacity: clampNumber(expanded?.fogSettings?.opacity, fallback?.fogSettings?.opacity ?? 0.88, 0, 1),
+          : String(fallback?.fogSettings?.color || FOG_DEFAULTS.color).trim().toLowerCase(),
+        opacity: normalizeFogOpacity(expanded?.fogSettings?.opacity, fallback?.fogSettings?.opacity ?? FOG_DEFAULTS.opacity),
         imagePath: String(expanded?.fogSettings?.imagePath || "").trim(),
-        imageTileSize: clampNumber(expanded?.fogSettings?.imageTileSize, fallback?.fogSettings?.imageTileSize ?? 256, 16, 2048),
+        imageTileSize: normalizeFogImageTileSize(expanded?.fogSettings?.imageTileSize, fallback?.fogSettings?.imageTileSize ?? FOG_DEFAULTS.imageTileSize),
         imageTileFixedOnZoom: Boolean(expanded?.fogSettings?.imageTileFixedOnZoom),
         imageTileViewportLocked: Boolean(expanded?.fogSettings?.imageTileViewportLocked),
         operations: Array.isArray(fallback?.fogSettings?.operations) ? fallback.fogSettings.operations : []
@@ -355,6 +349,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
       map: worldMap,
       isExistingMap: Boolean(this.mapId),
       sectionSetupCollapsed: this._collapsedSections.has("setup"),
+      sectionFogCollapsed: this._collapsedSections.has("fog"),
       sectionFullscreenCollapsed: this._collapsedSections.has("fullscreen"),
       sectionCategoriesCollapsed: this._collapsedSections.has("categories"),
       sectionStylingCollapsed: this._collapsedSections.has("styling"),
@@ -373,7 +368,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
             opacity: clampNumber(overlay.opacity, 1, 0, 1)
           }))
         : [],
-      categories: (Array.isArray(worldMap.categories) && worldMap.categories.length ? worldMap.categories : TheatreStore._getDefaultWorldMapCategories())
+      categories: getWorldMapCategories(worldMap)
         .map((entry, index) => ({
           ...this._createDefaultCategoryData(),
           ...entry,
@@ -467,16 +462,11 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
     else this._collapsedSections.add(sectionKey);
     const section = toggle.closest("[data-world-map-config-section]");
     const isExpanded = !this._collapsedSections.has(sectionKey);
-    const icon = toggle.querySelector("i");
     if (section) {
       section.classList.toggle("is-collapsed", !isExpanded);
       section.classList.toggle("is-expanded", isExpanded);
     }
     toggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
-    if (icon) {
-      icon.classList.toggle("fa-chevron-down", isExpanded);
-      icon.classList.toggle("fa-chevron-right", !isExpanded);
-    }
   }
 
   _onAddOverlay(event) {

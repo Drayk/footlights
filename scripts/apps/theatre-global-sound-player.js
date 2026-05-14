@@ -25,8 +25,23 @@ export class TheatreGlobalSoundPlayerApplication extends Application {
     };
     this._soundboardPage = 0;
     this._isContentCollapsed = false;
+    this._onMusicAudioEnded = this._onMusicAudioEnded.bind(this);
     this._onWindowMouseMove = this._onWindowMouseMove.bind(this);
     this._onWindowMouseUp = this._onWindowMouseUp.bind(this);
+    this._boundRootHandlers = {
+      "drag-global-sound-player": this._onDragStart.bind(this),
+      "close-global-sound-player": this._onClose.bind(this),
+      "play-global-track": this._onPlayTrack.bind(this),
+      "global-audio-play": this._onAudioPlay.bind(this),
+      "global-audio-pause": this._onAudioPause.bind(this),
+      "global-audio-stop": this._onAudioStop.bind(this),
+      "global-audio-loop": this._onAudioLoop.bind(this),
+      "set-global-audio-volume": this._onSetVolume.bind(this),
+      "toggle-global-player-content": this._onToggleContent.bind(this),
+      "global-soundboard-page-prev": this._onSoundboardPagePrev.bind(this),
+      "global-soundboard-page-next": this._onSoundboardPageNext.bind(this),
+      "play-global-soundboard-item": this._onPlaySoundboardItem.bind(this)
+    };
   }
 
   static get defaultOptions() {
@@ -57,8 +72,9 @@ export class TheatreGlobalSoundPlayerApplication extends Application {
     const tracks = context.tracks.map((track) => ({
       ...track,
       isActive: this._state.trackId === track.id,
-      showPlaybackStatus: this._state.trackId === track.id && this._state.playbackState === "playing",
-      isLooping: this._state.trackId === track.id && this._state.playbackState === "playing" && this._state.loop
+      showPlaybackStatus: this._state.trackId === track.id && ["playing", "paused"].includes(this._state.playbackState),
+      isPaused: this._state.trackId === track.id && this._state.playbackState === "paused",
+      isLooping: this._state.trackId === track.id && ["playing", "paused"].includes(this._state.playbackState) && this._state.loop
     }));
     const pageItems = context.soundboardPages[this._soundboardPage] ?? [];
 
@@ -123,9 +139,7 @@ export class TheatreGlobalSoundPlayerApplication extends Application {
 
   async close(options) {
     this._teardownDrag();
-    this._musicAudio?.pause?.();
-    this._musicAudio?.remove?.();
-    this._musicAudio = null;
+    this._destroyMusicAudioElement();
     this._stopMusicVolumePolling();
     this._rootElement?.remove?.();
     this._rootElement = null;
@@ -138,7 +152,7 @@ export class TheatreGlobalSoundPlayerApplication extends Application {
     return this._rootElement;
   }
 
-  _getStoredPosition() {
+  _getLegacyStoredPosition() {
     try {
       const parsed = JSON.parse(localStorage.getItem(GLOBAL_PLAYER_STORAGE_KEY) || "{}");
       return parsed && typeof parsed === "object" ? parsed : {};
@@ -147,9 +161,27 @@ export class TheatreGlobalSoundPlayerApplication extends Application {
     }
   }
 
+  _getStoredPosition() {
+    try {
+      const state = TheatreStore.getGlobalSoundPlayerState();
+      const legacy = this._getLegacyStoredPosition();
+      if (legacy && Object.keys(legacy).length && !state?._migratedFromLocalStorage) {
+        void TheatreStore.saveGlobalSoundPlayerPosition(legacy)
+          .then(() => {
+            try { localStorage.removeItem(GLOBAL_PLAYER_STORAGE_KEY); } catch (_error) {}
+          })
+          .catch(() => {});
+        return legacy;
+      }
+      return state.position ?? {};
+    } catch (_error) {
+      return this._getLegacyStoredPosition();
+    }
+  }
+
   _saveStoredPosition(position = {}) {
     try {
-      localStorage.setItem(GLOBAL_PLAYER_STORAGE_KEY, JSON.stringify(position));
+      void TheatreStore.saveGlobalSoundPlayerPosition(position);
     } catch (_error) {
       // Local-only placement is a convenience, not critical state.
     }
@@ -178,43 +210,20 @@ export class TheatreGlobalSoundPlayerApplication extends Application {
   _bindRootListeners() {
     const rootElement = this._getRootElement();
     if (!rootElement) return;
-    const dragHandle = rootElement.querySelector("[data-action='drag-global-sound-player']");
-    if (dragHandle) dragHandle.onmousedown = this._onDragStart.bind(this);
-
-    rootElement.querySelectorAll("[data-action='close-global-sound-player']").forEach((element) => {
-      element.onclick = this._onClose.bind(this);
-    });
-    rootElement.querySelectorAll("[data-action='play-global-track']").forEach((element) => {
-      element.onclick = this._onPlayTrack.bind(this);
-    });
-    rootElement.querySelectorAll("[data-action='global-audio-play']").forEach((element) => {
-      element.onclick = this._onAudioPlay.bind(this);
-    });
-    rootElement.querySelectorAll("[data-action='global-audio-pause']").forEach((element) => {
-      element.onclick = this._onAudioPause.bind(this);
-    });
-    rootElement.querySelectorAll("[data-action='global-audio-stop']").forEach((element) => {
-      element.onclick = this._onAudioStop.bind(this);
-    });
-    rootElement.querySelectorAll("[data-action='global-audio-loop']").forEach((element) => {
-      element.onclick = this._onAudioLoop.bind(this);
-    });
-    rootElement.querySelectorAll("[data-action='set-global-audio-volume']").forEach((element) => {
-      element.oninput = this._onSetVolume.bind(this);
-      element.onchange = this._onSetVolume.bind(this);
-    });
-    rootElement.querySelectorAll("[data-action='toggle-global-player-content']").forEach((element) => {
-      element.onclick = this._onToggleContent.bind(this);
-    });
-    rootElement.querySelectorAll("[data-action='global-soundboard-page-prev']").forEach((element) => {
-      element.onclick = this._onSoundboardPagePrev.bind(this);
-    });
-    rootElement.querySelectorAll("[data-action='global-soundboard-page-next']").forEach((element) => {
-      element.onclick = this._onSoundboardPageNext.bind(this);
-    });
-    rootElement.querySelectorAll("[data-action='play-global-soundboard-item']").forEach((element) => {
-      element.onclick = this._onPlaySoundboardItem.bind(this);
-    });
+    for (const [action, handler] of Object.entries(this._boundRootHandlers)) {
+      rootElement.querySelectorAll(`[data-action='${action}']`).forEach((element) => {
+        if (action === "drag-global-sound-player") {
+          element.onmousedown = handler;
+          return;
+        }
+        if (action === "set-global-audio-volume") {
+          element.oninput = handler;
+          element.onchange = handler;
+          return;
+        }
+        element.onclick = handler;
+      });
+    }
   }
 
   _notifyPlaybackError(error) {
@@ -322,22 +331,29 @@ export class TheatreGlobalSoundPlayerApplication extends Application {
       const track = context.tracks.find((entry) => entry.id === element.dataset.trackId) ?? null;
       const isActive = Boolean(track && current.trackId === track.id);
       const isPlaying = isActive && current.playbackState === "playing";
+      const isPaused = isActive && current.playbackState === "paused";
+      const showPlaybackStatus = isPlaying || isPaused;
       element.classList.toggle("is-active", isActive);
-      element.classList.toggle("is-looping", isPlaying && current.loop);
+      element.classList.toggle("is-looping", showPlaybackStatus && current.loop);
+      element.classList.toggle("is-paused", isPaused);
 
-      let statusElement = element.querySelector(".tom-scene-sound-track__status");
-      if (!isPlaying) {
+      let statusElement = element.querySelector(".tom-global-sound-player__track-status");
+      if (!showPlaybackStatus) {
         statusElement?.remove?.();
         return;
       }
 
       if (!statusElement) {
         statusElement = document.createElement("span");
-        statusElement.className = "tom-scene-sound-track__status";
+        statusElement.className = "tom-global-sound-player__track-status";
         statusElement.setAttribute("aria-hidden", "true");
         element.appendChild(statusElement);
       }
-      statusElement.innerHTML = `<i class="fas fa-play"></i>${current.loop ? '<i class="fas fa-repeat tom-scene-sound-track__loop"></i>' : ""}`;
+      const playbackIcon = isPaused
+        ? '<span class="tom-global-sound-player__track-status-icon is-pause"></span>'
+        : '<span class="tom-global-sound-player__track-status-icon is-play"></span>';
+      statusElement.classList.toggle("has-loop", Boolean(current.loop));
+      statusElement.innerHTML = `${playbackIcon}${current.loop ? '<span class="tom-global-sound-player__track-status-icon is-loop"></span>' : ""}`;
     });
 
     const loopButton = rootElement.querySelector("[data-action='global-audio-loop']");
@@ -427,29 +443,39 @@ export class TheatreGlobalSoundPlayerApplication extends Application {
     const audio = document.createElement("audio");
     audio.preload = "auto";
     audio.style.display = "none";
-    audio.addEventListener("ended", () => {
-      if (this._state.loop) return;
-      const context = this._getGlobalSoundContext();
-      const currentIndex = context.tracks.findIndex((track) => track.id === this._state.trackId);
-      const nextTrack = currentIndex >= 0 ? context.tracks[currentIndex + 1] : null;
-      if (nextTrack) {
-        this._state = {
-          ...this._state,
-          trackId: nextTrack.id,
-          src: nextTrack.src,
-          label: nextTrack.label,
-          playbackState: "playing",
-          position: 0
-        };
-      } else {
-        this._state = { ...this._state, playbackState: "stopped", position: 0 };
-      }
-      this._syncAudioPlayback();
-      this.render(false);
-    });
+    audio.addEventListener("ended", this._onMusicAudioEnded);
     document.body.appendChild(audio);
     this._musicAudio = audio;
     return audio;
+  }
+
+  _onMusicAudioEnded() {
+    if (this._state.loop) return;
+    const context = this._getGlobalSoundContext();
+    const currentIndex = context.tracks.findIndex((track) => track.id === this._state.trackId);
+    const nextTrack = currentIndex >= 0 ? context.tracks[currentIndex + 1] : null;
+    if (nextTrack) {
+      this._state = {
+        ...this._state,
+        trackId: nextTrack.id,
+        src: nextTrack.src,
+        label: nextTrack.label,
+        playbackState: "playing",
+        position: 0
+      };
+    } else {
+      this._state = { ...this._state, playbackState: "stopped", position: 0 };
+    }
+    this._syncAudioPlayback();
+    this.render(false);
+  }
+
+  _destroyMusicAudioElement() {
+    if (!this._musicAudio) return;
+    this._musicAudio.removeEventListener("ended", this._onMusicAudioEnded);
+    this._musicAudio.pause?.();
+    this._musicAudio.remove?.();
+    this._musicAudio = null;
   }
 
   _syncAudioPlayback() {

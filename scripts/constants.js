@@ -51,6 +51,12 @@ export const DEFAULT_RUNTIME_STATE = {
     label: "",
     volume: 1
   },
+  forcedWorldMapOpen: {
+    id: null,
+    mapId: null,
+    mode: "window",
+    createdAt: 0
+  },
   sharedLeftSidebarVisible: false,
   sharedRightSidebarVisible: false
 };

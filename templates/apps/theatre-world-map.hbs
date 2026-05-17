@@ -225,6 +225,7 @@
         {{/if}}
       </div>
       <div class="tom-world-map__context-menu">
+        {{#if isGM}}
         <div class="tom-world-map__context-group tom-world-map__context-group--create">
           <button type="button" class="tom-world-map__context-action" data-action="create-map-image-at-context">{{tr "Create image overlay"}}</button>
           <button type="button" class="tom-world-map__context-action" data-action="create-map-text-at-context">{{tr "Create text overlay"}}</button>
@@ -234,6 +235,14 @@
           <button type="button" class="tom-world-map__context-action" data-action="start-map-line-at-context">{{tr "Draw line"}}</button>
           <button type="button" class="tom-world-map__context-action" data-action="create-map-pin-at-context">{{tr "Create pin"}}</button>
         </div>
+        {{else}}
+        {{#if canCreatePins}}
+        <div class="tom-world-map__context-group tom-world-map__context-group--create">
+          <button type="button" class="tom-world-map__context-action" data-action="create-map-pin-at-context">{{tr "Create pin"}}</button>
+        </div>
+        {{/if}}
+        {{/if}}
+        {{#if isGM}}
         <div class="tom-world-map__context-group tom-world-map__context-group--edit">
           <button type="button" class="tom-world-map__context-action" data-action="edit-map-context-target">{{tr "Edit"}}</button>
           <button type="button" class="tom-world-map__context-action tom-world-map__context-action--line-points" data-action="edit-map-context-line-points">{{tr "Edit line"}}</button>
@@ -242,6 +251,7 @@
           <button type="button" class="tom-world-map__context-action tom-world-map__context-action--duplicate" data-action="duplicate-map-context-target">{{tr "Duplicate"}}</button>
           <button type="button" class="tom-world-map__context-action tom-world-map__context-action--delete" data-action="delete-map-context-target">{{tr "Delete"}}</button>
         </div>
+        {{/if}}
       </div>
       <div class="tom-world-map__canvas" data-world-map-canvas="true" style="--tom-world-map-edit-grid-size: {{editGridSize}}px;"></div>
     </div>

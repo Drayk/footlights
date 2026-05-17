@@ -2053,6 +2053,7 @@ export class TheatreStore {
       pinCategories: categories,
       objectCategories: categories,
       regionCategories: categories,
+      playersCanCreatePins: Boolean(worldMap.playersCanCreatePins),
       lockedCategories,
       overlays,
       objectOverlays,

@@ -267,6 +267,18 @@
         <section class="tom-map-editmode__subcard">
           <header class="tom-map-editmode__subcard-header">
             <span>
+              <strong>{{tr "Player Pins"}}</strong>
+              <small>{{tr "Allow players to create pins in selected categories."}}</small>
+            </span>
+          </header>
+          <label class="tom-map-editmode__toggle tom-map-editmode__toggle--full">
+            <input type="checkbox" name="worldMap.playersCanCreatePins" {{checked map.playersCanCreatePins}} />
+            <span>{{tr "Players can create Pins?"}}</span>
+          </label>
+        </section>
+        <section class="tom-map-editmode__subcard">
+          <header class="tom-map-editmode__subcard-header">
+            <span>
               <strong>{{tr "Categories"}}</strong>
               <small>{{tr "Shared categories for pins, lines, regions, images, and text objects."}}</small>
             </span>
@@ -302,6 +314,10 @@
                 <i class="fas {{iconClass}}" aria-hidden="true"></i>
               </button>
               <input type="text" name="worldMap.categories.{{index}}.name" value="{{name}}" aria-label="{{tr "Category"}}" />
+              <label class="tom-map-editmode__category-player-toggle" title="{{tr "Players may create pins in this category"}}" aria-label="{{tr "Players may create pins in this category"}}">
+                <input type="checkbox" name="worldMap.categories.{{index}}.playerPinEnabled" {{checked playerPinEnabled}} />
+                <span aria-hidden="true"></span>
+              </label>
               <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.categories.{{index}}.color" value="{{color}}" aria-label="{{tr "Color"}}" title="{{tr "Color"}}" />
               <button type="button" class="tom-map-editmode__delete-icon" data-action="remove-map-category" data-category-id="{{id}}" title="{{tr "Delete"}}" aria-label="{{tr "Delete"}}">
                 <i class="fas fa-trash-can" aria-hidden="true"></i>

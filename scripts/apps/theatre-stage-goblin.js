@@ -33,6 +33,11 @@ export class TheatreStageGoblinApplication extends Application {
     });
   }
 
+  render(force = false, options = {}) {
+    if (!game.user?.isGM) return this;
+    return super.render(force, options);
+  }
+
   getData() {
     const themeState = TheatreStore.getThemeState();
     const stageGoblinState = TheatreStore.getStageGoblinState();

@@ -192,6 +192,22 @@ export function normalizeRuntimeState(value) {
         volume: 1
       };
 
+  runtime.forcedWorldMapOpen = runtime.forcedWorldMapOpen && typeof runtime.forcedWorldMapOpen === "object"
+    ? {
+        id: String(runtime.forcedWorldMapOpen.id || "").trim() || null,
+        mapId: String(runtime.forcedWorldMapOpen.mapId || "").trim() || null,
+        mode: ["stage", "fullscreen"].includes(String(runtime.forcedWorldMapOpen.mode || "").trim()) ? "stage" : "window",
+        createdAt: Number.isFinite(Number(runtime.forcedWorldMapOpen.createdAt))
+          ? Number(runtime.forcedWorldMapOpen.createdAt)
+          : 0
+      }
+    : {
+        id: null,
+        mapId: null,
+        mode: "window",
+        createdAt: 0
+      };
+
   runtime.sharedLeftSidebarVisible = Boolean(runtime.sharedLeftSidebarVisible);
   runtime.sharedRightSidebarVisible = Boolean(runtime.sharedRightSidebarVisible);
 

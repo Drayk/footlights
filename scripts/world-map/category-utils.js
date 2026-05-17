@@ -39,7 +39,8 @@ export function normalizeWorldMapCategory(categoryData = {}) {
     type: "category",
     name: String(categoryData.name || fallback.name).trim() || fallback.name,
     iconClass: String(categoryData.iconClass || fallback.iconClass).trim() || fallback.iconClass,
-    color: HEX_COLOR_PATTERN.test(color) ? color.toLowerCase() : fallback.color
+    color: HEX_COLOR_PATTERN.test(color) ? color.toLowerCase() : fallback.color,
+    playerPinEnabled: Boolean(categoryData.playerPinEnabled)
   };
 }
 
@@ -85,7 +86,8 @@ export function getWorldMapCategoryOptions(worldMap = {}, {
       iconClass: String(entry.iconClass || fallbackIcon).trim() || fallbackIcon,
       color: String(entry.color || fallbackColor).trim().toLowerCase(),
       type: String(entry.type || "category").trim().toLowerCase(),
-      isSeparator: isWorldMapCategorySeparator(entry)
+      isSeparator: isWorldMapCategorySeparator(entry),
+      playerPinEnabled: Boolean(entry.playerPinEnabled)
     }));
 }
 

@@ -16,6 +16,7 @@ import { TheatreWorldMapApplication } from "./apps/theatre-world-map.js";
 import { TheatreWorldMapStageApplication } from "./apps/theatre-world-map-stage.js";
 import { TheatreWorldMapConfigApplication } from "./apps/theatre-world-map-config.js";
 import { TheatrePortalApplication, TheatrePortalStageApplication } from "./apps/theatre-portal.js";
+import { isWorldMapCategorySeparator } from "./world-map/category-utils.js";
 import { getWorldMapElementOperation } from "./world-map/element-utils.js";
 
 const manager = new TheatreManager();
@@ -23,6 +24,7 @@ let stageGoblinApp = null;
 let globalSoundPlayerApp = null;
 let footlightsSocketRegistered = false;
 let footlightsHooksRegistered = false;
+let lastHandledForcedWorldMapOpenId = null;
 const FOOTLIGHTS_SOCKET_EVENT = `module.${MODULE_ID}`;
 const REFRESHABLE_APP_NAMES = new Set([
   "TheatreSceneLibraryApplication",
@@ -106,8 +108,8 @@ function openOrFocusMindmap(plannerId = null) {
   );
 }
 
-function openOrFocusWorldMap(mapId = null) {
-  if (mapId) {
+function openOrFocusWorldMap(mapId = null, { persistActive = true } = {}) {
+  if (mapId && persistActive) {
     void TheatreStore.setActiveWorldMap(mapId);
   }
   return openOrFocusApp(
@@ -119,8 +121,8 @@ function openOrFocusWorldMap(mapId = null) {
   );
 }
 
-function openOrFocusWorldMapStage(mapId = null) {
-  if (mapId) {
+function openOrFocusWorldMapStage(mapId = null, { persistActive = true } = {}) {
+  if (mapId && persistActive) {
     void TheatreStore.setActiveWorldMap(mapId);
   }
   return openOrFocusApp(
@@ -130,6 +132,16 @@ function openOrFocusWorldMapStage(mapId = null) {
       existing.mapId = mapId ?? TheatreStore.getActiveWorldMap()?.id ?? existing.mapId;
     }
   );
+}
+
+function openForcedWorldMap(mapId, mode = "window") {
+  const id = String(mapId || "").trim();
+  if (!id || !TheatreStore.getWorldMapById(id)) return null;
+  const normalizedMode = ["stage", "fullscreen"].includes(String(mode || "").trim()) ? "stage" : "window";
+  if (normalizedMode === "stage") {
+    return openOrFocusWorldMapStage(id, { persistActive: game.user?.isGM });
+  }
+  return openOrFocusWorldMap(id, { persistActive: game.user?.isGM });
 }
 
 function openOrFocusPortal(portalId = null) {
@@ -159,6 +171,7 @@ function openOrFocusPortalStage(portalId = null) {
 }
 
 function openOrFocusStageGoblin() {
+  if (!game.user?.isGM) return null;
   if (stageGoblinApp) {
     stageGoblinApp.render(true);
     ui.controls?.render?.(false);
@@ -172,6 +185,7 @@ function openOrFocusStageGoblin() {
 }
 
 function isStageGoblinOpen() {
+  if (!game.user?.isGM) return false;
   return Boolean(stageGoblinApp?._getRootElement?.());
 }
 
@@ -222,6 +236,7 @@ async function closeStageGoblin() {
 }
 
 async function toggleStageGoblin(force = null) {
+  if (!game.user?.isGM) return;
   const shouldOpen = typeof force === "boolean" ? force : !isStageGoblinOpen();
   if (shouldOpen) {
     const state = TheatreStore.getStageGoblinState();
@@ -237,6 +252,7 @@ async function toggleStageGoblin(force = null) {
 }
 
 async function toggleStageGoblinBar(barId = "bar-1", force = null) {
+  if (!game.user?.isGM) return;
   const normalizedBarId = String(barId || "bar-1").trim() || "bar-1";
   const state = TheatreStore.getStageGoblinState();
   const bar = state.bars.find((entry) => entry.id === normalizedBarId);
@@ -290,11 +306,20 @@ function handleForceOpenWorldMapSocket(payload = {}) {
   const mapId = String(payload.mapId || "").trim();
   const mode = String(payload.mode || "window").trim();
   if (!mapId) return;
-  if (mode === "stage" || mode === "fullscreen") {
-    openOrFocusWorldMapStage(mapId);
-    return;
-  }
-  openOrFocusWorldMap(mapId);
+  window.setTimeout(() => openForcedWorldMap(mapId, mode), 0);
+}
+
+function handleForcedWorldMapRuntimeState(runtimeState = TheatreStore.getRuntimeState()) {
+  if (game.user?.isGM) return;
+  const command = runtimeState?.forcedWorldMapOpen;
+  const commandId = String(command?.id || "").trim();
+  const mapId = String(command?.mapId || "").trim();
+  const createdAt = Number(command?.createdAt) || 0;
+  const isFreshCommand = createdAt > 0 && Date.now() - createdAt < 30000;
+  if (!commandId || !mapId || commandId === lastHandledForcedWorldMapOpenId) return;
+  if (!isFreshCommand) return;
+  lastHandledForcedWorldMapOpenId = commandId;
+  window.setTimeout(() => openForcedWorldMap(mapId, command.mode), 0);
 }
 
 function openPortalForMode(portalId, mode = "window") {
@@ -340,6 +365,27 @@ function forceOpenPortal(portalId, mode = "window") {
   return null;
 }
 
+function forceOpenWorldMap(mapId, mode = "window") {
+  if (!game.user?.isGM) return null;
+  const id = String(mapId || "").trim();
+  if (!id || !TheatreStore.getWorldMapById(id)) return null;
+  const normalizedMode = ["stage", "fullscreen"].includes(String(mode || "").trim()) ? "stage" : "window";
+  game.socket?.emit?.(FOOTLIGHTS_SOCKET_EVENT, {
+    action: "forceOpenWorldMap",
+    mapId: id,
+    mode: normalizedMode
+  });
+  const runtimeState = TheatreStore.getRuntimeState();
+  runtimeState.forcedWorldMapOpen = {
+    id: foundry.utils.randomID(),
+    mapId: id,
+    mode: normalizedMode,
+    createdAt: Date.now()
+  };
+  void TheatreStore.saveRuntimeState(runtimeState);
+  return null;
+}
+
 async function forceClosePortalStage() {
   if (!game.user?.isGM) return;
   game.socket?.emit?.(FOOTLIGHTS_SOCKET_EVENT, {
@@ -378,6 +424,41 @@ async function handleWorldMapElementMoveRequest(payload = {}, socket = game.sock
   });
 }
 
+async function handleWorldMapPinCreateRequest(payload = {}) {
+  const activeGmId = getActiveGmId();
+  if (!game.user?.isGM || (activeGmId && activeGmId !== game.user.id)) return;
+
+  const mapId = String(payload.mapId || "").trim();
+  const worldMap = mapId ? TheatreStore.getWorldMapById(mapId) : null;
+  if (!worldMap?.playersCanCreatePins) return;
+
+  const allowedCategories = (Array.isArray(worldMap.categories) ? worldMap.categories : [])
+    .filter((entry) => !isWorldMapCategorySeparator(entry) && entry.playerPinEnabled)
+    .map((entry) => String(entry.id || "").trim().toLowerCase())
+    .filter(Boolean);
+  if (!allowedCategories.length) return;
+
+  const pinData = payload.pinData && typeof payload.pinData === "object" ? payload.pinData : {};
+  const requestedType = String(pinData.type || "").trim().toLowerCase();
+  const type = allowedCategories.includes(requestedType) ? requestedType : allowedCategories[0];
+  const x = Number(pinData.x);
+  const y = Number(pinData.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+  await TheatreStore.upsertWorldMapPin(mapId, {
+    ...pinData,
+    id: foundry.utils.randomID(),
+    type,
+    x,
+    y,
+    movableForPlayers: true,
+    visibleForPlayers: true,
+    tooltipEnabled: true,
+    travelPlayerAccess: false,
+    documentPlayerAccess: false
+  });
+}
+
 function handleWorldMapElementMoved(payload = {}) {
   for (const app of getOpenWorldMapApplications()) {
     app.applyRemoteElementMove?.(payload);
@@ -412,6 +493,11 @@ async function onFootlightsSocketMessage(payload = {}, socket = game.socket) {
 
   if (action === "requestWorldMapElementMove") {
     await handleWorldMapElementMoveRequest(payload, socket);
+    return;
+  }
+
+  if (action === "requestWorldMapPinCreate") {
+    await handleWorldMapPinCreateRequest(payload);
     return;
   }
 
@@ -498,6 +584,9 @@ function buildModuleApi() {
     openSoundPlaylist: (playlistId = null) => openOrFocusSoundPlaylist(playlistId),
     openWorldMap: (mapId = null) => openOrFocusWorldMap(mapId),
     openWorldMapStage: (mapId = null) => openOrFocusWorldMapStage(mapId),
+    forceWorldMap: (mapId, mode = "window") => forceOpenWorldMap(mapId, mode),
+    forceWorldMapWindow: (mapId) => forceOpenWorldMap(mapId, "window"),
+    forceWorldMapStage: (mapId) => forceOpenWorldMap(mapId, "stage"),
     openPortal: (portalId = null) => openOrFocusPortal(portalId),
     openPortalStage: (portalId = null) => openOrFocusPortalStage(portalId),
     forcePortal: (portalId, mode = "window") => forceOpenPortal(portalId, mode),
@@ -544,6 +633,7 @@ function onFootlightsReady() {
   const overlay = new TheatreOverlayApplication(manager);
   manager.initialize(overlay);
   openOrFocusStageGoblin();
+  handleForcedWorldMapRuntimeState();
 }
 
 function onFootlightsSettingUpdate(setting) {
@@ -554,6 +644,7 @@ function onFootlightsSettingUpdate(setting) {
     const isMapLibrarySetting = setting.key === `${MODULE_ID}.${SETTINGS.MAP_LIBRARY}`;
     const isPortalLibrarySetting = setting.key === `${MODULE_ID}.${SETTINGS.PORTAL_LIBRARY}`;
     const isSoundLibrarySetting = setting.key === `${MODULE_ID}.${SETTINGS.SOUND_LIBRARY}`;
+    const isRuntimeSetting = setting.key === `${MODULE_ID}.${SETTINGS.RUNTIME}`;
     const shouldSuppressMapLibraryRefresh = isMapLibrarySetting
       && Number(globalThis.__TOM_SUPPRESS_MAP_LIBRARY_REFRESH_UNTIL || 0) > Date.now();
     if (isLanguageSetting) {
@@ -564,6 +655,9 @@ function onFootlightsSettingUpdate(setting) {
         ui.controls?.render?.(false);
       });
       return;
+    }
+    if (isRuntimeSetting) {
+      handleForcedWorldMapRuntimeState(TheatreStore.getRuntimeState());
     }
     if (!isStageGoblinSetting && !isMapLibrarySetting && !isPortalLibrarySetting && !manager.shouldSkipSettingRefresh(setting.key)) {
       manager.onSettingsChanged();

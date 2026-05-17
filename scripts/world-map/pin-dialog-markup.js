@@ -27,7 +27,7 @@ function buildPinColorField(name, label, value, fallback = "#7ebaec") {
   `;
 }
 
-export function buildPinDialogContent(initialData = {}, { typeOptions = "" } = {}) {
+export function buildPinDialogContent(initialData = {}, { typeOptions = "", isPlayer = false } = {}) {
   const safeColor = normalizeHexColor(initialData.color, "#7ebaec");
   const safeBorderColor = normalizeHexColor(initialData.borderColor, "#101722");
   const safeBorderWidth = Math.max(0, Math.min(8, Number(initialData.borderWidth) || 0));
@@ -76,6 +76,7 @@ export function buildPinDialogContent(initialData = {}, { typeOptions = "" } = {
           ${buildNumberInputGroup("pinShadowBlur", "Shadow blur", safeShadowBlur, { min: 0, max: 32, step: 0.5 })}
         </div>
       </section>
+      ${isPlayer ? "" : `
       <section class="tom-world-map-pin-dialog__style-card tom-world-map-pin-dialog__behavior tom-theme-content-surface">
         <h4>${tr("Behavior")}</h4>
         <div class="tom-world-map-dialog__behavior-grid">
@@ -86,6 +87,7 @@ export function buildPinDialogContent(initialData = {}, { typeOptions = "" } = {
           ${buildButtonSwitchMarkup("pinDocumentPlayerAccess", "Info Access", documentPlayerAccess, { wrapperClass: "tom-world-map-linked-document__access-switch tom-world-map-destination-card__switch" })}
         </div>
       </section>
+      `}
       <section class="tom-world-map-pin-dialog__style-card tom-world-map-pin-dialog__linked-actions tom-theme-content-surface">
         <h4>${tr("Linked Actions")}</h4>
         ${buildWorldMapDestinationLinksMarkup("pin", initialData, { showAccess: false })}

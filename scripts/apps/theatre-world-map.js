@@ -304,6 +304,8 @@ export class TheatreWorldMapApplication extends Application {
       isContextMenuOpen: this._contextMenuState.isOpen,
       contextMenuX: this._contextMenuState.x,
       contextMenuY: this._contextMenuState.y,
+      isGM: Boolean(game.user?.isGM),
+      canCreatePins: this._canCurrentUserCreatePins(worldMap),
       themeInlineStyle: this._buildMapThemeInlineStyle(worldMap)
     };
   }
@@ -1488,6 +1490,17 @@ export class TheatreWorldMapApplication extends Application {
   _getPinTypeDefinition(type, worldMap = null) {
     const targetMap = worldMap ?? (this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null);
     return getWorldMapCategoryDefinition(targetMap ?? {}, type, { fallbackLabel: tr("Location") });
+  }
+
+  _getPlayerPinCategoryOptions(worldMap = null) {
+    return this._getCategoryOptions(worldMap)
+      .filter((entry) => !entry.isSeparator && entry.playerPinEnabled);
+  }
+
+  _canCurrentUserCreatePins(worldMap = null) {
+    if (game.user?.isGM) return true;
+    const targetMap = worldMap ?? (this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null);
+    return Boolean(targetMap?.playersCanCreatePins && this._getPlayerPinCategoryOptions(targetMap).length);
   }
 
   _getObjectCategoryOptions(worldMap = null) {
@@ -3201,14 +3214,18 @@ export class TheatreWorldMapApplication extends Application {
   }
 
   async _createPinFromLatLng(latlng) {
-    if (!game.user?.isGM) return;
     const worldMap = this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null;
-    if (!worldMap || !latlng) return;
+    if (!worldMap || !latlng || !this._canCurrentUserCreatePins(worldMap)) return;
+    const isPlayerCreate = !game.user?.isGM;
+    const playerCategories = isPlayerCreate ? this._getPlayerPinCategoryOptions(worldMap) : [];
+    const defaultType = isPlayerCreate
+      ? (playerCategories[0]?.value || this._getPinTypeDefinition(null, worldMap).value)
+      : this._getPinTypeDefinition(null, worldMap).value;
     const fallbackLabel = tr("Pin {index}", { index: (worldMap.pins?.length ?? 0) + 1 });
     const pinData = await this._promptForPinData({
       label: fallbackLabel,
       note: "",
-      type: this._getPinTypeDefinition(null, worldMap).value,
+      type: defaultType,
       zIndex: 0,
       color: "#7ebaec",
       size: 1,
@@ -3222,10 +3239,10 @@ export class TheatreWorldMapApplication extends Application {
       visibleForPlayers: true,
       tooltipEnabled: true,
       documentPlayerAccess: true
-    });
+    }, { isPlayerCreate });
     if (!pinData) return;
     const point = this._latLngToMapPixels(latlng, worldMap);
-    const pin = await TheatreStore.upsertWorldMapPin(worldMap.id, {
+    const nextPin = {
       id: randomId(),
       label: String(pinData.label || "").trim() || fallbackLabel,
       note: String(pinData.note || "").trim(),
@@ -3254,7 +3271,16 @@ export class TheatreWorldMapApplication extends Application {
       tooltipEnabled: pinData.tooltipEnabled,
       x: point.x,
       y: point.y
-    });
+    };
+    if (isPlayerCreate) {
+      game.socket?.emit?.(`module.${MODULE_ID}`, {
+        action: "requestWorldMapPinCreate",
+        mapId: worldMap.id,
+        pinData: nextPin
+      });
+      return;
+    }
+    const pin = await TheatreStore.upsertWorldMapPin(worldMap.id, nextPin);
     this._selectedPinId = pin?.id ?? null;
     this._syncLeafletPins();
     this._renderPreservingView();
@@ -4106,8 +4132,11 @@ export class TheatreWorldMapApplication extends Application {
     this._bindPinTooltip(marker, nextPin);
   }
 
-  async _promptForPinData(initialData, { isEditing = false } = {}) {
-    const pinTypeDefinitions = Object.values(this._getPinTypeDefinitions());
+  async _promptForPinData(initialData, { isEditing = false, isPlayerCreate = false } = {}) {
+    const worldMap = this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null;
+    const pinTypeDefinitions = isPlayerCreate
+      ? this._getPlayerPinCategoryOptions(worldMap)
+      : Object.values(this._getPinTypeDefinitions(worldMap));
     const selectOptions = buildSelectOptions(pinTypeDefinitions, initialData.type);
     return await new Promise((resolve) => {
       let didResolve = false;
@@ -4117,12 +4146,24 @@ export class TheatreWorldMapApplication extends Application {
       };
       const dialog = new Dialog({
         title: tr(isEditing ? "Edit pin" : "Create pin"),
-        content: buildPinDialogContent(initialData, { typeOptions: selectOptions }),
+        content: buildPinDialogContent(initialData, { typeOptions: selectOptions, isPlayer: isPlayerCreate }),
         buttons: {
           create: {
             label: tr(isEditing ? "Save" : "Create"),
             callback: (html) => {
-              resolveOnce(readPinDataFromDialog(html, initialData));
+              const pinData = readPinDataFromDialog(html, initialData);
+              if (isPlayerCreate) {
+                resolveOnce({
+                  ...pinData,
+                  movableForPlayers: true,
+                  visibleForPlayers: true,
+                  tooltipEnabled: true,
+                  travelPlayerAccess: false,
+                  documentPlayerAccess: false
+                });
+                return;
+              }
+              resolveOnce(pinData);
             }
           },
           cancel: {
@@ -4188,7 +4229,8 @@ export class TheatreWorldMapApplication extends Application {
   async _onLeafletMapDoubleClick(event) {
     this._closeContextMenu({ rerender: false });
     this._closeActionChoiceMenu();
-    if (!game.user?.isGM || this._isRegionDrawMode || this._isLineDrawMode || this._editingRegionId || this._editingLineId) return;
+    const worldMap = this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null;
+    if (!this._canCurrentUserCreatePins(worldMap) || this._isRegionDrawMode || this._isLineDrawMode || this._editingRegionId || this._editingLineId) return;
     await this._createPinFromLatLng(event?.latlng);
   }
 
@@ -4225,7 +4267,7 @@ export class TheatreWorldMapApplication extends Application {
     event?.originalEvent?.preventDefault?.();
     event?.originalEvent?.stopPropagation?.();
     this._closeActionChoiceMenu();
-    if (!game.user?.isGM) return;
+    if (!game.user?.isGM && !this._canCurrentUserCreatePins()) return;
     this._contextMenuState = createContextMenuStateFromLeafletEvent(event, this._leafletMap);
     this._updateContextMenuElement();
   }
@@ -5232,11 +5274,9 @@ export class TheatreWorldMapApplication extends Application {
     const normalizedMode = mode === "stage" ? "stage" : "window";
     this._hasForcedPlayerMapOpen = true;
     this._syncForcedMapButtons();
-    game.socket?.emit?.(`module.${MODULE_ID}`, {
-      action: "forceOpenWorldMap",
-      mapId: this.mapId,
-      mode: normalizedMode
-    });
+    const api = game.modules.get(MODULE_ID)?.api;
+    if (normalizedMode === "stage") api?.forceWorldMapStage?.(this.mapId);
+    else api?.forceWorldMapWindow?.(this.mapId);
     ui.notifications?.info(tr(normalizedMode === "stage" ? "Players will open the fullscreen world map." : "Players will open the world map window."));
   }
 

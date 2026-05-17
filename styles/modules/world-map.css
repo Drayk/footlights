@@ -3904,13 +3904,64 @@
 
 .tom-map-editmode__category-row {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
   gap: 0.65rem;
   align-items: center;
   position: relative;
   min-width: 0;
   padding: 0.5rem 0.6rem;
   background: var(--tom-map-edit-input);
+}
+
+.tom-map-editmode__category-player-toggle {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 1.25rem;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer;
+}
+
+.tom-map-editmode__category-player-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tom-map-editmode__category-player-toggle span {
+  position: relative;
+  display: block;
+  width: 2.2rem;
+  height: 1.25rem;
+  border: 1px solid var(--tom-content-border-2, var(--tom-map-edit-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tom-map-edit-input) 82%, black);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.tom-map-editmode__category-player-toggle span::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0.18rem;
+  width: 0.82rem;
+  height: 0.82rem;
+  border-radius: 50%;
+  background: var(--tom-map-edit-muted);
+  transform: translateY(-50%);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.tom-map-editmode__category-player-toggle input[type="checkbox"]:checked + span {
+  border-color: var(--tom-content-highlight, var(--tom-map-edit-accent));
+  background: color-mix(in srgb, var(--tom-content-highlight, var(--tom-map-edit-accent)) 52%, var(--tom-map-edit-input));
+}
+
+.tom-map-editmode__category-player-toggle input[type="checkbox"]:checked + span::after {
+  background: var(--tom-content-action-generic-text, var(--tom-map-edit-text));
+  transform: translate(0.88rem, -50%);
 }
 
 .tom-map-editmode__category-drag-handle {

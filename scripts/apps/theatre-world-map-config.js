@@ -173,6 +173,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
         zoom: 1
       },
       categories: getDefaultWorldMapCategories(),
+      playersCanCreatePins: false,
       overlays: [],
       fogSettings: TheatreStore._normalizeWorldMapFogSettings(),
       styling: TheatreStore._getDefaultWorldMapStyling(),
@@ -201,7 +202,8 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
       type: "category",
       name: tr("Category"),
       iconClass: "fa-location-dot",
-      color: "#33475f"
+      color: "#33475f",
+      playerPinEnabled: false
     };
   }
 
@@ -299,7 +301,8 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
           : "category",
         name: String(entry?.name || "").trim(),
         iconClass: String(entry?.iconClass || fallbackCategories?.[index]?.iconClass || "fa-location-dot").trim() || "fa-location-dot",
-        color: /^#[0-9a-f]{6}$/i.test(String(entry?.color || "").trim()) ? String(entry.color).trim().toLowerCase() : String(fallbackCategories?.[index]?.color || "#33475f").trim().toLowerCase()
+        color: /^#[0-9a-f]{6}$/i.test(String(entry?.color || "").trim()) ? String(entry.color).trim().toLowerCase() : String(fallbackCategories?.[index]?.color || "#33475f").trim().toLowerCase(),
+        playerPinEnabled: Boolean(entry?.playerPinEnabled)
       }))
       .filter((entry) => entry.type === WORLD_MAP_CATEGORY_SEPARATOR_TYPE || entry.name));
     return this._syncSharedCategoryAliases({
@@ -325,6 +328,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
         zoom: clampNumber(expanded?.initialView?.zoom, fallback.initialView.zoom, -8, 24)
       },
       categories: categories.length ? categories : getDefaultWorldMapCategories(),
+      playersCanCreatePins: Boolean(expanded.playersCanCreatePins),
       overlays,
       fogSettings: {
         ...TheatreStore._normalizeWorldMapFogSettings(fallback.fogSettings),
@@ -442,7 +446,8 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
           ...this._createDefaultCategoryData(),
           ...entry,
           index,
-          isSeparator: isWorldMapCategorySeparator(entry)
+          isSeparator: isWorldMapCategorySeparator(entry),
+          playerPinEnabled: Boolean(entry.playerPinEnabled)
         })),
       tileSizeOptions: [
         { value: "256", label: "256 px", selected: Number(worldMap.tileSize) === 256 },
@@ -885,6 +890,10 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
           <i class="fas ${iconClass}" aria-hidden="true"></i>
         </button>
         <input type="text" name="worldMap.categories.${index}.name" value="${this._escapeHtml(entry?.name || tr("Category"))}" aria-label="${this._escapeHtml(tr("Category"))}" />
+        <label class="tom-map-editmode__category-player-toggle" title="${this._escapeHtml(tr("Players may create pins in this category"))}" aria-label="${this._escapeHtml(tr("Players may create pins in this category"))}">
+          <input type="checkbox" name="worldMap.categories.${index}.playerPinEnabled" ${entry?.playerPinEnabled ? "checked" : ""} />
+          <span aria-hidden="true"></span>
+        </label>
         <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.categories.${index}.color" value="${color}" aria-label="${this._escapeHtml(tr("Color"))}" title="${this._escapeHtml(tr("Color"))}" />
         <button type="button" class="tom-map-editmode__delete-icon" data-action="remove-map-category" data-category-id="${id}" title="${this._escapeHtml(tr("Delete"))}" aria-label="${this._escapeHtml(tr("Delete"))}">
           <i class="fas fa-trash-can" aria-hidden="true"></i>

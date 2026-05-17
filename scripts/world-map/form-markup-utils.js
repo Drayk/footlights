@@ -72,6 +72,46 @@ export function buildTextareaGroup(name, label, value = "", { rows = 4, wrapperC
   `;
 }
 
+function sanitizeEditorHtml(value = "") {
+  return String(value || "")
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, "")
+    .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, "")
+    .replace(/javascript:/gi, "");
+}
+
+export function buildRichTextGroup(name, label, value = "", { wrapperClass = "", minHeight = 120 } = {}) {
+  const classes = ["form-group", "tom-world-map-rich-text-field", wrapperClass].filter(Boolean).join(" ");
+  const safeName = escapeHtml(name);
+  const initialHtml = sanitizeEditorHtml(value);
+  return `
+    <div class="${classes}" data-world-map-rich-text="${safeName}">
+      <label>${tr(label)}</label>
+      <input type="hidden" name="${safeName}" value="${escapeHtml(String(value || ""))}" />
+      <div class="tom-world-map-rich-text-field__toolbar" aria-label="${tr("Text formatting")}">
+        <button type="button" data-world-map-rich-text-command="bold" title="${tr("Bold")}" aria-label="${tr("Bold")}"><i class="fas fa-bold" aria-hidden="true"></i></button>
+        <button type="button" data-world-map-rich-text-command="italic" title="${tr("Italic")}" aria-label="${tr("Italic")}"><i class="fas fa-italic" aria-hidden="true"></i></button>
+        <button type="button" data-world-map-rich-text-command="underline" title="${tr("Underline")}" aria-label="${tr("Underline")}"><i class="fas fa-underline" aria-hidden="true"></i></button>
+        <span class="tom-world-map-rich-text-field__color">
+          <button type="button" class="tom-world-map-rich-text-field__color-button" data-world-map-rich-text-color-trigger title="${tr("Text color")}" aria-label="${tr("Text color")}">
+            <i class="fas fa-palette" aria-hidden="true"></i>
+          </button>
+          <input type="color" data-world-map-rich-text-color value="#d7e0e8" aria-label="${tr("Text color")}" tabindex="-1" />
+        </span>
+      </div>
+      <div class="tom-world-map-rich-text-field__editor" style="min-height:${escapeHtml(String(minHeight))}px">
+        <div
+          class="tom-world-map-rich-text-field__editor-content"
+          data-world-map-rich-text-content="${safeName}"
+          contenteditable="true"
+          tabindex="0"
+        >${initialHtml}</div>
+      </div>
+    </div>
+  `;
+}
+
 export function buildSelectGroup(name, label, optionsMarkup, { wrapperClass = "" } = {}) {
   const classes = ["form-group", wrapperClass].filter(Boolean).join(" ");
   return `

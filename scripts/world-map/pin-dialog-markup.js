@@ -4,8 +4,8 @@ import {
   buildButtonSwitchMarkup,
   buildNumberInputGroup,
   buildRangeInputGroup,
+  buildRichTextGroup,
   buildSelectGroup,
-  buildTextareaGroup,
   buildTextInputGroup
 } from "./form-markup-utils.js";
 import { buildWorldMapDestinationLinksMarkup } from "./markup-utils.js";
@@ -38,13 +38,13 @@ export function buildPinDialogContent(initialData = {}, { typeOptions = "" } = {
   const safeSize = normalizePinSize(initialData.size);
   const documentPlayerAccess = initialData.documentPlayerAccess !== false;
   return `
-    <div class="tom-theme-root tom-world-map-pin-dialog">
+    <div class="tom-theme-root tom-world-map-edit-dialog tom-world-map-pin-dialog">
       <section class="tom-world-map-pin-dialog__style-card tom-theme-content-surface">
         <h4>${tr("Identity")}</h4>
         <div class="tom-world-map-pin-dialog__style-grid tom-world-map-pin-dialog__style-grid--two">
           ${buildTextInputGroup("pinLabel", "Pin label", initialData.label || "", { autofocus: true })}
           ${buildSelectGroup("pinType", "Pin type", typeOptions)}
-          ${buildTextareaGroup("pinNote", "Pin description", initialData.note || "", { rows: 4, wrapperClass: "tom-world-map-dialog__span-2" })}
+          ${buildRichTextGroup("pinNote", "Pin description", initialData.note || "", { wrapperClass: "tom-world-map-edit-dialog__span-2", minHeight: 120 })}
         </div>
       </section>
       <section class="tom-world-map-pin-dialog__style-card tom-theme-content-surface">
@@ -52,6 +52,12 @@ export function buildPinDialogContent(initialData = {}, { typeOptions = "" } = {
         <div class="tom-world-map-pin-dialog__style-grid tom-world-map-pin-dialog__style-grid--two">
           ${buildPinColorField("pinColor", "Pin color", safeColor, "#7ebaec")}
           ${buildRangeInputGroup("pinSize", "Pin size", safeSize, { min: 0.7, max: 2.4, step: 0.1 })}
+        </div>
+      </section>
+      <section class="tom-world-map-pin-dialog__style-card tom-theme-content-surface">
+        <h4>${tr("Layer")}</h4>
+        <div class="tom-world-map-pin-dialog__style-grid tom-world-map-pin-dialog__style-grid--two">
+          ${buildNumberInputGroup("pinZIndex", "Z-axis", Number.isFinite(Number(initialData.zIndex)) ? Number(initialData.zIndex) : 0, { min: -100, max: 100, step: 1 })}
         </div>
       </section>
       <section class="tom-world-map-pin-dialog__style-card tom-theme-content-surface">
@@ -74,6 +80,7 @@ export function buildPinDialogContent(initialData = {}, { typeOptions = "" } = {
         <h4>${tr("Behavior")}</h4>
         <div class="tom-world-map-dialog__behavior-grid">
           ${buildButtonSwitchMarkup("pinMovableForPlayers", "Movable for players", initialData.movableForPlayers)}
+          ${buildButtonSwitchMarkup("pinVisibleForPlayers", "Visible for players", initialData.visibleForPlayers !== false)}
           ${buildButtonSwitchMarkup("pinTooltipEnabled", "Show hover info", initialData.tooltipEnabled !== false)}
           ${buildButtonSwitchMarkup("pinTravelPlayerAccess", "Travel Access", Boolean(initialData.travelPlayerAccess), { wrapperClass: "tom-world-map-travel-target__switch tom-world-map-destination-card__switch" })}
           ${buildButtonSwitchMarkup("pinDocumentPlayerAccess", "Info Access", documentPlayerAccess, { wrapperClass: "tom-world-map-linked-document__access-switch tom-world-map-destination-card__switch" })}

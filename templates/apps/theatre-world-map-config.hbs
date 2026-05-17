@@ -16,6 +16,7 @@
   {{/each}}
   {{#each categories}}
   <input type="hidden" name="worldMap.categories.{{index}}.id" value="{{id}}" />
+  <input type="hidden" name="worldMap.categories.{{index}}.type" value="{{type}}" />
   <input type="hidden" name="worldMap.categories.{{index}}.iconClass" value="{{iconClass}}" />
   {{/each}}
 
@@ -138,7 +139,12 @@
             </header>
             <div class="tom-map-editmode__generator-row">
               <label class="tom-map-editmode__field">
-                <span>{{tr "Tile size"}}</span>
+                <span>
+                  {{tr "Tile size"}}
+                  {{#if systemCritical.tileSize}}
+                  <em class="tom-map-editmode__system-critical">({{tr "Attention: System critical"}} - {{tr "System"}}: {{systemCritical.tileSize}})</em>
+                  {{/if}}
+                </span>
                 <select name="worldMap.tileSize">
                   {{#each tileSizeOptions}}
                   <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
@@ -264,13 +270,34 @@
               <strong>{{tr "Categories"}}</strong>
               <small>{{tr "Shared categories for pins, lines, regions, images, and text objects."}}</small>
             </span>
-            <button type="button" class="tom-map-editmode__icon-button" data-action="add-map-category" title="{{tr "Add category"}}" aria-label="{{tr "Add category"}}">
-              <i class="fas fa-plus" aria-hidden="true"></i>
-            </button>
+            <span class="tom-map-editmode__header-actions">
+              <button type="button" class="tom-map-editmode__icon-button tom-map-editmode__category-add-button" data-action="add-map-category-separator" title="{{tr "Add divider"}}" aria-label="{{tr "Add divider"}}">
+                <i class="fas fa-grip-lines" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="tom-map-editmode__icon-button tom-map-editmode__category-add-button" data-action="add-map-category" title="{{tr "Add category"}}" aria-label="{{tr "Add category"}}">
+                <i class="fas fa-plus" aria-hidden="true"></i>
+              </button>
+            </span>
           </header>
           <div class="tom-map-editmode__category-list">
             {{#each categories}}
-            <section class="tom-map-editmode__category-row">
+            {{#if isSeparator}}
+            <section class="tom-map-editmode__category-row tom-map-editmode__category-row--separator" data-category-id="{{id}}">
+              <button type="button" class="tom-map-editmode__category-drag-handle" draggable="true" data-action="drag-map-category" data-category-id="{{id}}" title="{{tr "Reorder divider"}}" aria-label="{{tr "Reorder divider"}}">
+                <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+              </button>
+              <span class="tom-map-editmode__category-separator-preview" style="--tom-map-category-separator-color: {{color}};" aria-hidden="true"></span>
+              <input type="hidden" name="worldMap.categories.{{index}}.name" value="{{name}}" />
+              <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.categories.{{index}}.color" value="{{color}}" aria-label="{{tr "Divider color"}}" title="{{tr "Divider color"}}" />
+              <button type="button" class="tom-map-editmode__delete-icon" data-action="remove-map-category" data-category-id="{{id}}" title="{{tr "Delete"}}" aria-label="{{tr "Delete"}}">
+                <i class="fas fa-trash-can" aria-hidden="true"></i>
+              </button>
+            </section>
+            {{else}}
+            <section class="tom-map-editmode__category-row" data-category-id="{{id}}">
+              <button type="button" class="tom-map-editmode__category-drag-handle" draggable="true" data-action="drag-map-category" data-category-id="{{id}}" title="{{tr "Reorder category"}}" aria-label="{{tr "Reorder category"}}">
+                <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+              </button>
               <button type="button" class="tom-map-editmode__icon-button tom-map-editmode__category-icon" data-action="pick-map-category-icon" data-category-id="{{id}}" title="{{tr "Choose icon"}}" aria-label="{{tr "Choose icon"}}">
                 <i class="fas {{iconClass}}" aria-hidden="true"></i>
               </button>
@@ -280,6 +307,7 @@
                 <i class="fas fa-trash-can" aria-hidden="true"></i>
               </button>
             </section>
+            {{/if}}
             {{/each}}
           </div>
         </section>
@@ -556,11 +584,21 @@
         <div class="tom-map-editmode__content-stack">
           <div class="tom-map-editmode__field-grid tom-map-editmode__field-grid--two">
             <label class="tom-map-editmode__field">
-              <span>{{tr "Width"}}</span>
+              <span>
+                {{tr "Width"}}
+                {{#if systemCritical.width}}
+                <em class="tom-map-editmode__system-critical">({{tr "Attention: System critical"}} - {{tr "System"}}: {{systemCritical.width}})</em>
+                {{/if}}
+              </span>
               <input type="number" min="256" name="worldMap.width" value="{{map.width}}" />
             </label>
             <label class="tom-map-editmode__field">
-              <span>{{tr "Height"}}</span>
+              <span>
+                {{tr "Height"}}
+                {{#if systemCritical.height}}
+                <em class="tom-map-editmode__system-critical">({{tr "Attention: System critical"}} - {{tr "System"}}: {{systemCritical.height}})</em>
+                {{/if}}
+              </span>
               <input type="number" min="256" name="worldMap.height" value="{{map.height}}" />
             </label>
           </div>
@@ -574,11 +612,21 @@
             </header>
             <div class="tom-map-editmode__field-grid tom-map-editmode__field-grid--two">
               <label class="tom-map-editmode__field">
-                <span>{{tr "Min zoom"}}</span>
+                <span>
+                  {{tr "Min zoom"}}
+                  {{#if systemCritical.minZoom}}
+                  <em class="tom-map-editmode__system-critical">({{tr "Attention: System critical"}} - {{tr "System"}}: {{systemCritical.minZoom}})</em>
+                  {{/if}}
+                </span>
                 <input type="number" min="-8" max="24" step="0.1" name="worldMap.minZoom" value="{{map.minZoom}}" />
               </label>
               <label class="tom-map-editmode__field">
-                <span>{{tr "Max native zoom"}}</span>
+                <span>
+                  {{tr "Max native zoom"}}
+                  {{#if systemCritical.maxNativeZoom}}
+                  <em class="tom-map-editmode__system-critical">({{tr "Attention: System critical"}} - {{tr "System"}}: {{systemCritical.maxNativeZoom}})</em>
+                  {{/if}}
+                </span>
                 <input type="number" min="0" max="24" step="1" name="worldMap.maxNativeZoom" value="{{map.maxNativeZoom}}" />
               </label>
               <label class="tom-map-editmode__field">

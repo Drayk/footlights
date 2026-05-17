@@ -2,6 +2,11 @@ import { translate as tr } from "../localization.js";
 
 const CATEGORY_ID_PATTERN = /[^a-z0-9-_]+/g;
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+export const WORLD_MAP_CATEGORY_SEPARATOR_TYPE = "separator";
+
+export function isWorldMapCategorySeparator(categoryData = {}) {
+  return String(categoryData?.type || "").trim().toLowerCase() === WORLD_MAP_CATEGORY_SEPARATOR_TYPE;
+}
 
 export function getDefaultWorldMapCategories() {
   return [
@@ -14,13 +19,24 @@ export function getDefaultWorldMapCategories() {
 
 export function normalizeWorldMapCategory(categoryData = {}) {
   const fallback = getDefaultWorldMapCategories()[0];
+  const isSeparator = isWorldMapCategorySeparator(categoryData);
   const id = String(categoryData.id || categoryData.name || fallback.id)
     .trim()
     .toLowerCase()
     .replace(CATEGORY_ID_PATTERN, "-");
   const color = String(categoryData.color || "").trim();
+  if (isSeparator) {
+    return {
+      id: id || fallback.id,
+      type: WORLD_MAP_CATEGORY_SEPARATOR_TYPE,
+      name: String(categoryData.name || tr("Divider")).trim() || tr("Divider"),
+      iconClass: "fa-minus",
+      color: HEX_COLOR_PATTERN.test(color) ? color.toLowerCase() : "#7a93ad"
+    };
+  }
   return {
     id: id || fallback.id,
+    type: "category",
     name: String(categoryData.name || fallback.name).trim() || fallback.name,
     iconClass: String(categoryData.iconClass || fallback.iconClass).trim() || fallback.iconClass,
     color: HEX_COLOR_PATTERN.test(color) ? color.toLowerCase() : fallback.color
@@ -57,15 +73,20 @@ export function getWorldMapCategories(worldMap = {}) {
 export function getWorldMapCategoryOptions(worldMap = {}, {
   fallbackLabel = tr("Category"),
   fallbackIcon = "fa-location-dot",
-  fallbackColor = "#33475f"
+  fallbackColor = "#33475f",
+  includeSeparators = false
 } = {}) {
-  return getWorldMapCategories(worldMap ?? {}).map((entry) => ({
-    id: String(entry.id || "").trim().toLowerCase(),
-    value: String(entry.id || "").trim().toLowerCase(),
-    label: String(entry.name || fallbackLabel).trim() || fallbackLabel,
-    iconClass: String(entry.iconClass || fallbackIcon).trim() || fallbackIcon,
-    color: String(entry.color || fallbackColor).trim().toLowerCase()
-  }));
+  return getWorldMapCategories(worldMap ?? {})
+    .filter((entry) => includeSeparators || !isWorldMapCategorySeparator(entry))
+    .map((entry) => ({
+      id: String(entry.id || "").trim().toLowerCase(),
+      value: String(entry.id || "").trim().toLowerCase(),
+      label: String(entry.name || fallbackLabel).trim() || fallbackLabel,
+      iconClass: String(entry.iconClass || fallbackIcon).trim() || fallbackIcon,
+      color: String(entry.color || fallbackColor).trim().toLowerCase(),
+      type: String(entry.type || "category").trim().toLowerCase(),
+      isSeparator: isWorldMapCategorySeparator(entry)
+    }));
 }
 
 export function getWorldMapCategoryDefinitions(worldMap = {}, options = {}) {

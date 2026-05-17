@@ -76,6 +76,9 @@ export function createDefaultRegionDraft({
     documentType: "",
     documentName: "",
     documentPlayerAccess: true,
+    description: "",
+    zIndex: 0,
+    visibleForPlayers: true,
     visible: true,
     fillColor: "#7ebaec",
     strokeColor: "#d7e8ff",
@@ -101,6 +104,9 @@ export function createDefaultLineDraft({
     documentType: "",
     documentName: "",
     documentPlayerAccess: true,
+    description: "",
+    zIndex: 0,
+    visibleForPlayers: true,
     visible: true,
     color: "#d7e8ff",
     opacity: 0.95,
@@ -128,23 +134,64 @@ export function createDefaultLineDraft({
 export function createDefaultObjectOverlayDraft(type = "text", {
   category = "general",
   textName = "Text object",
-  imageName = "Image object"
+  imageName = "Image object",
+  circleName = "Circle",
+  rectangleName = "Rectangle"
 } = {}) {
-  const normalizedType = String(type || "text").trim().toLowerCase() === "image" ? "image" : "text";
+  const requestedType = String(type || "text").trim().toLowerCase();
+  const normalizedType = ["image", "text", "circle", "rectangle"].includes(requestedType) ? requestedType : "text";
+  const linkedDefaults = {
+    documentUuid: "",
+    documentType: "",
+    documentName: "",
+    documentPlayerAccess: true,
+    description: "",
+    zIndex: 0,
+    visibleForPlayers: true,
+    travelTargetType: "",
+    travelTargetId: "",
+    travelTargetUuid: "",
+    travelTargetName: "",
+    travelPlayerAccess: false,
+    travelCloseWorldMap: true
+  };
+  if (normalizedType === "circle" || normalizedType === "rectangle") {
+    return {
+      type: normalizedType,
+      name: normalizedType === "circle" ? circleName : rectangleName,
+      category,
+      ...linkedDefaults,
+      width: 180,
+      height: 120,
+      radius: 80,
+      cornerRadius: normalizedType === "rectangle" ? 0 : 999,
+      fillColor: "#7ebaec",
+      fillOpacity: 0.28,
+      fillStyle: "solid",
+      fillPatternScale: 14,
+      fillPatternSize: 2,
+      strokeColor: "#d7e8ff",
+      strokeOpacity: 0.95,
+      strokeWidth: 2,
+      strokeStyle: "solid",
+      opacity: 1,
+      scaleWithZoom: true,
+      movableForPlayers: false,
+      visible: true
+    };
+  }
   if (normalizedType === "image") {
     return {
       type: normalizedType,
       name: imageName,
       category,
       imagePath: "",
-      documentUuid: "",
-      documentType: "",
-      documentName: "",
+      ...linkedDefaults,
       width: 160,
       opacity: 1,
       scaleWithZoom: true,
       movableForPlayers: false,
-      documentPlayerAccess: true
+      visible: true
     };
   }
   return {
@@ -152,10 +199,7 @@ export function createDefaultObjectOverlayDraft(type = "text", {
     name: textName,
     category,
     text: textName,
-    documentUuid: "",
-    documentType: "",
-    documentName: "",
-    documentPlayerAccess: true,
+    ...linkedDefaults,
     fontSize: 24,
     lineHeight: 0.95,
     fontFamily: "",

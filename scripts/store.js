@@ -2,8 +2,10 @@ import { MODULE_ID, SETTINGS, DEFAULT_MINDMAP_STATE, DEFAULT_RUNTIME_STATE, DEFA
 import { bakeAvatarTokenImage } from "./avatar-bake.js";
 import { duplicateData, normalizeProfiles, normalizeSceneTags, normalizeScenes, normalizeRuntimeState, randomId } from "./helpers.js";
 import { getLanguageOptions, setActiveLanguage, translate as tr } from "./localization.js";
-import { getDefaultWorldMapCategories, normalizeWorldMapCategory, normalizeWorldMapCategoryList, normalizeWorldMapLockedCategories, collectWorldMapCategorySource } from "./world-map/category-utils.js";
+import { getDefaultWorldMapCategories, normalizeWorldMapCategory, normalizeWorldMapCategoryList, normalizeWorldMapLockedCategories, collectWorldMapCategorySource, isWorldMapCategorySeparator } from "./world-map/category-utils.js";
 import { FOG_DEFAULTS, normalizeFogImageTileSize, normalizeFogMode, normalizeFogOpacity, normalizeFogOperations } from "./world-map/fog-utils.js";
+
+const WORLD_MAP_OBJECT_OVERLAY_MAX_SIZE = 65536;
 
 export class FootlightsResetSettingsApplication extends FormApplication {
   static get defaultOptions() {
@@ -1007,6 +1009,14 @@ export class TheatreStore {
       default: {}
     });
 
+    game.settings.register(MODULE_ID, SETTINGS.WORLD_MAP_VIEW, {
+      name: "Footlights World Map View State",
+      scope: "client",
+      config: false,
+      type: Object,
+      default: {}
+    });
+
     game.settings.register(MODULE_ID, SETTINGS.RUNTIME, {
       name: "Footlights Runtime State",
       scope: "world",
@@ -1035,6 +1045,7 @@ export class TheatreStore {
       [SETTINGS.STAGE_GOBLIN, duplicateData(DEFAULT_STAGE_GOBLIN_STATE)],
       [SETTINGS.GLOBAL_SOUND_PLAYER, duplicateData(DEFAULT_GLOBAL_SOUND_PLAYER_STATE)],
       [SETTINGS.DIALOG_LAYOUT, {}],
+      [SETTINGS.WORLD_MAP_VIEW, {}],
       [SETTINGS.RUNTIME, duplicateData(DEFAULT_RUNTIME_STATE)]
     ];
 
@@ -1568,6 +1579,10 @@ export class TheatreStore {
     };
   }
 
+  static _normalizeWorldMapZIndex(data = {}) {
+    return Number.isFinite(Number(data.zIndex)) ? Math.max(-100, Math.min(100, Number(data.zIndex))) : 0;
+  }
+
   static _normalizeWorldMapPin(pinData = {}) {
     const type = String(pinData.type || "location").trim().toLowerCase();
     return {
@@ -1576,12 +1591,14 @@ export class TheatreStore {
       type: type || "location",
       x: Number.isFinite(Number(pinData.x)) ? Number(pinData.x) : 0,
       y: Number.isFinite(Number(pinData.y)) ? Number(pinData.y) : 0,
+      zIndex: this._normalizeWorldMapZIndex(pinData),
       note: String(pinData.note || "").trim(),
       icon: String(pinData.icon || "").trim(),
       documentUuid: String(pinData.documentUuid || "").trim(),
       documentType: String(pinData.documentType || "").trim(),
       documentName: String(pinData.documentName || "").trim(),
       documentPlayerAccess: pinData.documentPlayerAccess !== false,
+      visibleForPlayers: pinData.visibleForPlayers !== false,
       ...this._normalizeWorldMapTravelTarget(pinData),
       color: /^#[0-9a-f]{6}$/i.test(String(pinData.color || "").trim()) ? String(pinData.color).trim().toLowerCase() : "#7ebaec",
       size: Number.isFinite(Number(pinData.size)) ? Math.max(0.7, Math.min(2.4, Number(pinData.size))) : 1,
@@ -1644,8 +1661,14 @@ export class TheatreStore {
 
   static _normalizeWorldMapObjectOverlay(objectData = {}) {
     const type = String(objectData.type || "image").trim().toLowerCase();
-    const normalizedType = ["image", "text"].includes(type) ? type : "image";
-    const nameFallback = normalizedType === "text" ? tr("Text object") : tr("Image object");
+    const normalizedType = ["image", "text", "circle", "rectangle"].includes(type) ? type : "image";
+    const nameFallback = normalizedType === "text"
+      ? tr("Text object")
+      : normalizedType === "circle"
+        ? tr("Circle")
+        : normalizedType === "rectangle"
+          ? tr("Rectangle")
+          : tr("Image object");
     const color = /^#[0-9a-f]{6}$/i.test(String(objectData.color || "").trim()) ? String(objectData.color).trim().toLowerCase() : "#f2f5f8";
     const category = String(objectData.category || tr("General")).trim() || tr("General");
     return {
@@ -1655,14 +1678,29 @@ export class TheatreStore {
       category,
       x: Number.isFinite(Number(objectData.x)) ? Number(objectData.x) : 0,
       y: Number.isFinite(Number(objectData.y)) ? Number(objectData.y) : 0,
+      zIndex: this._normalizeWorldMapZIndex(objectData),
       imagePath: this._normalizePublicAssetPath(objectData.imagePath),
       text: String(objectData.text || "").trim(),
+      description: String(objectData.description || "").trim(),
       documentUuid: String(objectData.documentUuid || "").trim(),
       documentType: String(objectData.documentType || "").trim(),
       documentName: String(objectData.documentName || "").trim(),
       documentPlayerAccess: objectData.documentPlayerAccess !== false,
+      visibleForPlayers: objectData.visibleForPlayers !== false,
       ...this._normalizeWorldMapTravelTarget(objectData),
-      width: Number.isFinite(Number(objectData.width)) ? Math.max(16, Math.min(4096, Number(objectData.width))) : 160,
+      width: Number.isFinite(Number(objectData.width)) ? Math.max(16, Math.min(WORLD_MAP_OBJECT_OVERLAY_MAX_SIZE, Number(objectData.width))) : 160,
+      height: Number.isFinite(Number(objectData.height)) ? Math.max(16, Math.min(WORLD_MAP_OBJECT_OVERLAY_MAX_SIZE, Number(objectData.height))) : 120,
+      radius: Number.isFinite(Number(objectData.radius)) ? Math.max(8, Math.min(WORLD_MAP_OBJECT_OVERLAY_MAX_SIZE, Number(objectData.radius))) : 80,
+      cornerRadius: Number.isFinite(Number(objectData.cornerRadius)) ? Math.max(0, Math.min(512, Number(objectData.cornerRadius))) : 0,
+      fillColor: /^#[0-9a-f]{6}$/i.test(String(objectData.fillColor || "").trim()) ? String(objectData.fillColor).trim().toLowerCase() : "#7ebaec",
+      fillOpacity: Number.isFinite(Number(objectData.fillOpacity)) ? Math.max(0, Math.min(1, Number(objectData.fillOpacity))) : 0.28,
+      fillStyle: ["solid", "hatch", "crosshatch", "dots"].includes(String(objectData.fillStyle || "").trim().toLowerCase()) ? String(objectData.fillStyle).trim().toLowerCase() : "solid",
+      fillPatternScale: Number.isFinite(Number(objectData.fillPatternScale)) ? Math.max(4, Math.min(64, Number(objectData.fillPatternScale))) : 14,
+      fillPatternSize: Number.isFinite(Number(objectData.fillPatternSize)) ? Math.max(1, Math.min(24, Number(objectData.fillPatternSize))) : 2,
+      strokeColor: /^#[0-9a-f]{6}$/i.test(String(objectData.strokeColor || "").trim()) ? String(objectData.strokeColor).trim().toLowerCase() : "#d7e8ff",
+      strokeOpacity: Number.isFinite(Number(objectData.strokeOpacity)) ? Math.max(0, Math.min(1, Number(objectData.strokeOpacity))) : 0.95,
+      strokeWidth: Number.isFinite(Number(objectData.strokeWidth)) ? Math.max(0, Math.min(32, Number(objectData.strokeWidth))) : 2,
+      strokeStyle: ["solid", "dashed", "dotted", "dashdot"].includes(String(objectData.strokeStyle || "").trim().toLowerCase()) ? String(objectData.strokeStyle).trim().toLowerCase() : "solid",
       fontSize: Number.isFinite(Number(objectData.fontSize)) ? Math.max(8, Math.min(256, Number(objectData.fontSize))) : 24,
       lineHeight: Number.isFinite(Number(objectData.lineHeight)) ? Math.max(0.6, Math.min(2.4, Number(objectData.lineHeight))) : 0.95,
       fontFamily: String(objectData.fontFamily || "").trim(),
@@ -1702,10 +1740,13 @@ export class TheatreStore {
       name: String(regionData.name || tr("Region")).trim() || tr("Region"),
       category: String(regionData.category || "general").trim().toLowerCase() || "general",
       points,
+      zIndex: this._normalizeWorldMapZIndex(regionData),
+      description: String(regionData.description || "").trim(),
       documentUuid: String(regionData.documentUuid || "").trim(),
       documentType: String(regionData.documentType || "").trim(),
       documentName: String(regionData.documentName || "").trim(),
       documentPlayerAccess: regionData.documentPlayerAccess !== false,
+      visibleForPlayers: regionData.visibleForPlayers !== false,
       ...this._normalizeWorldMapTravelTarget(regionData),
       fillColor,
       strokeColor,
@@ -1738,10 +1779,13 @@ export class TheatreStore {
       name: String(lineData.name || tr("Line")).trim() || tr("Line"),
       category: String(lineData.category || "location").trim().toLowerCase() || "location",
       points,
+      zIndex: this._normalizeWorldMapZIndex(lineData),
       documentUuid: String(lineData.documentUuid || "").trim(),
       documentType: String(lineData.documentType || "").trim(),
       documentName: String(lineData.documentName || "").trim(),
       documentPlayerAccess: lineData.documentPlayerAccess !== false,
+      description: String(lineData.description || "").trim(),
+      visibleForPlayers: lineData.visibleForPlayers !== false,
       ...this._normalizeWorldMapTravelTarget(lineData),
       color: /^#[0-9a-f]{6}$/i.test(String(lineData.color || "").trim()) ? String(lineData.color).trim().toLowerCase() : "#d7e8ff",
       opacity: Number.isFinite(Number(lineData.opacity)) ? Math.max(0, Math.min(1, Number(lineData.opacity))) : 0.95,
@@ -1910,10 +1954,11 @@ export class TheatreStore {
     const initialX = Number.isFinite(initialXRaw) ? Math.max(0, Math.min(width, initialXRaw)) : Math.round(width / 2);
     const initialY = Number.isFinite(initialYRaw) ? Math.max(0, Math.min(height, initialYRaw)) : Math.round(height / 2);
     const categories = normalizeWorldMapCategoryList(collectWorldMapCategorySource(worldMap));
-    const allowedCategories = new Set(categories.map((entry) => entry.id));
+    const selectableCategories = categories.filter((entry) => !isWorldMapCategorySeparator(entry));
+    const allowedCategories = new Set(selectableCategories.map((entry) => entry.id));
     const lockedCategoriesInput = worldMap.lockedCategories && typeof worldMap.lockedCategories === "object" ? worldMap.lockedCategories : {};
     const lockedCategories = normalizeWorldMapLockedCategories(lockedCategoriesInput, allowedCategories);
-    const defaultCategory = categories[0]?.id || "location";
+    const defaultCategory = selectableCategories[0]?.id || "location";
     const pins = Array.isArray(worldMap.pins)
       ? Array.from(new Map(
           worldMap.pins

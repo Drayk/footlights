@@ -32,8 +32,9 @@ export class TheatreWorldMapStageApplication extends TheatreWorldMapApplication 
     const data = await super.getData();
     const worldMap = data.map ?? TheatreStore.getWorldMapById(this.mapId);
     const fullscreenSettings = worldMap?.fullscreenSettings ?? TheatreStore._getDefaultWorldMapFullscreenSettings();
-    const isLeftSidebarVisible = this._stageLeftSidebarVisible ?? Boolean(fullscreenSettings.sharedLeftSidebarVisible);
-    const isRightSidebarVisible = this._stageRightSidebarVisible ?? Boolean(fullscreenSettings.sharedRightSidebarVisible);
+    const hideFoundryUiOnOpen = Boolean(fullscreenSettings.uiHidden);
+    const isLeftSidebarVisible = this._stageLeftSidebarVisible ?? (hideFoundryUiOnOpen ? false : Boolean(fullscreenSettings.sharedLeftSidebarVisible));
+    const isRightSidebarVisible = this._stageRightSidebarVisible ?? (hideFoundryUiOnOpen ? false : Boolean(fullscreenSettings.sharedRightSidebarVisible));
     this._stageLeftSidebarVisible = isLeftSidebarVisible;
     this._stageRightSidebarVisible = isRightSidebarVisible;
 

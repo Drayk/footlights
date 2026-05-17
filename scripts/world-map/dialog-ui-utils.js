@@ -23,7 +23,7 @@ function getSavedDialogLayout(storageKey) {
   }
 }
 
-async function saveDialogLayout(storageKey, { width, height, left, top } = {}) {
+async function saveDialogLayout(storageKey, { width, height, left, top, savePosition = true } = {}) {
   if (!storageKey || !globalThis.game?.settings) return;
   const safeWidth = Math.round(Number(width));
   const safeHeight = Math.round(Number(height));
@@ -33,11 +33,11 @@ async function saveDialogLayout(storageKey, { width, height, left, top } = {}) {
   try {
     const state = { ...(game.settings.get(MODULE_ID, SETTINGS.DIALOG_LAYOUT) || {}) };
     state[storageKey] = {
-      ...(state[storageKey] || {}),
+      ...(savePosition ? (state[storageKey] || {}) : {}),
       ...(Number.isFinite(safeWidth) ? { width: safeWidth } : {}),
       ...(Number.isFinite(safeHeight) ? { height: safeHeight } : {}),
-      ...(Number.isFinite(safeLeft) ? { left: safeLeft } : {}),
-      ...(Number.isFinite(safeTop) ? { top: safeTop } : {})
+      ...(savePosition && Number.isFinite(safeLeft) ? { left: safeLeft } : {}),
+      ...(savePosition && Number.isFinite(safeTop) ? { top: safeTop } : {})
     };
     await game.settings.set(MODULE_ID, SETTINGS.DIALOG_LAYOUT, state);
   } catch (error) {
@@ -45,15 +45,28 @@ async function saveDialogLayout(storageKey, { width, height, left, top } = {}) {
   }
 }
 
-function saveDialogLayoutFromRoot(storageKey, root) {
+function saveDialogLayoutFromRoot(storageKey, root, { savePosition = true } = {}) {
   if (!storageKey || !(root instanceof HTMLElement)) return;
   const rect = root.getBoundingClientRect();
   void saveDialogLayout(storageKey, {
     width: rect.width,
     height: rect.height,
     left: rect.left,
-    top: rect.top
+    top: rect.top,
+    savePosition
   });
+}
+
+function getCenteredDialogPosition(width, height) {
+  const viewportWidth = Number(globalThis.window?.innerWidth) || document.documentElement?.clientWidth || 1200;
+  const viewportHeight = Number(globalThis.window?.innerHeight) || document.documentElement?.clientHeight || 800;
+  const margin = 16;
+  const safeWidth = Math.min(Math.max(Number(width) || 0, 0), Math.max(320, viewportWidth - (margin * 2)));
+  const safeHeight = Math.min(Math.max(Number(height) || 0, 0), Math.max(240, viewportHeight - (margin * 2)));
+  return {
+    left: Math.round(Math.max(margin, (viewportWidth - safeWidth) / 2)),
+    top: Math.round(Math.max(margin, (viewportHeight - safeHeight) / 2))
+  };
 }
 
 function isWorldMapEditorDialog(root) {
@@ -113,12 +126,16 @@ export function applyWorldMapDialogTheme(dialog, {
   moduleId,
   width = null,
   widthCss = null,
+  height = null,
   hostClasses = [],
   themeState = null,
   manualResize = null
 } = {}) {
   const savedLayout = getSavedDialogLayout(manualResize?.storageKey);
+  const shouldSavePosition = manualResize?.savePosition !== false;
+  const shouldCenterOnOpen = manualResize?.centerOnOpen === true;
   const effectiveWidth = savedLayout?.width ?? width;
+  const effectiveHeight = savedLayout?.height ?? height;
   const effectiveWidthCss = savedLayout?.width ? `${savedLayout.width}px` : (widthCss ?? (effectiveWidth ? `${effectiveWidth}px` : undefined));
   const root = applyWorldMapDialogBaseTheme(dialog, moduleId, effectiveWidthCss, themeState);
   if (!root) return null;
@@ -126,17 +143,24 @@ export function applyWorldMapDialogTheme(dialog, {
     if (className) root.classList.add(className);
   }
   if (isWorldMapEditorDialog(root)) applyWorldMapEditorDialogShell(root);
-  if ((effectiveWidth || savedLayout?.height || savedLayout?.left != null || savedLayout?.top != null) && typeof dialog.setPosition === "function" && root.dataset.tomManualResizing !== "true") {
+  if ((effectiveWidth || effectiveHeight || (shouldSavePosition && (savedLayout?.left != null || savedLayout?.top != null)) || shouldCenterOnOpen) && typeof dialog.setPosition === "function" && root.dataset.tomManualResizing !== "true") {
     const nextPosition = {};
     if (effectiveWidth) nextPosition.width = effectiveWidth;
-    if (savedLayout?.height) nextPosition.height = savedLayout.height;
-    if (savedLayout?.left != null) nextPosition.left = savedLayout.left;
-    if (savedLayout?.top != null) nextPosition.top = savedLayout.top;
+    if (effectiveHeight) nextPosition.height = effectiveHeight;
+    if (shouldCenterOnOpen) {
+      const rect = root.getBoundingClientRect();
+      const centered = getCenteredDialogPosition(effectiveWidth ?? rect.width, effectiveHeight ?? rect.height);
+      nextPosition.left = centered.left;
+      nextPosition.top = centered.top;
+    } else {
+      if (shouldSavePosition && savedLayout?.left != null) nextPosition.left = savedLayout.left;
+      if (shouldSavePosition && savedLayout?.top != null) nextPosition.top = savedLayout.top;
+    }
     dialog.setPosition(nextPosition);
     if (effectiveWidth) root.style.setProperty("width", `${effectiveWidth}px`, "important");
-    if (savedLayout?.height) root.style.setProperty("height", `${savedLayout.height}px`, "important");
-    if (savedLayout?.left != null) root.style.setProperty("left", `${savedLayout.left}px`, "important");
-    if (savedLayout?.top != null) root.style.setProperty("top", `${savedLayout.top}px`, "important");
+    if (effectiveHeight) root.style.setProperty("height", `${effectiveHeight}px`, "important");
+    if (nextPosition.left != null) root.style.setProperty("left", `${nextPosition.left}px`, "important");
+    if (nextPosition.top != null) root.style.setProperty("top", `${nextPosition.top}px`, "important");
   }
   if (manualResize) bindWorldMapManualDialogResize(dialog, root, manualResize);
   if (manualResize?.storageKey && !root.dataset.tomDialogLayoutCloseBound) {
@@ -144,7 +168,7 @@ export function applyWorldMapDialogTheme(dialog, {
     const originalClose = dialog.close?.bind(dialog);
     if (typeof originalClose === "function") {
       dialog.close = (...args) => {
-        saveDialogLayoutFromRoot(manualResize.storageKey, root);
+        saveDialogLayoutFromRoot(manualResize.storageKey, root, { savePosition: shouldSavePosition });
         return originalClose(...args);
       };
     }
@@ -152,6 +176,7 @@ export function applyWorldMapDialogTheme(dialog, {
   if (isWorldMapEditorDialog(root)) {
     bindWorldMapColorControls(root);
     bindWorldMapButtonSwitches(root);
+    bindWorldMapEditorEnterKeyGuard(root);
     applyWorldMapEditorSurfaceStyles(root);
   }
   return root;
@@ -194,6 +219,12 @@ function bindWorldMapColorControls(root) {
     };
     colorInput.addEventListener("input", syncHex);
     colorInput.addEventListener("change", syncHex);
+    hexInput.addEventListener("input", () => {
+      const nextValue = String(hexInput.value || "").trim();
+      if (!/^#[0-9a-f]{6}$/i.test(nextValue)) return;
+      colorInput.value = nextValue;
+      colorInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
     hexInput.addEventListener("change", () => {
       const nextValue = String(hexInput.value || "").trim();
       if (/^#[0-9a-f]{6}$/i.test(nextValue)) {
@@ -227,11 +258,29 @@ function bindWorldMapButtonSwitches(root) {
       event.stopPropagation();
       if (field instanceof HTMLInputElement) {
         field.value = field.value === "1" ? "0" : "1";
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        field.dispatchEvent(new Event("change", { bubbles: true }));
       }
       sync();
     });
     sync();
   });
+}
+
+function bindWorldMapEditorEnterKeyGuard(root) {
+  if (!(root instanceof HTMLElement) || root.dataset.tomEnterKeyGuardBound === "true") return;
+  root.dataset.tomEnterKeyGuardBound = "true";
+  root.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const editable = target.closest?.("[contenteditable='true'], textarea, input, select");
+    if (!(editable instanceof HTMLElement) || !root.contains(editable)) return;
+    event.stopPropagation();
+    if (editable.matches("input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), select")) {
+      event.preventDefault();
+    }
+  }, true);
 }
 
 function applyWorldMapEditorSurfaceStyles(root) {
@@ -306,7 +355,8 @@ export function applyWorldMapLineEditorTheme(root) {
 export function bindWorldMapManualDialogResize(dialog, root, {
   minWidth = 420,
   minHeight = 300,
-  storageKey = ""
+  storageKey = "",
+  savePosition = true
 } = {}) {
   if (!(root instanceof HTMLElement)) return;
   const foundryResizeHandle = root.querySelector(".window-resizable-handle");
@@ -376,7 +426,8 @@ export function bindWorldMapManualDialogResize(dialog, root, {
       width: rect.width,
       height: rect.height,
       left: rect.left,
-      top: rect.top
+      top: rect.top,
+      savePosition
     });
     window.removeEventListener("pointermove", onMouseMove, true);
     window.removeEventListener("pointerup", onMouseUp, true);
@@ -409,8 +460,117 @@ export function bindWorldMapManualDialogResize(dialog, root, {
 export function bindDialogLiveChange(root, selector, onChange) {
   if (!(root instanceof HTMLElement) || typeof onChange !== "function") return;
   root.querySelectorAll?.(selector).forEach((field) => {
+    if (!(field instanceof HTMLElement) || field.dataset.tomDialogLiveChangeBound === "true") return;
+    field.dataset.tomDialogLiveChangeBound = "true";
     field.addEventListener("input", onChange);
     field.addEventListener("change", onChange);
   });
   onChange();
+}
+
+export function activateWorldMapRichTextEditors(root) {
+  if (!(root instanceof HTMLElement)) return;
+  root.querySelectorAll("[data-world-map-rich-text]").forEach((field) => {
+    const name = String(field.dataset.worldMapRichText || "").trim();
+    const editor = field.querySelector(`[data-world-map-rich-text-content='${name}']`);
+    const hidden = field.querySelector(`input[type='hidden'][name='${name}']`);
+    if (!(editor instanceof HTMLElement) || !(hidden instanceof HTMLInputElement)) return;
+    const sync = () => {
+      hidden.value = editor.innerHTML.trim();
+      hidden.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    editor.addEventListener("input", sync);
+    editor.addEventListener("change", sync);
+    if (editor.dataset.tomRichTextBound) return;
+    editor.dataset.tomRichTextBound = "true";
+    editor.setAttribute("contenteditable", "true");
+    let savedRange = null;
+    const saveSelection = () => {
+      const selection = globalThis.getSelection?.();
+      if (!selection || selection.rangeCount < 1) return;
+      const range = selection.getRangeAt(0);
+      if (!editor.contains(range.commonAncestorContainer)) return;
+      savedRange = range.cloneRange();
+    };
+    const restoreSelection = () => {
+      if (!savedRange) return;
+      const selection = globalThis.getSelection?.();
+      if (!selection) return;
+      selection.removeAllRanges();
+      selection.addRange(savedRange);
+    };
+    const runCommand = (command, value = null) => {
+      editor.focus();
+      restoreSelection();
+      document.execCommand?.(command, false, value);
+      saveSelection();
+      sync();
+    };
+    editor.addEventListener("keyup", saveSelection);
+    editor.addEventListener("mouseup", saveSelection);
+    editor.addEventListener("focus", saveSelection);
+    ["pointerdown", "mousedown", "click"].forEach((eventName) => {
+      editor.addEventListener(eventName, (event) => {
+        event.stopPropagation();
+        if (eventName === "click") editor.focus();
+      });
+    });
+    field.querySelectorAll("[data-world-map-rich-text-command]").forEach((button) => {
+      button.addEventListener("mousedown", (event) => event.preventDefault());
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const command = String(button.dataset.worldMapRichTextCommand || "").trim();
+        if (!command) return;
+        runCommand(command);
+      });
+    });
+    const colorInput = field.querySelector("[data-world-map-rich-text-color]");
+    if (colorInput instanceof HTMLInputElement) {
+      const colorTrigger = field.querySelector("[data-world-map-rich-text-color-trigger]");
+      if (colorTrigger instanceof HTMLElement) {
+        colorTrigger.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          saveSelection();
+        });
+        colorTrigger.addEventListener("click", (event) => {
+          event.preventDefault();
+          saveSelection();
+          colorInput.click();
+        });
+      }
+      colorInput.addEventListener("input", () => {
+        const color = String(colorInput.value || "").trim();
+        if (color) runCommand("foreColor", color);
+      });
+      colorInput.addEventListener("change", () => {
+        const color = String(colorInput.value || "").trim();
+        if (color) runCommand("foreColor", color);
+      });
+    }
+    editor.addEventListener("paste", (event) => {
+      const clipboard = event.clipboardData;
+      if (!clipboard) return;
+      const html = clipboard.getData("text/html");
+      const text = clipboard.getData("text/plain");
+      if (!html && !text) return;
+      event.preventDefault();
+      if (html) {
+        const template = document.createElement("template");
+        template.innerHTML = html;
+        template.content.querySelectorAll("script, style").forEach((node) => node.remove());
+        template.content.querySelectorAll("*").forEach((node) => {
+          [...node.attributes].forEach((attribute) => {
+            const name = String(attribute.name || "").toLowerCase();
+            const value = String(attribute.value || "");
+            if (name.startsWith("on") || value.toLowerCase().includes("javascript:")) node.removeAttribute(attribute.name);
+          });
+        });
+        document.execCommand?.("insertHTML", false, template.innerHTML);
+      } else {
+        document.execCommand?.("insertText", false, text);
+      }
+      sync();
+    });
+    sync();
+  });
 }

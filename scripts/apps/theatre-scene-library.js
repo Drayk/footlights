@@ -2500,7 +2500,9 @@ export class TheatreSceneLibraryApplication extends FormApplication {
     html.find("[data-action='delete-scene']").on("click", this._onDeleteScene.bind(this));
     html.find("[data-action='cancel-scene-editor']").on("click", this._onCancelSceneEditor.bind(this));
     html.find("[data-action='save-scene-editor']").on("click", this._onSaveSceneEditor.bind(this));
-    html.find("[data-action='pick-image']").on("click", this._onPickImage.bind(this));
+    html.find("[data-action='pick-image']")
+      .not(".tom-library-inline-map-editor [data-action='pick-image']")
+      .on("click", this._onPickImage.bind(this));
     html.find("[data-action='remove-scene-actor']").on("click", this._onRemoveSceneActor.bind(this));
     html.find("[data-action='create-scene-editor-actor-avatar']").on("click", this._onCreateSceneEditorActorAvatar.bind(this));
     html.find("[data-action='add-avatar-to-scene-editor']").on("click", this._onAddAvatarToSceneEditor.bind(this));
@@ -5670,6 +5672,7 @@ export class TheatreSceneLibraryApplication extends FormApplication {
       this.form,
       this.form?.querySelector(".tom-library-content"),
       this.form?.querySelector(".tom-library-content--shell"),
+      this.form?.querySelector(".tom-settings-layout__main"),
       this.form?.querySelector(".tom-scene-config-main"),
       this.form?.querySelector(".tom-world-map-config"),
       this.form?.querySelector(".tom-sound-playlist-editor"),
@@ -5683,6 +5686,7 @@ export class TheatreSceneLibraryApplication extends FormApplication {
           element === this.form ? "form" :
           element === this.form?.querySelector(".tom-library-content") ? ".tom-library-content" :
           element === this.form?.querySelector(".tom-library-content--shell") ? ".tom-library-content--shell" :
+          element === this.form?.querySelector(".tom-settings-layout__main") ? ".tom-settings-layout__main" :
           element === this.form?.querySelector(".tom-scene-config-main") ? ".tom-scene-config-main" :
           element === this.form?.querySelector(".tom-world-map-config") ? ".tom-world-map-config" :
           element === this.form?.querySelector(".tom-sound-playlist-editor") ? ".tom-sound-playlist-editor" :
@@ -5699,6 +5703,7 @@ export class TheatreSceneLibraryApplication extends FormApplication {
         if (target.selector === "form") element = this.form;
         if (target.selector === ".tom-library-content") element = this.form?.querySelector(".tom-library-content");
         if (target.selector === ".tom-library-content--shell") element = this.form?.querySelector(".tom-library-content--shell");
+        if (target.selector === ".tom-settings-layout__main") element = this.form?.querySelector(".tom-settings-layout__main");
         if (target.selector === ".tom-scene-config-main") element = this.form?.querySelector(".tom-scene-config-main");
         if (target.selector === ".tom-world-map-config") element = this.form?.querySelector(".tom-world-map-config");
         if (target.selector === ".tom-sound-playlist-editor") element = this.form?.querySelector(".tom-sound-playlist-editor");

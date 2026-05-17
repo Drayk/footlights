@@ -4,6 +4,7 @@ import {
   buildButtonSwitchMarkup,
   buildNumberInputGroup,
   buildRegionFillStyleOptions,
+  buildRichTextGroup,
   buildSelectGroup,
   buildSelectOptions,
   buildStrokeStyleOptions,
@@ -69,6 +70,7 @@ function buildRegionBehaviorBox(initialData = {}) {
       <h4>${tr("Behavior")}</h4>
       <div class="tom-world-map-line-clean-dialog__behavior-grid tom-world-map-region-clean-dialog__behavior-grid">
         ${buildRegionSwitch("regionTooltipEnabled", "Show hover info", initialData.tooltipEnabled !== false)}
+        ${buildButtonSwitchMarkup("regionVisibleForPlayers", "Visible for players", initialData.visibleForPlayers !== false)}
         ${buildButtonSwitchMarkup("regionTravelPlayerAccess", "Travel Access", Boolean(initialData.travelPlayerAccess), { wrapperClass: "tom-world-map-region-clean-dialog__behavior-access tom-world-map-travel-target__switch tom-world-map-destination-card__switch" })}
         ${buildButtonSwitchMarkup("regionDocumentPlayerAccess", "Info Access", documentPlayerAccess, { wrapperClass: "tom-world-map-region-clean-dialog__behavior-access tom-world-map-linked-document__access-switch tom-world-map-destination-card__switch" })}
       </div>
@@ -85,6 +87,12 @@ function buildRegionLinkedActionsBox(initialData = {}) {
   `;
 }
 
+function buildRegionLayerBox(initialData = {}) {
+  return buildRegionGroup("Layer", `
+    ${buildNumberInputGroup("regionZIndex", "Z-axis", Number.isFinite(Number(initialData.zIndex)) ? Number(initialData.zIndex) : 0, { min: -100, max: 100, step: 1 })}
+  `);
+}
+
 export function buildRegionDialogContent(initialData = {}, { categoryOptions = [], fallbackCategory = "general" } = {}) {
   const selectedCategory = String(initialData.category || fallbackCategory).trim().toLowerCase() || fallbackCategory;
   const regionCategoryOptionsMarkup = buildSelectOptions(categoryOptions, selectedCategory);
@@ -93,14 +101,16 @@ export function buildRegionDialogContent(initialData = {}, { categoryOptions = [
   const fillOpacity = Number.isFinite(Number(initialData.fillOpacity)) ? Number(initialData.fillOpacity) : 0.28;
   const strokeOpacity = Number.isFinite(Number(initialData.strokeOpacity)) ? Number(initialData.strokeOpacity) : 0.95;
   return `
-    <div class="tom-theme-root tom-world-map-pin-dialog tom-world-map-line-clean-dialog tom-world-map-region-clean-dialog">
+    <div class="tom-theme-root tom-world-map-edit-dialog tom-world-map-pin-dialog tom-world-map-line-clean-dialog tom-world-map-region-clean-dialog">
       <section class="tom-world-map-line-clean-dialog__identity tom-world-map-region-clean-dialog__card tom-theme-content-surface">
         <div class="tom-world-map-line-clean-dialog__grid tom-world-map-line-clean-dialog__grid--two">
           ${buildTextInputGroup("regionName", "Name", initialData.name || tr("Region"), { autofocus: true })}
           ${buildSelectGroup("regionCategory", "Category", regionCategoryOptionsMarkup)}
+          ${buildRichTextGroup("regionDescription", "Description", initialData.description || "", { wrapperClass: "tom-world-map-edit-dialog__span-2", minHeight: 112 })}
         </div>
       </section>
       ${buildRegionBehaviorBox(initialData)}
+      ${buildRegionLayerBox(initialData)}
       <div class="tom-world-map-line-clean-dialog__columns">
         ${buildRegionPanel("Region style", `
           <div class="tom-world-map-line-clean-dialog__stack">

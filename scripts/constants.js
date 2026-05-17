@@ -17,6 +17,7 @@ export const SETTINGS = {
   STAGE_GOBLIN: "stageGoblinState",
   GLOBAL_SOUND_PLAYER: "globalSoundPlayerState",
   DIALOG_LAYOUT: "dialogLayoutState",
+  WORLD_MAP_VIEW: "worldMapViewState",
   RUNTIME: "runtimeState"
 };
 

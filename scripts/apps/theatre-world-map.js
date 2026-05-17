@@ -1,14 +1,14 @@
-import { MODULE_ID } from "../constants.js";
+import { MODULE_ID, SETTINGS } from "../constants.js";
 import { applyThemeInlineStyleToHost, buildThemeInlineStyle, duplicateData, escapeHtml, openImagePickerForInput, randomId, readTransferJson, themeFontFamilyToCss, themeSizeToCss, themeStopToCss } from "../helpers.js";
 import { translate as tr } from "../localization.js";
 import { TheatreStore } from "../store.js";
 import { ensureLeaflet } from "../vendor/leaflet-loader.js";
-import { getWorldMapCategoryDefinition, getWorldMapCategoryDefinitions, getWorldMapCategoryLabel, getWorldMapCategoryOptions } from "../world-map/category-utils.js";
+import { getWorldMapCategoryDefinition, getWorldMapCategoryDefinitions, getWorldMapCategoryLabel, getWorldMapCategoryOptions, isWorldMapCategorySeparator } from "../world-map/category-utils.js";
 import { createClosedContextMenuState, createContextMenuStateFromLeafletEvent, getWorldMapContextTarget } from "../world-map/context-utils.js";
 import { readLineDataFromDialog, readObjectOverlayDataFromDialog, readPinDataFromDialog, readRegionDataFromDialog } from "../world-map/dialog-data-utils.js";
 import { buildLineDialogContent, buildObjectOverlayDialogContent, buildPinDialogContent, buildRegionDialogContent } from "../world-map/dialog-markup-utils.js";
 import { bindObjectOverlayTextPreview } from "../world-map/dialog-preview-utils.js";
-import { applyWorldMapDialogTheme, applyWorldMapLineEditorTheme, applyWorldMapRegionEditorTheme, bindDialogLiveChange } from "../world-map/dialog-ui-utils.js";
+import { activateWorldMapRichTextEditors, applyWorldMapDialogTheme, applyWorldMapLineEditorTheme, applyWorldMapRegionEditorTheme, bindDialogLiveChange } from "../world-map/dialog-ui-utils.js";
 import { getWorldMapDragItemCount, isSupportedLinkedWorldMapDocument, openLinkedWorldMapDocument, resolveDroppedWorldMapDocument } from "../world-map/document-utils.js";
 import { buildDuplicatedWorldMapElement, buildMovedWorldMapElement, createDefaultLineDraft, createDefaultObjectOverlayDraft, createDefaultRegionDraft, findWorldMapElement, getWorldMapElementOperation } from "../world-map/element-utils.js";
 import { FOG_DEFAULTS, calculateFogCanvasMetrics, calculateFogImageTileContainerSize, normalizeFogAction, normalizeFogBrushSize, normalizeFogFeather, normalizeFogTool, positiveModulo } from "../world-map/fog-utils.js";
@@ -17,6 +17,8 @@ import { getClosestPointOnSegment } from "../world-map/geometry-utils.js";
 import { activateLinkedDocumentDrop, activateTravelTargetControls, buildWorldMapSidebarTooltip, buildWorldMapTooltipContent } from "../world-map/markup-utils.js";
 import { buildPinIconPresentation, buildPinShadowStyle, getLineBasePresentation, getLineOutlinePresentation, getLinePointPresentation, getLineShadowFilter, getRegionPatternPresentation, getRegionPresentation } from "../world-map/presentation-utils.js";
 import { buildTextPresentationStyle, getLineDashArray, hexToRgba, normalizeHexColor, normalizePinSize } from "../world-map/style-utils.js";
+
+const WORLD_MAP_OBJECT_OVERLAY_MAX_SIZE = 65536;
 
 export class TheatreWorldMapApplication extends Application {
   constructor(options = {}) {
@@ -32,6 +34,7 @@ export class TheatreWorldMapApplication extends Application {
     this._initialInvalidateTimeout = null;
     this._leafletOverlayLayers = new Map();
     this._leafletObjectOverlayMarkers = new Map();
+    this._editingObjectOverlayIds = new Set();
     this._objectOverlayImageRatioCache = new Map();
     this._objectOverlayPresentationFrames = new Set();
     this._objectOverlayPresentationTimeouts = new Set();
@@ -60,8 +63,10 @@ export class TheatreWorldMapApplication extends Application {
     this._hiddenRegionCategories = this._hiddenCategories;
     this._activeOverlayIds = new Set();
     this._overlayStateMapId = null;
+    this._viewStateMapId = null;
     this._areObjectOverlaysVisible = true;
     this._areRegionsVisible = true;
+    this._collapsedSidebarSections = new Set();
     this._isRegionDrawMode = false;
     this._isLineDrawMode = false;
     this._editingRegionId = null;
@@ -163,6 +168,7 @@ export class TheatreWorldMapApplication extends Application {
       : TheatreStore.getActiveWorldMap();
     if (worldMap?.id) {
       this.mapId = worldMap.id;
+      this._ensureWorldMapViewState(worldMap);
     }
     this.options.title = worldMap?.name || tr("World Map");
 
@@ -171,7 +177,7 @@ export class TheatreWorldMapApplication extends Application {
     this._isRightSidebarCollapsed = isRightSidebarCollapsed;
 
     const pins = Array.isArray(worldMap?.pins)
-      ? worldMap.pins.map((pin, index) => ({
+      ? worldMap.pins.filter((pin) => this._isWorldMapElementVisibleForCurrentUser(pin)).map((pin, index) => ({
           ...pin,
           index: index + 1,
           note: String(pin.note || "").trim(),
@@ -188,16 +194,18 @@ export class TheatreWorldMapApplication extends Application {
           categoryLabel: this._getPinTypeDefinition(pin.type, worldMap).label,
           iconSizeRem: (1 * normalizePinSize(pin.size)).toFixed(2),
           hasDocumentLink: Boolean(pin.documentUuid),
+          isHiddenFromPlayers: this._isWorldMapElementHiddenFromPlayers(pin),
           isSelected: pin.id === this._selectedPinId
         }))
       : [];
-    const categoryLegend = this._getCategoryOptions(worldMap).map((entry) => ({
+    const categoryLegend = getWorldMapCategoryOptions(worldMap ?? {}, { fallbackLabel: tr("Category"), includeSeparators: true }).map((entry) => ({
       id: entry.id,
       type: entry.id,
       label: entry.label,
       iconClass: entry.iconClass,
       color: String(entry.color || "#33475f").trim().toLowerCase(),
-      isHidden: this._hiddenCategories.has(entry.id),
+      isSeparator: isWorldMapCategorySeparator(entry),
+      isHidden: this._hiddenCategories.has(String(entry.id || "").trim().toLowerCase()),
       isLocked: this._isCategoryLocked("categories", entry.id)
     }));
     const overlays = Array.isArray(worldMap?.overlays)
@@ -209,7 +217,7 @@ export class TheatreWorldMapApplication extends Application {
           }))
       : [];
     const objectOverlays = Array.isArray(worldMap?.objectOverlays)
-      ? worldMap.objectOverlays.map((entry) => ({
+      ? worldMap.objectOverlays.filter((entry) => this._isWorldMapElementVisibleForCurrentUser(entry)).map((entry) => ({
           ...entry,
           categoryLabel: this._getObjectCategoryLabel(entry.category, worldMap),
           tooltip: buildWorldMapSidebarTooltip([
@@ -219,25 +227,28 @@ export class TheatreWorldMapApplication extends Application {
             entry.scaleWithZoom ? tr("Scale with zoom") : ""
           ], { documentName: entry.documentName }),
           isImage: entry.type === "image",
-          isText: entry.type === "text"
+          isText: entry.type === "text",
+          isHiddenFromPlayers: this._isWorldMapElementHiddenFromPlayers(entry)
         }))
       : [];
     const regions = Array.isArray(worldMap?.regions)
-      ? worldMap.regions.map((entry) => ({
+      ? worldMap.regions.filter((entry) => this._isWorldMapElementVisibleForCurrentUser(entry)).map((entry) => ({
           ...entry,
           categoryLabel: this._getRegionCategoryLabel(entry.category, worldMap),
           tooltip: buildWorldMapSidebarTooltip([
             `${this._getRegionCategoryLabel(entry.category, worldMap)} - ${entry.points?.length ?? 0} ${tr("point(s)")}`
-          ], { documentName: entry.documentName })
+          ], { documentName: entry.documentName }),
+          isHiddenFromPlayers: this._isWorldMapElementHiddenFromPlayers(entry)
         }))
       : [];
     const lines = Array.isArray(worldMap?.lines)
-      ? worldMap.lines.map((entry) => ({
+      ? worldMap.lines.filter((entry) => this._isWorldMapElementVisibleForCurrentUser(entry)).map((entry) => ({
           ...entry,
           categoryLabel: this._getPinTypeDefinition(entry.category, worldMap).label,
           tooltip: buildWorldMapSidebarTooltip([
             `${this._getPinTypeDefinition(entry.category, worldMap).label} - ${tr("Line")} - ${entry.points?.length ?? 0} ${tr("point(s)")}`
-          ], { documentName: entry.documentName })
+          ], { documentName: entry.documentName }),
+          isHiddenFromPlayers: this._isWorldMapElementHiddenFromPlayers(entry)
         }))
       : [];
 
@@ -259,6 +270,9 @@ export class TheatreWorldMapApplication extends Application {
       arePinsVisible: this._arePinsVisible,
       areObjectOverlaysVisible: this._areObjectOverlaysVisible,
       areRegionsVisible: this._areRegionsVisible,
+      isObjectOverlaySectionCollapsed: this._collapsedSidebarSections.has("objectOverlays"),
+      isRegionSectionCollapsed: this._collapsedSidebarSections.has("regions"),
+      isLineSectionCollapsed: this._collapsedSidebarSections.has("lines"),
       isRegionDrawMode: this._isRegionDrawMode,
       isLineDrawMode: this._isLineDrawMode,
       isRegionEditMode: Boolean(this._editingRegionId),
@@ -385,7 +399,8 @@ export class TheatreWorldMapApplication extends Application {
       ["edit-map-region", "_onEditRegionFromList"],
       ["remove-map-region", "_onRemoveRegion"],
       ["edit-map-line", "_onEditLineFromList"],
-      ["remove-map-line", "_onRemoveLine"]
+      ["remove-map-line", "_onRemoveLine"],
+      ["toggle-map-sidebar-section", "_onToggleSidebarSection"]
     ]);
   }
 
@@ -394,11 +409,14 @@ export class TheatreWorldMapApplication extends Application {
       ["create-map-pin-at-context", "_onCreatePinAtContextMenu"],
       ["create-map-image-at-context", "_onCreateImageAtContextMenu"],
       ["create-map-text-at-context", "_onCreateTextAtContextMenu"],
+      ["create-map-circle-at-context", "_onCreateCircleAtContextMenu"],
+      ["create-map-rectangle-at-context", "_onCreateRectangleAtContextMenu"],
       ["start-map-region-at-context", "_onStartRegionAtContextMenu"],
       ["start-map-line-at-context", "_onStartLineAtContextMenu"],
       ["edit-map-context-target", "_onEditContextTarget"],
       ["edit-map-context-line-points", "_onEditContextLinePoints"],
       ["edit-map-context-region-points", "_onEditContextRegionPoints"],
+      ["toggle-map-context-target-visibility", "_onToggleContextTargetVisibility"],
       ["duplicate-map-context-target", "_onDuplicateContextTarget"],
       ["delete-map-context-target", "_onDeleteContextTarget"]
     ]);
@@ -502,6 +520,7 @@ export class TheatreWorldMapApplication extends Application {
     }
 
     this._destroyLeafletMap();
+    this._ensureWorldMapViewState(worldMap);
     if (this._overlayStateMapId !== worldMap.id) {
       this._activeOverlayIds = new Set(
         (Array.isArray(worldMap.overlays) ? worldMap.overlays : [])
@@ -523,18 +542,113 @@ export class TheatreWorldMapApplication extends Application {
     this._scheduleLeafletInitialSizeInvalidation(map);
   }
 
+  _getWorldMapViewStates() {
+    try {
+      const state = game.settings.get(MODULE_ID, SETTINGS.WORLD_MAP_VIEW);
+      return state && typeof state === "object" ? foundry.utils.deepClone(state) : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  _getWorldMapViewState(worldMapId) {
+    const key = String(worldMapId || "").trim();
+    if (!key) return {};
+    const states = this._getWorldMapViewStates();
+    const state = states[key];
+    return state && typeof state === "object" ? state : {};
+  }
+
+  _getDefaultActiveOverlayIds(worldMap) {
+    return new Set(
+      (Array.isArray(worldMap?.overlays) ? worldMap.overlays : [])
+        .filter((overlay) => overlay?.visibleByDefault && overlay.tileUrlTemplate)
+        .map((overlay) => String(overlay.id || "").trim())
+        .filter(Boolean)
+    );
+  }
+
+  _setHiddenCategoryState(categoryIds = []) {
+    const nextHiddenCategories = new Set(
+      (Array.isArray(categoryIds) ? categoryIds : [])
+        .map((id) => String(id || "").trim().toLowerCase())
+        .filter(Boolean)
+    );
+    this._hiddenCategories = nextHiddenCategories;
+    this._hiddenPinTypes = this._hiddenCategories;
+    this._hiddenObjectCategories = this._hiddenCategories;
+    this._hiddenRegionCategories = this._hiddenCategories;
+  }
+
+  _ensureWorldMapViewState(worldMap) {
+    const mapId = String(worldMap?.id || "").trim();
+    if (!mapId || this._viewStateMapId === mapId) return;
+    const storedState = this._getWorldMapViewState(mapId);
+    const categoryIds = new Set(
+      getWorldMapCategoryOptions(worldMap ?? {}, { fallbackLabel: tr("Category"), includeSeparators: true })
+        .map((entry) => String(entry?.id || "").trim().toLowerCase())
+        .filter(Boolean)
+    );
+    const overlayIds = new Set(
+      (Array.isArray(worldMap?.overlays) ? worldMap.overlays : [])
+        .map((overlay) => String(overlay?.id || "").trim())
+        .filter(Boolean)
+    );
+    const hiddenCategories = Array.isArray(storedState.hiddenCategories)
+      ? storedState.hiddenCategories
+          .map((id) => String(id || "").trim().toLowerCase())
+          .filter((id) => id && categoryIds.has(id))
+      : [];
+    const activeOverlayIds = Array.isArray(storedState.activeOverlays)
+      ? storedState.activeOverlays
+          .map((id) => String(id || "").trim())
+          .filter((id) => id && overlayIds.has(id))
+      : Array.from(this._getDefaultActiveOverlayIds(worldMap));
+
+    this._setHiddenCategoryState(hiddenCategories);
+    this._activeOverlayIds = new Set(activeOverlayIds);
+    this._overlayStateMapId = mapId;
+    this._viewStateMapId = mapId;
+    this._arePinsVisible = typeof storedState.pinsVisible === "boolean" ? storedState.pinsVisible : true;
+    this._areObjectOverlaysVisible = typeof storedState.objectOverlaysVisible === "boolean" ? storedState.objectOverlaysVisible : true;
+    this._areRegionsVisible = typeof storedState.regionsVisible === "boolean" ? storedState.regionsVisible : true;
+  }
+
+  _persistWorldMapViewState() {
+    const mapId = String(this.mapId || "").trim();
+    if (!mapId) return;
+    const states = this._getWorldMapViewStates();
+    states[mapId] = {
+      hiddenCategories: Array.from(this._hiddenCategories),
+      activeOverlays: Array.from(this._activeOverlayIds),
+      pinsVisible: Boolean(this._arePinsVisible),
+      objectOverlaysVisible: Boolean(this._areObjectOverlaysVisible),
+      regionsVisible: Boolean(this._areRegionsVisible)
+    };
+    game.settings.set(MODULE_ID, SETTINGS.WORLD_MAP_VIEW, states).catch((error) => {
+      console.warn(`${MODULE_ID} | Could not save world map view state`, error);
+    });
+  }
+
   _getLeafletWheelPxPerZoomLevel(worldMap) {
-    const wheelStep = Number(worldMap?.zoomStep) || 0.25;
+    const wheelStep = this._getWorldMapZoomStep(worldMap);
     return Math.max(30, Math.min(480, Math.round(60 / Math.max(0.05, wheelStep))));
   }
 
+  _getWorldMapZoomStep(worldMap) {
+    const zoomStep = Number(worldMap?.zoomStep);
+    if (!Number.isFinite(zoomStep)) return 0.25;
+    return Math.max(0.1, Math.min(2, zoomStep));
+  }
+
   _createLeafletMap(L, container, worldMap) {
+    const zoomStep = this._getWorldMapZoomStep(worldMap);
     return L.map(container, {
       crs: L.CRS.Simple,
       minZoom: worldMap.minZoom,
       maxZoom: worldMap.maxZoom,
-      zoomSnap: 1,
-      zoomDelta: 1,
+      zoomSnap: zoomStep,
+      zoomDelta: zoomStep,
       wheelPxPerZoomLevel: this._getLeafletWheelPxPerZoomLevel(worldMap),
       zoomControl: true,
       attributionControl: false,
@@ -555,6 +669,46 @@ export class TheatreWorldMapApplication extends Application {
     if (!editPane) return;
     editPane.style.zIndex = "920";
     editPane.style.pointerEvents = "auto";
+  }
+
+  _getWorldMapElementZIndex(entry = {}) {
+    const value = Number(entry?.zIndex);
+    return Number.isFinite(value) ? Math.max(-100, Math.min(100, value)) : 0;
+  }
+
+  _sortWorldMapElementsForZOrder(entries = []) {
+    return [...(Array.isArray(entries) ? entries : [])]
+      .map((entry, index) => ({ entry, index }))
+      .sort((a, b) => {
+        const zDifference = this._getWorldMapElementZIndex(a.entry) - this._getWorldMapElementZIndex(b.entry);
+        return zDifference || (a.index - b.index);
+      })
+      .map(({ entry }) => entry);
+  }
+
+  _getWorldMapElementPane(entry = {}) {
+    if (!this._leafletMap) return undefined;
+    const zIndex = Math.round(this._getWorldMapElementZIndex(entry));
+    const paneName = `tom-world-map-element-pane-${zIndex + 100}`;
+    const pane = this._leafletMap.getPane?.(paneName) ?? this._leafletMap.createPane?.(paneName);
+    if (pane) {
+      pane.classList.add("tom-world-map-element-pane");
+      pane.style.zIndex = String(650 + zIndex);
+      pane.style.pointerEvents = "auto";
+    }
+    return paneName;
+  }
+
+  _moveMarkerToWorldMapElementPane(marker, entry = {}) {
+    if (!marker || !this._leafletMap) return;
+    const paneName = this._getWorldMapElementPane(entry);
+    const pane = paneName ? this._leafletMap.getPane?.(paneName) : null;
+    if (!pane) return;
+    marker.options.pane = paneName;
+    marker._pane = pane;
+    const icon = marker.getElement?.();
+    if (icon instanceof HTMLElement && icon.parentElement !== pane) pane.appendChild(icon);
+    if (marker._shadow instanceof HTMLElement && marker._shadow.parentElement !== pane) pane.appendChild(marker._shadow);
   }
 
   _configureLeafletBounds(map, worldMap) {
@@ -1610,7 +1764,7 @@ export class TheatreWorldMapApplication extends Application {
       }
     };
 
-    if (this._editGridVisible && (this._editingRegionId || this._editingLineId)) {
+    if (this._editGridVisible && (this._editingRegionId || this._editingLineId || this._isRegionDrawMode || this._isLineDrawMode)) {
       const gridSize = Math.max(8, Math.min(512, Math.round(Number(this._editGridSize) || 50)));
       const mapPoint = this._latLngToMapPixels(latlng, worldMap);
       const snappedX = Math.max(0, Math.min(Number(worldMap.width) || 0, Math.round(mapPoint.x / gridSize) * gridSize));
@@ -1645,9 +1799,11 @@ export class TheatreWorldMapApplication extends Application {
 
   _createMarkerIcon(pin) {
     const icon = buildPinIconPresentation(pin, this._getPinTypeDefinition(pin?.type));
+    const hiddenClass = this._isWorldMapElementHiddenFromPlayers(pin) ? " is-hidden-from-players" : "";
+    const hiddenBadge = hiddenClass ? `<span class="tom-world-map-player-hidden-badge" aria-hidden="true"><i class="fas fa-eye-slash"></i></span>` : "";
     return globalThis.L.divIcon({
-      className: "tom-world-map-marker",
-      html: `<span class="tom-world-map-marker__icon"><i class="fas ${icon.iconClass}" aria-hidden="true" style="color:${icon.color}; font-size:${icon.iconFontSize}rem;${icon.strokeStyle}${icon.shadowStyle ? ` ${icon.shadowStyle}` : ""}"></i></span>`,
+      className: `tom-world-map-marker${hiddenClass}`,
+      html: `<span class="tom-world-map-marker__icon${hiddenClass}"><i class="fas ${icon.iconClass}" aria-hidden="true" style="color:${icon.color}; font-size:${icon.iconFontSize}rem;${icon.strokeStyle}${icon.shadowStyle ? ` ${icon.shadowStyle}` : ""}"></i>${hiddenBadge}</span>`,
       iconSize: [icon.iconSize, icon.iconSize],
       iconAnchor: [icon.iconAnchor, icon.iconAnchor]
     });
@@ -1767,9 +1923,56 @@ export class TheatreWorldMapApplication extends Application {
     return { width: width * scale, height: height * scale, scale };
   }
 
+  _isShapeObjectOverlay(entry) {
+    const type = String(entry?.type || "").trim().toLowerCase();
+    return type === "circle" || type === "rectangle";
+  }
+
+  _buildShapeObjectOverlayStyle(entry = {}) {
+    const fillColor = normalizeHexColor(entry.fillColor, "#7ebaec");
+    const strokeColor = normalizeHexColor(entry.strokeColor, "#d7e8ff");
+    const fillOpacity = Number.isFinite(Number(entry.fillOpacity)) ? Math.max(0, Math.min(1, Number(entry.fillOpacity))) : 0.28;
+    const strokeOpacity = Number.isFinite(Number(entry.strokeOpacity)) ? Math.max(0, Math.min(1, Number(entry.strokeOpacity))) : 0.95;
+    const fill = hexToRgba(fillColor, fillOpacity);
+    const pattern = hexToRgba(fillColor, Math.min(1, fillOpacity + 0.18));
+    const spacing = Math.max(4, Math.min(64, Number(entry.fillPatternScale) || 14));
+    const size = Math.max(1, Math.min(24, Number(entry.fillPatternSize) || 2));
+    const style = String(entry.fillStyle || "solid").trim().toLowerCase();
+    const background = style === "hatch"
+      ? `repeating-linear-gradient(45deg, transparent 0 ${Math.max(1, spacing - size)}px, ${pattern} ${Math.max(1, spacing - size)}px ${spacing}px), ${fill}`
+      : style === "crosshatch"
+        ? `repeating-linear-gradient(45deg, transparent 0 ${Math.max(1, spacing - size)}px, ${pattern} ${Math.max(1, spacing - size)}px ${spacing}px), repeating-linear-gradient(-45deg, transparent 0 ${Math.max(1, spacing - size)}px, ${pattern} ${Math.max(1, spacing - size)}px ${spacing}px), ${fill}`
+        : style === "dots"
+          ? `radial-gradient(circle, ${pattern} 0 ${size}px, transparent ${size + 1}px) 0 0 / ${spacing}px ${spacing}px, ${fill}`
+          : fill;
+    const borderStyle = String(entry.strokeStyle || "solid").trim().toLowerCase();
+    const cssBorderStyle = borderStyle === "dotted" ? "dotted" : borderStyle === "solid" ? "solid" : "dashed";
+    const borderWidth = Math.max(0, Math.min(32, Number(entry.strokeWidth) || 0));
+    const borderRadius = String(entry.type || "").toLowerCase() === "circle"
+      ? "50%"
+      : `${Math.max(0, Math.min(512, Number(entry.cornerRadius) || 0))}px`;
+    return [
+      `background:${background}`,
+      `border:${borderWidth}px ${cssBorderStyle} ${hexToRgba(strokeColor, strokeOpacity)}`,
+      `border-radius:${borderRadius}`,
+      "box-sizing:border-box"
+    ].join(";");
+  }
+
   _getObjectOverlayBaseDimensions(entry, marker = null) {
+    if (entry?.type === "circle") {
+      const diameter = Math.max(16, (Number(entry?.radius) || 80) * 2);
+      return { width: diameter, height: diameter };
+    }
+    if (entry?.type === "rectangle") {
+      return {
+        width: Math.max(16, Number(entry?.width) || 180),
+        height: Math.max(16, Number(entry?.height) || 120)
+      };
+    }
     if (entry?.type === "text") {
-      const width = Math.max(24, ((Number(entry?.text?.length) || Number(entry?.name?.length) || 8) * (Number(entry?.fontSize) || 24) * 0.58));
+      const fallbackWidth = ((Number(entry?.text?.length) || Number(entry?.name?.length) || 8) * (Number(entry?.fontSize) || 24) * 0.58);
+      const width = Math.max(24, Number(entry?.width) || fallbackWidth);
       const height = Math.max(12, (Number(entry?.fontSize) || 24) * 1.25);
       return { width, height };
     }
@@ -1781,17 +1984,23 @@ export class TheatreWorldMapApplication extends Application {
   }
 
   _buildObjectOverlayIconHtml(entry, zoom = null) {
-    const { width } = this._getObjectOverlayBaseDimensions(entry);
+    const { width, height } = this._getObjectOverlayBaseDimensions(entry);
+    const hiddenClass = this._isWorldMapElementHiddenFromPlayers(entry) ? " is-hidden-from-players" : "";
+    const hiddenBadge = hiddenClass ? `<span class="tom-world-map-player-hidden-badge" aria-hidden="true"><i class="fas fa-eye-slash"></i></span>` : "";
+    if (this._isShapeObjectOverlay(entry)) {
+      return `<div class="tom-world-map-object tom-world-map-object--shape tom-world-map-object--${escapeHtml(entry.type)}${hiddenClass}" style="opacity:${Number(entry.opacity) || 1}; width:${width.toFixed(2)}px; height:${height.toFixed(2)}px; ${this._buildShapeObjectOverlayStyle(entry)}">${hiddenBadge}</div>`;
+    }
     if (entry.type === "text") {
       const textStyle = buildTextPresentationStyle(entry, 1);
-      return `<div class="tom-world-map-object tom-world-map-object--text" style="opacity:${Number(entry.opacity) || 1}; color:${escapeHtml(textStyle.color)}; font-size:${textStyle.fontSizePx.toFixed(2)}px; line-height:${textStyle.lineHeight};${textStyle.fontFamily ? `font-family:${textStyle.fontFamily};` : ""}${textStyle.webkitTextStroke ? `-webkit-text-stroke:${textStyle.webkitTextStroke};paint-order:stroke fill;` : ""}${textStyle.textShadow ? `text-shadow:${textStyle.textShadow};` : ""}">${escapeHtml(entry.text || entry.name || tr("Text object"))}</div>`;
+      return `<div class="tom-world-map-object tom-world-map-object--text${hiddenClass}" style="opacity:${Number(entry.opacity) || 1}; width:${width.toFixed(2)}px; color:${escapeHtml(textStyle.color)}; font-size:${textStyle.fontSizePx.toFixed(2)}px; line-height:${textStyle.lineHeight};${textStyle.fontFamily ? `font-family:${textStyle.fontFamily};` : ""}${textStyle.webkitTextStroke ? `-webkit-text-stroke:${textStyle.webkitTextStroke};paint-order:stroke fill;` : ""}${textStyle.textShadow ? `text-shadow:${textStyle.textShadow};` : ""}">${escapeHtml(entry.text || entry.name || tr("Text object"))}${hiddenBadge}</div>`;
     }
-    return `<div class="tom-world-map-object tom-world-map-object--image" style="opacity:${Number(entry.opacity) || 1}; width:${width.toFixed(2)}px;"><img src="${escapeHtml(entry.imagePath || "")}" alt="${escapeHtml(entry.name || tr("Image object"))}" /></div>`;
+    return `<div class="tom-world-map-object tom-world-map-object--image${hiddenClass}" style="opacity:${Number(entry.opacity) || 1}; width:${width.toFixed(2)}px;"><img src="${escapeHtml(entry.imagePath || "")}" alt="${escapeHtml(entry.name || tr("Image object"))}" />${hiddenBadge}</div>`;
   }
 
   _createObjectOverlayIcon(entry, zoom = null, marker = null) {
+    const hiddenClass = this._isWorldMapElementHiddenFromPlayers(entry) ? " is-hidden-from-players" : "";
     return globalThis.L.divIcon({
-      className: "tom-world-map-object-marker",
+      className: `tom-world-map-object-marker${hiddenClass}`,
       html: this._buildObjectOverlayIconHtml(entry, zoom),
       iconSize: [0, 0],
       iconAnchor: [0, 0]
@@ -1835,6 +2044,7 @@ export class TheatreWorldMapApplication extends Application {
   _refreshObjectOverlayMarker(marker, entry, zoom = null) {
     if (!marker || !entry) return;
     marker._tomObjectEntry = entry;
+    this._moveMarkerToWorldMapElementPane(marker, entry);
     marker.setIcon(this._createObjectOverlayIcon(entry, zoom, marker));
     this._queueObjectOverlayMarkerPresentation(marker, entry, zoom);
   }
@@ -1857,6 +2067,18 @@ export class TheatreWorldMapApplication extends Application {
     objectRoot.style.transformOrigin = "center center";
     objectRoot.style.transform = `translate(-50%, -50%) scale(${scale})`;
 
+    if (this._isShapeObjectOverlay(entry)) {
+      objectRoot.style.cssText = [
+        `opacity:${Number.isFinite(Number(entry.opacity)) ? Number(entry.opacity) : 1}`,
+        `transform-origin:center center`,
+        `transform:translate(-50%, -50%) scale(${scale})`,
+        `width:${width.toFixed(2)}px`,
+        `height:${height.toFixed(2)}px`,
+        this._buildShapeObjectOverlayStyle(entry)
+      ].join(";");
+      return;
+    }
+
     if (entry.type === "image") {
       objectRoot.style.width = `${width.toFixed(2)}px`;
       objectRoot.style.height = `${height.toFixed(2)}px`;
@@ -1871,6 +2093,8 @@ export class TheatreWorldMapApplication extends Application {
     }
 
     const textStyle = buildTextPresentationStyle(entry, 1);
+    objectRoot.style.width = `${width.toFixed(2)}px`;
+    objectRoot.style.maxWidth = "none";
     objectRoot.style.fontSize = `${textStyle.fontSizePx.toFixed(2)}px`;
     objectRoot.style.lineHeight = `${textStyle.lineHeight}`;
     objectRoot.style.color = textStyle.color;
@@ -1900,6 +2124,151 @@ export class TheatreWorldMapApplication extends Application {
       if (!objectRoot) return;
       objectRoot.classList.remove("is-zoom-animating");
     });
+  }
+
+  _buildLiveObjectOverlayEntry(originalEntry = {}, data = {}) {
+    return {
+      ...originalEntry,
+      ...data,
+      id: originalEntry.id,
+      x: Number.isFinite(Number(data.x)) ? Number(data.x) : originalEntry.x,
+      y: Number.isFinite(Number(data.y)) ? Number(data.y) : originalEntry.y,
+      visible: originalEntry.visible !== false
+    };
+  }
+
+  _bindObjectOverlayTextResizeHandle(marker, dialogRoot, getEntry, onResize) {
+    const element = marker?.getElement?.();
+    const objectRoot = element?.querySelector?.(".tom-world-map-object--text");
+    if (!(element instanceof HTMLElement) || !(objectRoot instanceof HTMLElement)) return;
+    element.classList.add("is-text-editing");
+    objectRoot.classList.add("is-text-editing");
+    let handle = objectRoot.querySelector(".tom-world-map-object__text-resize-handle");
+    if (!(handle instanceof HTMLElement)) {
+      handle = document.createElement("button");
+      handle.type = "button";
+      handle.className = "tom-world-map-object__text-resize-handle";
+      handle.setAttribute("aria-label", tr("Resize text box"));
+      handle.innerHTML = '<i class="fas fa-arrows-left-right" aria-hidden="true"></i>';
+      objectRoot.appendChild(handle);
+    }
+    if (handle.dataset.tomTextResizeBound) return;
+    handle.dataset.tomTextResizeBound = "true";
+    handle.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const entry = getEntry?.() ?? marker._tomObjectEntry ?? {};
+      const scale = Math.max(0.05, this._getObjectOverlayScale(entry, this._leafletMap?.getZoom?.()));
+      const startX = Number(event.clientX) || 0;
+      const startWidth = Math.max(24, Number(entry.width) || this._getObjectOverlayBaseDimensions(entry, marker).width);
+      handle.setPointerCapture?.(event.pointerId);
+      const onPointerMove = (moveEvent) => {
+        moveEvent.preventDefault();
+        moveEvent.stopPropagation();
+        const delta = (Number(moveEvent.clientX) || startX) - startX;
+        const nextWidth = Math.max(24, Math.min(WORLD_MAP_OBJECT_OVERLAY_MAX_SIZE, Math.round(startWidth + (delta / scale))));
+        const widthInput = dialogRoot?.querySelector?.("[name='overlayWidth']");
+        if (widthInput instanceof HTMLInputElement) widthInput.value = String(nextWidth);
+        onResize?.(nextWidth);
+      };
+      const onPointerUp = (upEvent) => {
+        handle.releasePointerCapture?.(upEvent?.pointerId);
+        window.removeEventListener("pointermove", onPointerMove, true);
+        window.removeEventListener("pointerup", onPointerUp, true);
+      };
+      window.addEventListener("pointermove", onPointerMove, true);
+      window.addEventListener("pointerup", onPointerUp, true);
+    });
+  }
+
+  _bindObjectOverlayShapeResizeHandle(marker, dialogRoot, getEntry, onResize) {
+    const element = marker?.getElement?.();
+    const objectRoot = element?.querySelector?.(".tom-world-map-object--shape");
+    if (!(element instanceof HTMLElement) || !(objectRoot instanceof HTMLElement)) return;
+    element.classList.add("is-shape-editing");
+    objectRoot.classList.add("is-shape-editing");
+    let handle = objectRoot.querySelector(".tom-world-map-object__shape-resize-handle");
+    if (!(handle instanceof HTMLElement)) {
+      handle = document.createElement("button");
+      handle.type = "button";
+      handle.className = "tom-world-map-object__shape-resize-handle";
+      handle.setAttribute("aria-label", tr("Resize shape"));
+      handle.innerHTML = '<i class="fas fa-up-right-and-down-left-from-center" aria-hidden="true"></i>';
+      objectRoot.appendChild(handle);
+    }
+    if (handle.dataset.tomShapeResizeBound) return;
+    handle.dataset.tomShapeResizeBound = "true";
+    handle.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const entry = getEntry?.() ?? marker._tomObjectEntry ?? {};
+      const scale = Math.max(0.05, this._getObjectOverlayScale(entry, this._leafletMap?.getZoom?.()));
+      const startX = Number(event.clientX) || 0;
+      const startY = Number(event.clientY) || 0;
+      const startDimensions = this._getObjectOverlayBaseDimensions(entry, marker);
+      const startLeft = (Number(entry.x) || 0) - (startDimensions.width / 2);
+      const startTop = (Number(entry.y) || 0) - (startDimensions.height / 2);
+      handle.setPointerCapture?.(event.pointerId);
+      const onPointerMove = (moveEvent) => {
+        moveEvent.preventDefault();
+        moveEvent.stopPropagation();
+        const deltaX = ((Number(moveEvent.clientX) || startX) - startX) / scale;
+        const deltaY = ((Number(moveEvent.clientY) || startY) - startY) / scale;
+        const nextData = {};
+        if (String(entry.type || "").toLowerCase() === "circle") {
+          const nextDiameter = Math.max(16, Math.min(WORLD_MAP_OBJECT_OVERLAY_MAX_SIZE * 2, Math.round(Math.max(startDimensions.width + deltaX, startDimensions.height + deltaY))));
+          const nextRadius = Math.max(8, Math.round(nextDiameter / 2));
+          const radiusInput = dialogRoot?.querySelector?.("[name='overlayRadius']");
+          if (radiusInput instanceof HTMLInputElement) {
+            radiusInput.value = String(nextRadius);
+            radiusInput.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          nextData.radius = nextRadius;
+          nextData.x = startLeft + nextRadius;
+          nextData.y = startTop + nextRadius;
+        } else {
+          const nextWidth = Math.max(16, Math.min(WORLD_MAP_OBJECT_OVERLAY_MAX_SIZE, Math.round(startDimensions.width + deltaX)));
+          const nextHeight = Math.max(16, Math.min(WORLD_MAP_OBJECT_OVERLAY_MAX_SIZE, Math.round(startDimensions.height + deltaY)));
+          const widthInput = dialogRoot?.querySelector?.("[name='overlayWidth']");
+          const heightInput = dialogRoot?.querySelector?.("[name='overlayHeight']");
+          if (widthInput instanceof HTMLInputElement) {
+            widthInput.value = String(nextWidth);
+            widthInput.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          if (heightInput instanceof HTMLInputElement) {
+            heightInput.value = String(nextHeight);
+            heightInput.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          nextData.width = nextWidth;
+          nextData.height = nextHeight;
+          nextData.x = startLeft + (nextWidth / 2);
+          nextData.y = startTop + (nextHeight / 2);
+        }
+        onResize?.(nextData);
+      };
+      const onPointerUp = (upEvent) => {
+        handle.releasePointerCapture?.(upEvent?.pointerId);
+        window.removeEventListener("pointermove", onPointerMove, true);
+        window.removeEventListener("pointerup", onPointerUp, true);
+      };
+      window.addEventListener("pointermove", onPointerMove, true);
+      window.addEventListener("pointerup", onPointerUp, true);
+    });
+  }
+
+  _createTemporaryObjectOverlayMarker(entry, worldMap = null) {
+    if (!this._leafletMap || !globalThis.L || !entry) return null;
+    const marker = globalThis.L.marker(this._mapPixelsToLatLng(entry.x, entry.y, worldMap), {
+      icon: this._createObjectOverlayIcon(entry),
+      draggable: true,
+      keyboard: false,
+      interactive: true,
+      pane: this._getWorldMapElementPane(entry)
+    }).addTo(this._leafletMap);
+    marker.on("add", () => this._refreshObjectOverlayMarker(marker, entry, this._leafletMap?.getZoom?.()));
+    marker._tomObjectEntry = entry;
+    window.requestAnimationFrame?.(() => this._refreshObjectOverlayMarker(marker, marker._tomObjectEntry, this._leafletMap?.getZoom?.()));
+    return marker;
   }
 
   _syncLeafletOverlays(worldMap = null) {
@@ -1955,6 +2324,14 @@ export class TheatreWorldMapApplication extends Application {
 
   _hasWorldMapLinkedDocument(entry = {}) {
     return Boolean(String(entry?.documentUuid || "").trim());
+  }
+
+  _isWorldMapElementVisibleForCurrentUser(entry = {}) {
+    return Boolean(game.user?.isGM || entry?.visibleForPlayers !== false);
+  }
+
+  _isWorldMapElementHiddenFromPlayers(entry = {}) {
+    return Boolean(game.user?.isGM && entry?.visibleForPlayers === false);
   }
 
   _canUseWorldMapTravelTarget(entry = {}) {
@@ -2069,7 +2446,7 @@ export class TheatreWorldMapApplication extends Application {
 
   _syncEditGridLayer(worldMap = null) {
     this._clearEditGridLayer();
-    if (!this._leafletMap || !globalThis.L || !this._editGridVisible || (!this._editingRegionId && !this._editingLineId)) return;
+    if (!this._leafletMap || !globalThis.L || !this._editGridVisible || (!this._editingRegionId && !this._editingLineId && !this._isRegionDrawMode && !this._isLineDrawMode)) return;
     const targetMap = worldMap ?? (this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null);
     if (!targetMap) return;
     const width = Math.max(0, Math.round(Number(targetMap.width) || 0));
@@ -2139,8 +2516,9 @@ export class TheatreWorldMapApplication extends Application {
     this._clearLeafletLayerCollection(this._leafletObjectOverlayMarkers);
     const targetMap = worldMap ?? (this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null);
     if (!targetMap || !this._areObjectOverlaysVisible) return;
-    for (const entry of targetMap.objectOverlays ?? []) {
+    for (const entry of this._sortWorldMapElementsForZOrder(targetMap.objectOverlays ?? [])) {
       if (entry.visible === false) continue;
+      if (!this._isWorldMapElementVisibleForCurrentUser(entry)) continue;
       if (this._hiddenCategories.has(String(entry.category || "").trim().toLowerCase())) continue;
       const categoryId = String(entry.category || "").trim().toLowerCase();
       const canDrag = this._canCurrentUserMoveCategorizedElement(entry, "objects", categoryId, targetMap);
@@ -2148,7 +2526,7 @@ export class TheatreWorldMapApplication extends Application {
         icon: this._createObjectOverlayIcon(entry),
         draggable: canDrag,
         keyboard: true,
-        zIndexOffset: 800
+        pane: this._getWorldMapElementPane(entry)
       });
       marker.on("dblclick", async (event) => {
         if (marker._tomOpenDocumentTimer) {
@@ -2173,9 +2551,12 @@ export class TheatreWorldMapApplication extends Application {
           this._scheduleWorldMapElementAction(marker, () => marker._tomObjectEntry ?? entry, { event });
         });
       }
-      if (entry.documentUuid || this._hasWorldMapTravelTarget(entry)) {
+      const hasTooltipContent = String(entry.description || "").trim() || entry.documentUuid || this._hasWorldMapTravelTarget(entry);
+      if (hasTooltipContent) {
         marker.bindTooltip(buildWorldMapTooltipContent({
           heading: entry.name || tr("Object"),
+          body: entry.description || "",
+          bodyHtml: true,
           documentName: entry.documentName,
           access: this._getWorldMapTooltipAccess(entry)
         }), {
@@ -2190,6 +2571,10 @@ export class TheatreWorldMapApplication extends Application {
           const latlng = event.target?.getLatLng?.();
           if (!latlng) return;
           const point = this._latLngToMapPixels(latlng, targetMap);
+          if (marker._tomObjectEditSession?.updatePosition) {
+            marker._tomObjectEditSession.updatePosition(point);
+            return;
+          }
           const updatedEntry = await this._persistMapElementMove("objectOverlay", targetMap.id, entry.id, point);
           if (!updatedEntry) return;
           marker._tomObjectEntry = updatedEntry;
@@ -2252,6 +2637,7 @@ export class TheatreWorldMapApplication extends Application {
       fillColor: hasLiveStyle ? normalizeHexColor(style.fillColor, "#7ebaec") : "#f3d38e",
       fillOpacity: hasLiveStyle ? fillOpacity : 0.12,
       dashArray: hasLiveStyle ? getLineDashArray(style.strokeStyle, strokeWidth) : "6 4",
+      pane: hasLiveStyle ? this._getWorldMapElementPane(style) : undefined,
       interactive: Boolean(this._editingRegionId)
     }).addTo(this._leafletMap);
     if (hasLiveStyle) this._applyRegionPresentation(this._leafletDraftRegionLayer, style);
@@ -2472,16 +2858,24 @@ export class TheatreWorldMapApplication extends Application {
       this._syncRegionVertexMarkers(targetMap);
       return;
     }
-    for (const region of targetMap.regions ?? []) {
+    for (const region of this._sortWorldMapElementsForZOrder(targetMap.regions ?? [])) {
       if (region.visible === false || (region.points?.length ?? 0) < 3) continue;
+      if (!this._isWorldMapElementVisibleForCurrentUser(region)) continue;
       if (this._hiddenCategories.has(String(region.category || "").trim().toLowerCase())) continue;
       if (this._editingRegionId && region.id === this._editingRegionId) continue;
       const latlngs = this._buildRegionLatLngs(region, targetMap);
-      const polygon = globalThis.L.polygon(latlngs, getRegionPresentation(region)).addTo(this._leafletMap);
+      const regionOptions = getRegionPresentation(region);
+      regionOptions.pane = this._getWorldMapElementPane(region);
+      if (this._isWorldMapElementHiddenFromPlayers(region)) {
+        regionOptions.className = [regionOptions.className, "tom-world-map-path--hidden-from-players"].filter(Boolean).join(" ");
+      }
+      const polygon = globalThis.L.polygon(latlngs, regionOptions).addTo(this._leafletMap);
       this._applyRegionPresentation(polygon, region);
       if (region.tooltipEnabled !== false) {
         polygon.bindTooltip(buildWorldMapTooltipContent({
           heading: region.name || tr("Region"),
+          body: region.description || "",
+          bodyHtml: true,
           documentName: region.documentName,
           access: this._getWorldMapTooltipAccess(region)
         }), {
@@ -2551,6 +2945,7 @@ export class TheatreWorldMapApplication extends Application {
         lineCap: String(style.lineCap || "round").trim().toLowerCase(),
         lineJoin: "round",
         dashArray,
+        pane: this._getWorldMapElementPane(style),
         interactive: false
       }).addTo(this._leafletMap);
     }
@@ -2561,6 +2956,7 @@ export class TheatreWorldMapApplication extends Application {
       dashArray,
       lineCap: String(style.lineCap || "round").trim().toLowerCase(),
       lineJoin: "round",
+      pane: this._getWorldMapElementPane(style),
       interactive: Boolean(this._editingLineId)
     }).addTo(this._leafletMap);
     this._applyLinePresentation(this._leafletDraftLineLayer, style);
@@ -2589,7 +2985,9 @@ export class TheatreWorldMapApplication extends Application {
   _applyLinePresentation(layer, line) {
     const element = layer?.getElement?.();
     if (!element) return;
-    element.style.filter = getLineShadowFilter(line);
+    const shadowFilter = getLineShadowFilter(line);
+    const hiddenFilter = this._isWorldMapElementHiddenFromPlayers(line) ? "saturate(0.45) brightness(0.85)" : "";
+    element.style.filter = [shadowFilter, hiddenFilter].filter(Boolean).join(" ");
   }
 
   _syncLeafletLines(worldMap = null) {
@@ -2600,15 +2998,20 @@ export class TheatreWorldMapApplication extends Application {
       this._syncDraftLineLayer(targetMap);
       return;
     }
-    for (const line of targetMap.lines ?? []) {
+    for (const line of this._sortWorldMapElementsForZOrder(targetMap.lines ?? [])) {
       if (line.visible === false || (line.points?.length ?? 0) < 2) continue;
+      if (!this._isWorldMapElementVisibleForCurrentUser(line)) continue;
       const lineCategory = this._getPinTypeDefinition(line.category, targetMap).value;
       if (this._hiddenCategories.has(lineCategory)) continue;
       if (this._editingLineId && line.id === this._editingLineId) continue;
       const latlngs = this._buildLineLatLngs(line, targetMap);
       const base = getLineBasePresentation(line);
       const outlineOptions = getLineOutlinePresentation(line, base);
+      const linePane = this._getWorldMapElementPane(line);
+      const hiddenPathClass = this._isWorldMapElementHiddenFromPlayers(line) ? "tom-world-map-path--hidden-from-players" : "";
       if (outlineOptions) {
+        if (hiddenPathClass) outlineOptions.className = [outlineOptions.className, hiddenPathClass].filter(Boolean).join(" ");
+        outlineOptions.pane = linePane;
         const outline = globalThis.L.polyline(latlngs, outlineOptions).addTo(this._leafletMap);
         this._leafletLineLayers.set(`${line.id}:outline`, outline);
       }
@@ -2618,13 +3021,17 @@ export class TheatreWorldMapApplication extends Application {
         opacity: base.opacity,
         lineCap: base.lineCap,
         lineJoin: base.lineJoin,
-        dashArray: base.dashArray
+        dashArray: base.dashArray,
+        className: hiddenPathClass,
+        pane: linePane
       }).addTo(this._leafletMap);
       polyline.on("add", () => this._applyLinePresentation(polyline, line));
       this._applyLinePresentation(polyline, line);
       if (line.tooltipEnabled !== false) {
         polyline.bindTooltip(buildWorldMapTooltipContent({
           heading: line.name || tr("Line"),
+          body: line.description || "",
+          bodyHtml: true,
           documentName: line.documentName,
           access: this._getWorldMapTooltipAccess(line)
         }), {
@@ -2665,7 +3072,7 @@ export class TheatreWorldMapApplication extends Application {
             icon: pointIcon,
             keyboard: false,
             interactive: false,
-            zIndexOffset: 520
+            pane: linePane
           }).addTo(this._leafletMap);
           this._leafletLinePointMarkers.push(marker);
         }
@@ -2736,14 +3143,16 @@ export class TheatreWorldMapApplication extends Application {
     const worldMap = this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null;
     if (!worldMap || !this._arePinsVisible) return;
 
-    for (const pin of worldMap.pins ?? []) {
+    for (const pin of this._sortWorldMapElementsForZOrder(worldMap.pins ?? [])) {
+      if (!this._isWorldMapElementVisibleForCurrentUser(pin)) continue;
       const pinType = String(pin?.type || "location").trim().toLowerCase();
       if (this._hiddenCategories.has(pinType)) continue;
       const canDragPins = this._canCurrentUserMoveCategorizedElement(pin, "pins", pinType, worldMap);
       const marker = globalThis.L.marker(this._mapPixelsToLatLng(pin.x, pin.y, worldMap), {
         icon: this._createMarkerIcon(pin),
         draggable: canDragPins,
-        keyboard: true
+        keyboard: true,
+        pane: this._getWorldMapElementPane(pin)
       });
       this._bindPinTooltip(marker, pin);
       marker.on("click", (event) => {
@@ -2800,6 +3209,7 @@ export class TheatreWorldMapApplication extends Application {
       label: fallbackLabel,
       note: "",
       type: this._getPinTypeDefinition(null, worldMap).value,
+      zIndex: 0,
       color: "#7ebaec",
       size: 1,
       borderColor: "#101722",
@@ -2809,6 +3219,7 @@ export class TheatreWorldMapApplication extends Application {
       shadowOpacity: 0.55,
       shadowBlur: 4,
       movableForPlayers: false,
+      visibleForPlayers: true,
       tooltipEnabled: true,
       documentPlayerAccess: true
     });
@@ -2819,6 +3230,7 @@ export class TheatreWorldMapApplication extends Application {
       label: String(pinData.label || "").trim() || fallbackLabel,
       note: String(pinData.note || "").trim(),
       type: pinData.type,
+      zIndex: pinData.zIndex,
       color: pinData.color,
       size: pinData.size,
       borderColor: pinData.borderColor,
@@ -2838,6 +3250,7 @@ export class TheatreWorldMapApplication extends Application {
       travelPlayerAccess: pinData.travelPlayerAccess,
       travelCloseWorldMap: pinData.travelCloseWorldMap,
       movableForPlayers: pinData.movableForPlayers,
+      visibleForPlayers: pinData.visibleForPlayers,
       tooltipEnabled: pinData.tooltipEnabled,
       x: point.x,
       y: point.y
@@ -2899,10 +3312,17 @@ export class TheatreWorldMapApplication extends Application {
     return null;
   }
 
-  async _promptForObjectOverlayData(initialData = {}, { isEditing = false, forcedType = null } = {}) {
+  async _promptForObjectOverlayData(initialData = {}, { isEditing = false, forcedType = null, onLiveChange = null, bindTextResize = null, bindShapeResize = null } = {}) {
     const type = forcedType || initialData.type || "image";
     const isImage = type === "image";
-    const title = tr(isEditing ? "Edit object overlay" : (isImage ? "Create image overlay" : "Create text overlay"));
+    const isShape = ["circle", "rectangle"].includes(String(type || "").trim().toLowerCase());
+    const title = tr(isEditing
+      ? "Edit object overlay"
+      : isImage
+        ? "Create image overlay"
+        : isShape
+          ? (type === "circle" ? "Draw circle" : "Draw rectangle")
+          : "Create text overlay");
     const categoryOptions = this._getObjectCategoryOptions();
     const selectedFontFamily = String(initialData.fontFamily || "").trim();
     const fontOptionsMarkup = buildSelectOptions(this._getFontTypeOptions(selectedFontFamily), selectedFontFamily);
@@ -2913,6 +3333,8 @@ export class TheatreWorldMapApplication extends Application {
         title,
         content: buildObjectOverlayDialogContent(initialData, {
           isImage,
+          isShape,
+          shapeType: type,
           categoryOptions: categorySelectOptions,
           fontOptions: fontOptionsMarkup
         }),
@@ -2930,25 +3352,29 @@ export class TheatreWorldMapApplication extends Application {
         default: "create",
         close: () => resolve(null)
       }, {
-        width: isImage ? 700 : 920,
+        width: isImage || isShape ? 700 : 920,
         resizable: true
       });
       dialog.options.resizable = true;
-      dialog.options.width = isImage ? 700 : 920;
+      dialog.options.width = isImage || isShape ? 700 : 920;
       dialog.render(true);
       this._scheduleDialogSetup(() => {
         const root = applyWorldMapDialogTheme(dialog, {
           moduleId: MODULE_ID,
-          width: isImage ? 700 : 920,
-          widthCss: isImage ? "44rem" : "58rem",
+          width: isImage || isShape ? 700 : 920,
+          widthCss: isImage || isShape ? "44rem" : "58rem",
           hostClasses: ["tom-world-map-object-overlay-host"],
           themeState: TheatreStore.getThemeState(),
           manualResize: {
-            minWidth: isImage ? 420 : 560,
-            minHeight: isImage ? 240 : 300
+            minWidth: isImage || isShape ? 420 : 560,
+            minHeight: isImage ? 240 : 300,
+            storageKey: "worldMapObjectOverlayEditor",
+            savePosition: false,
+            centerOnOpen: true
           }
         });
         if (!root) return;
+        activateWorldMapRichTextEditors(root);
         root?.querySelector?.("[data-action='pick-image-object']")?.addEventListener("click", (event) => {
           event.preventDefault();
           const targetSelector = event.currentTarget?.dataset?.target;
@@ -2960,7 +3386,17 @@ export class TheatreWorldMapApplication extends Application {
         activateTravelTargetControls(root, "overlay", {
           resolveTarget: (event) => this._resolveDroppedWorldMapTravelTarget(event)
         });
-        bindObjectOverlayTextPreview(root, initialData);
+        if (!isShape) bindObjectOverlayTextPreview(root, initialData);
+        if (typeof onLiveChange === "function") {
+          const updateLiveOverlay = () => onLiveChange(readObjectOverlayDataFromDialog(dialog.element, {
+            type,
+            fallbackCategory,
+            initialData
+          }));
+          bindDialogLiveChange(root, isImage ? "[name='overlayZIndex']" : "[name^='overlay']", updateLiveOverlay);
+        }
+        if (!isImage && !isShape && typeof bindTextResize === "function") bindTextResize(root);
+        if (isShape && typeof bindShapeResize === "function") bindShapeResize(root);
       });
     });
   }
@@ -2968,6 +3404,8 @@ export class TheatreWorldMapApplication extends Application {
   async _promptForRegionData(initialData = {}, { isEditing = false, onLiveChange = null } = {}) {
     const regionCategoryOptions = this._getRegionCategoryOptions();
     const fallbackCategory = regionCategoryOptions[0]?.id || "general";
+    const viewportHeight = Number(globalThis.window?.innerHeight) || 900;
+    const initialDialogHeight = Math.round(Math.min(780, Math.max(620, viewportHeight - 96)));
     return await new Promise((resolve) => {
       const dialog = new Dialog({
         title: tr(isEditing ? "Edit region" : "Create region"),
@@ -2989,6 +3427,7 @@ export class TheatreWorldMapApplication extends Application {
             moduleId: MODULE_ID,
             width: 760,
             widthCss: "760px",
+            height: initialDialogHeight,
             hostClasses: [
               "dialog",
               "footlights-themed-window",
@@ -3001,11 +3440,14 @@ export class TheatreWorldMapApplication extends Application {
             manualResize: {
               minWidth: 560,
               minHeight: 420,
-              storageKey: "worldMapRegionEditor"
+              storageKey: "worldMapRegionEditor",
+              savePosition: false,
+              centerOnOpen: true
             }
           });
           if (!root) return;
           applyWorldMapRegionEditorTheme(root);
+          activateWorldMapRichTextEditors(root);
           activateLinkedDocumentDrop(root, "region", {
             resolveDocument: (event) => this._resolveDroppedLinkedWorldMapDocument(event)
           });
@@ -3016,6 +3458,7 @@ export class TheatreWorldMapApplication extends Application {
         }
       }, {
         width: 760,
+        height: initialDialogHeight,
         resizable: true,
         classes: [
           "dialog",
@@ -3028,19 +3471,24 @@ export class TheatreWorldMapApplication extends Application {
         ]
       });
       dialog.options.width = 760;
+      dialog.options.height = initialDialogHeight;
       dialog.position.width = 760;
+      dialog.position.height = initialDialogHeight;
       dialog.render(true);
       this._scheduleDialogSetup(() => {
         const root = applyWorldMapDialogTheme(dialog, {
           moduleId: MODULE_ID,
           width: 760,
           widthCss: "760px",
+          height: initialDialogHeight,
           hostClasses: ["tom-world-map-pin-dialog-host", "tom-world-map-region-clean-dialog-host"],
           themeState: TheatreStore.getThemeState(),
           manualResize: {
             minWidth: 560,
             minHeight: 420,
-            storageKey: "worldMapRegionEditor"
+            storageKey: "worldMapRegionEditor",
+            savePosition: false,
+            centerOnOpen: true
           }
         });
         if (!root) return;
@@ -3068,6 +3516,13 @@ export class TheatreWorldMapApplication extends Application {
     const fallbackCategory = this._getPinTypeDefinition(initialData.category).value;
     const categoryOptions = buildSelectOptions(pinTypeDefinitions, fallbackCategory);
     return await new Promise((resolve) => {
+      const bindLineLivePreview = (root, dialog) => {
+        if (!(root instanceof HTMLElement) || typeof onLiveChange !== "function") return;
+        if (root.dataset.tomLineLivePreviewBound === "true") return;
+        root.dataset.tomLineLivePreviewBound = "true";
+        const updateLiveLine = () => onLiveChange(readLineDataFromDialog(dialog.element, fallbackCategory));
+        bindDialogLiveChange(root, "[name^='line']", updateLiveLine);
+      };
       const dialog = new Dialog({
         title: tr(isEditing ? "Edit line" : "Create line"),
         content: buildLineDialogContent(initialData, {
@@ -3100,17 +3555,21 @@ export class TheatreWorldMapApplication extends Application {
             manualResize: {
               minWidth: 560,
               minHeight: 420,
-              storageKey: "worldMapLineEditor"
+              storageKey: "worldMapLineEditor",
+              savePosition: false,
+              centerOnOpen: true
             }
           });
           if (!root) return;
           applyWorldMapLineEditorTheme(root);
+          activateWorldMapRichTextEditors(root);
           activateLinkedDocumentDrop(root, "line", {
             resolveDocument: (event) => this._resolveDroppedLinkedWorldMapDocument(event)
           });
           activateTravelTargetControls(root, "line", {
             resolveTarget: (event) => this._resolveDroppedWorldMapTravelTarget(event)
           });
+          bindLineLivePreview(root, dialog);
           window.requestAnimationFrame(() => applyWorldMapLineEditorTheme(root));
         }
       }, {
@@ -3139,7 +3598,9 @@ export class TheatreWorldMapApplication extends Application {
           manualResize: {
             minWidth: 560,
             minHeight: 420,
-            storageKey: "worldMapLineEditor"
+            storageKey: "worldMapLineEditor",
+            savePosition: false,
+            centerOnOpen: true
           }
         });
         if (!root) return;
@@ -3148,16 +3609,14 @@ export class TheatreWorldMapApplication extends Application {
         window.requestAnimationFrame(refreshLineDialogTheme);
         window.setTimeout(refreshLineDialogTheme, 80);
         window.setTimeout(refreshLineDialogTheme, 250);
+        activateWorldMapRichTextEditors(root);
         activateLinkedDocumentDrop(root, "line", {
           resolveDocument: (event) => this._resolveDroppedLinkedWorldMapDocument(event)
         });
         activateTravelTargetControls(root, "line", {
           resolveTarget: (event) => this._resolveDroppedWorldMapTravelTarget(event)
         });
-        if (typeof onLiveChange === "function") {
-          const updateLiveLine = () => onLiveChange(readLineDataFromDialog(dialog.element, fallbackCategory));
-          bindDialogLiveChange(root, "[name^='line']", updateLiveLine);
-        }
+        bindLineLivePreview(root, dialog);
       });
     });
   }
@@ -3349,30 +3808,204 @@ export class TheatreWorldMapApplication extends Application {
     const defaults = createDefaultObjectOverlayDraft(type, {
       category: defaultObjectCategory,
       textName: tr("Text object"),
-      imageName: tr("Image object")
+      imageName: tr("Image object"),
+      circleName: tr("Circle"),
+      rectangleName: tr("Rectangle")
     });
-    const data = await this._promptForObjectOverlayData(defaults, { forcedType: type });
+    const isShape = ["circle", "rectangle"].includes(String(type || "").trim().toLowerCase());
+    const tempId = randomId();
+    let activeDialogRoot = null;
+    let liveEntry = {
+      ...defaults,
+      id: tempId,
+      x: point.x,
+      y: point.y,
+      visible: true
+    };
+    const tempMarker = isShape ? this._createTemporaryObjectOverlayMarker(liveEntry, worldMap) : null;
+    if (tempMarker) {
+      tempMarker.on("dragend", (event) => {
+        const nextPoint = this._latLngToMapPixels(event?.target?.getLatLng?.(), worldMap);
+        liveEntry = {
+          ...liveEntry,
+          x: Number.isFinite(Number(nextPoint?.x)) ? Number(nextPoint.x) : liveEntry.x,
+          y: Number.isFinite(Number(nextPoint?.y)) ? Number(nextPoint.y) : liveEntry.y
+        };
+        tempMarker._tomObjectEntry = liveEntry;
+        this._refreshObjectOverlayMarker(tempMarker, liveEntry, this._leafletMap?.getZoom?.());
+        if (activeDialogRoot) window.requestAnimationFrame?.(() => bindShapeResize(activeDialogRoot));
+      });
+    }
+    const getDialogReaderRoot = (root) => {
+      const jq = globalThis.jQuery || globalThis.$;
+      return root instanceof HTMLElement && typeof jq === "function" ? jq(root) : root;
+    };
+    const refreshLiveShape = (nextData = {}) => {
+      if (!tempMarker) return;
+      liveEntry = this._buildLiveObjectOverlayEntry(liveEntry, nextData);
+      const nextLatLng = this._mapPixelsToLatLng(liveEntry.x, liveEntry.y, worldMap);
+      if (nextLatLng) tempMarker.setLatLng(nextLatLng);
+      this._refreshObjectOverlayMarker(tempMarker, liveEntry, this._leafletMap?.getZoom?.());
+      if (activeDialogRoot) window.requestAnimationFrame?.(() => bindShapeResize(activeDialogRoot));
+    };
+    const bindShapeResize = (root) => {
+      if (!tempMarker || !root) return;
+      activeDialogRoot = root;
+      this._bindObjectOverlayShapeResizeHandle(tempMarker, root, () => liveEntry, (sizeData = {}) => {
+        refreshLiveShape({
+          ...readObjectOverlayDataFromDialog(getDialogReaderRoot(root), {
+            type,
+            fallbackCategory: defaultObjectCategory,
+            initialData: liveEntry
+          }),
+          ...sizeData
+        });
+      });
+    };
+    const data = await this._promptForObjectOverlayData(defaults, {
+      forcedType: type,
+      onLiveChange: isShape ? refreshLiveShape : null,
+      bindShapeResize: isShape ? bindShapeResize : null
+    });
+    if (tempMarker) this._leafletMap?.removeLayer?.(tempMarker);
     if (!data) return;
     if (type === "image" && !data.imagePath) {
       ui.notifications?.warn(tr("Please choose an image path for the object overlay."));
       return;
     }
-    await TheatreStore.upsertWorldMapObjectOverlay(this.mapId, { id: randomId(), x: point.x, y: point.y, visible: true, ...data });
+    const savedShapeData = isShape
+      ? {
+          ...data,
+          radius: Number.isFinite(Number(liveEntry.radius)) ? Number(liveEntry.radius) : data.radius,
+          width: Number.isFinite(Number(liveEntry.width)) ? Number(liveEntry.width) : data.width,
+          height: Number.isFinite(Number(liveEntry.height)) ? Number(liveEntry.height) : data.height
+        }
+      : data;
+    await TheatreStore.upsertWorldMapObjectOverlay(this.mapId, { id: randomId(), x: liveEntry.x, y: liveEntry.y, visible: true, ...savedShapeData });
     this._syncLeafletObjectOverlays(TheatreStore.getWorldMapById(this.mapId));
     this._renderPreservingView();
   }
 
   async _editObjectOverlay(entry) {
     if (!game.user?.isGM || !this.mapId || !entry?.id) return;
-    const data = await this._promptForObjectOverlayData(entry, { isEditing: true, forcedType: entry.type });
-    if (!data) return;
+    const editKey = String(entry.id || "").trim();
+    if (this._editingObjectOverlayIds.has(editKey)) return;
+    this._editingObjectOverlayIds.add(editKey);
+    try {
+    const marker = this._leafletObjectOverlayMarkers.get(entry.id);
+    const isShape = this._isShapeObjectOverlay(entry);
+    const worldMap = TheatreStore.getWorldMapById(this.mapId);
+    let liveEntry = { ...entry };
+    let activeDialogRoot = null;
+    const getDialogReaderRoot = () => {
+      const jq = globalThis.jQuery || globalThis.$;
+      return activeDialogRoot instanceof HTMLElement && typeof jq === "function"
+        ? jq(activeDialogRoot)
+        : activeDialogRoot
+    };
+    const refreshLiveEntry = (nextData = {}) => {
+      if (!marker) return;
+      liveEntry = this._buildLiveObjectOverlayEntry(liveEntry, nextData);
+      if (entry.type !== "text" && !isShape) {
+        this._moveMarkerToWorldMapElementPane(marker, liveEntry);
+        return;
+      }
+      const nextLatLng = this._mapPixelsToLatLng(liveEntry.x, liveEntry.y, worldMap);
+      if (nextLatLng) marker.setLatLng(nextLatLng);
+      this._refreshObjectOverlayMarker(marker, liveEntry, this._leafletMap?.getZoom?.());
+      if (activeDialogRoot) {
+        window.requestAnimationFrame?.(() => {
+          bindTextResize(activeDialogRoot);
+          bindShapeResize(activeDialogRoot);
+        });
+      }
+    };
+    if (marker) {
+      marker._tomObjectEditSession = {
+        updatePosition: (point = {}) => {
+          liveEntry = {
+            ...liveEntry,
+            x: Number.isFinite(Number(point.x)) ? Number(point.x) : liveEntry.x,
+            y: Number.isFinite(Number(point.y)) ? Number(point.y) : liveEntry.y
+          };
+          marker._tomObjectEntry = liveEntry;
+          this._refreshObjectOverlayMarker(marker, liveEntry, this._leafletMap?.getZoom?.());
+          if (activeDialogRoot) window.requestAnimationFrame?.(() => {
+            bindTextResize(activeDialogRoot);
+            bindShapeResize(activeDialogRoot);
+          });
+        }
+      };
+    }
+    const bindTextResize = (root = activeDialogRoot) => {
+      if (!marker || entry.type !== "text") return;
+      activeDialogRoot = root;
+      this._bindObjectOverlayTextResizeHandle(marker, root, () => liveEntry, (width) => {
+        refreshLiveEntry({ ...readObjectOverlayDataFromDialog(getDialogReaderRoot(), {
+          type: entry.type,
+          fallbackCategory: entry.category || "general",
+          initialData: liveEntry
+        }), width });
+        bindTextResize(activeDialogRoot);
+      });
+    };
+    const bindShapeResize = (root = activeDialogRoot) => {
+      if (!marker || !isShape) return;
+      activeDialogRoot = root;
+      this._bindObjectOverlayShapeResizeHandle(marker, root, () => liveEntry, (sizeData = {}) => {
+        refreshLiveEntry({
+          ...readObjectOverlayDataFromDialog(getDialogReaderRoot(), {
+            type: entry.type,
+            fallbackCategory: entry.category || "general",
+            initialData: liveEntry
+          }),
+          ...sizeData
+        });
+        bindShapeResize(activeDialogRoot);
+      });
+    };
+    const data = await this._promptForObjectOverlayData(entry, {
+      isEditing: true,
+      forcedType: entry.type,
+      onLiveChange: (nextData) => {
+        refreshLiveEntry(nextData);
+        bindTextResize();
+        bindShapeResize();
+      },
+      bindTextResize,
+      bindShapeResize
+    });
+    if (!data) {
+      if (marker) this._refreshObjectOverlayMarker(marker, entry, this._leafletMap?.getZoom?.());
+      return;
+    }
     if (entry.type === "image" && !data.imagePath) {
       ui.notifications?.warn(tr("Please choose an image path for the object overlay."));
       return;
     }
-    await TheatreStore.upsertWorldMapObjectOverlay(this.mapId, { id: entry.id, ...data });
+    const savedData = entry.type === "text"
+      ? { ...data, width: Number.isFinite(Number(liveEntry.width)) ? Number(liveEntry.width) : data.width }
+      : isShape
+        ? {
+            ...data,
+            radius: Number.isFinite(Number(liveEntry.radius)) ? Number(liveEntry.radius) : data.radius,
+            width: Number.isFinite(Number(liveEntry.width)) ? Number(liveEntry.width) : data.width,
+            height: Number.isFinite(Number(liveEntry.height)) ? Number(liveEntry.height) : data.height
+          }
+        : data;
+    await TheatreStore.upsertWorldMapObjectOverlay(this.mapId, {
+      id: entry.id,
+      ...savedData,
+      x: Number.isFinite(Number(liveEntry.x)) ? Number(liveEntry.x) : entry.x,
+      y: Number.isFinite(Number(liveEntry.y)) ? Number(liveEntry.y) : entry.y
+    });
     this._syncLeafletObjectOverlays(TheatreStore.getWorldMapById(this.mapId));
     this._renderPreservingView();
+    } finally {
+      const marker = this._leafletObjectOverlayMarkers.get(entry.id);
+      if (marker?._tomObjectEditSession) delete marker._tomObjectEditSession;
+      this._editingObjectOverlayIds.delete(editKey);
+    }
   }
 
   async _editPin(pin) {
@@ -3383,6 +4016,7 @@ export class TheatreWorldMapApplication extends Application {
       note: String(pin.note || "").trim(),
       type: pin.type || "location",
       color: normalizeHexColor(pin.color),
+      zIndex: Number.isFinite(Number(pin.zIndex)) ? Number(pin.zIndex) : 0,
       size: normalizePinSize(pin.size),
       borderColor: normalizeHexColor(pin.borderColor, "#101722"),
       borderWidth: Math.max(0, Math.min(8, Number(pin.borderWidth) || 0)),
@@ -3391,6 +4025,7 @@ export class TheatreWorldMapApplication extends Application {
       shadowOpacity: Math.max(0, Math.min(1, Number(pin.shadowOpacity ?? 0.55))),
       shadowBlur: Number.isFinite(Number(pin.shadowBlur)) ? Math.max(0, Math.min(32, Number(pin.shadowBlur))) : 4,
       movableForPlayers: Boolean(pin.movableForPlayers),
+      visibleForPlayers: pin.visibleForPlayers !== false,
       tooltipEnabled: pin.tooltipEnabled !== false,
       documentUuid: String(pin.documentUuid || "").trim(),
       documentName: String(pin.documentName || "").trim(),
@@ -3411,6 +4046,7 @@ export class TheatreWorldMapApplication extends Application {
       note: pinData.note,
       type: pinData.type,
       color: pinData.color,
+      zIndex: pinData.zIndex,
       size: pinData.size,
       borderColor: pinData.borderColor,
       borderWidth: pinData.borderWidth,
@@ -3429,6 +4065,7 @@ export class TheatreWorldMapApplication extends Application {
       travelPlayerAccess: pinData.travelPlayerAccess,
       travelCloseWorldMap: pinData.travelCloseWorldMap,
       movableForPlayers: pinData.movableForPlayers,
+      visibleForPlayers: pinData.visibleForPlayers,
       tooltipEnabled: pinData.tooltipEnabled
     });
     this._syncLeafletPins();
@@ -3463,7 +4100,9 @@ export class TheatreWorldMapApplication extends Application {
     const worldMap = this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null;
     const existingPin = worldMap?.pins?.find((entry) => entry.id === pinId) ?? {};
     const nextPin = { ...existingPin, ...pinData, id: pinId };
+    this._moveMarkerToWorldMapElementPane(marker, nextPin);
     marker.setIcon(this._createMarkerIcon(nextPin));
+    this._moveMarkerToWorldMapElementPane(marker, nextPin);
     this._bindPinTooltip(marker, nextPin);
   }
 
@@ -3518,10 +4157,13 @@ export class TheatreWorldMapApplication extends Application {
           manualResize: {
             minWidth: 520,
             minHeight: 360,
-            storageKey: "worldMapPinEditor"
+            storageKey: "worldMapPinEditor",
+            savePosition: false,
+            centerOnOpen: true
           }
         });
         if (!root) return;
+        activateWorldMapRichTextEditors(root);
         activateLinkedDocumentDrop(root, "pin", {
           resolveDocument: (event) => this._resolveDroppedLinkedWorldMapDocument(event)
         });
@@ -3529,9 +4171,9 @@ export class TheatreWorldMapApplication extends Application {
           resolveTarget: (event) => this._resolveDroppedWorldMapTravelTarget(event)
         });
         const syncPreview = () => this._syncPinDialogPreview(initialData.id, readPinDataFromDialog(dialog.element, initialData));
-        root.querySelectorAll?.("[name='pinLabel'], [name='pinType'], [name='pinNote'], [name='pinColor'], [name='pinSize'], [name='pinBorderColor'], [name='pinBorderWidth'], [name='pinShadowColor'], [name='pinShadowDistance'], [name='pinShadowOpacity'], [name='pinShadowBlur']")
+        root.querySelectorAll?.("[name='pinLabel'], [name='pinType'], [name='pinNote'], [name='pinZIndex'], [name='pinColor'], [name='pinSize'], [name='pinBorderColor'], [name='pinBorderWidth'], [name='pinShadowColor'], [name='pinShadowDistance'], [name='pinShadowOpacity'], [name='pinShadowBlur']")
           ?.forEach((input) => input.addEventListener("input", syncPreview));
-        root.querySelectorAll?.("[name='pinType'], [name='pinMovableForPlayers']")
+        root.querySelectorAll?.("[name='pinType'], [name='pinMovableForPlayers'], [name='pinVisibleForPlayers']")
           ?.forEach((input) => input.addEventListener("change", syncPreview));
       });
     });
@@ -3593,6 +4235,7 @@ export class TheatreWorldMapApplication extends Application {
     this._arePinsVisible = !this._arePinsVisible;
     this._syncLeafletPins();
     this._refreshVisibilityControlUi();
+    this._persistWorldMapViewState();
   }
 
   _onToggleObjectOverlayVisibility(event) {
@@ -3601,6 +4244,7 @@ export class TheatreWorldMapApplication extends Application {
     const worldMap = this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null;
     this._syncLeafletObjectOverlays(worldMap);
     this._refreshVisibilityControlUi();
+    this._persistWorldMapViewState();
   }
 
   _onToggleRegionVisibility(event) {
@@ -3609,6 +4253,7 @@ export class TheatreWorldMapApplication extends Application {
     const worldMap = this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null;
     this._syncLeafletRegions(worldMap);
     this._refreshVisibilityControlUi();
+    this._persistWorldMapViewState();
   }
 
   _onToggleFogToolbar(event) {
@@ -3895,6 +4540,7 @@ export class TheatreWorldMapApplication extends Application {
     this._syncLeafletObjectOverlays(worldMap);
     this._syncLeafletRegions(worldMap);
     this._refreshLegendButtonUi(event.currentTarget, !this._hiddenCategories.has(categoryId));
+    this._persistWorldMapViewState();
   }
 
   async _toggleCategoryLock(kind, categoryId, lockElement = null) {
@@ -3983,6 +4629,7 @@ export class TheatreWorldMapApplication extends Application {
     else this._activeOverlayIds.add(overlayId);
     const worldMap = this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null;
     this._syncLeafletOverlays(worldMap);
+    this._persistWorldMapViewState();
     this.render(false);
   }
 
@@ -4090,7 +4737,25 @@ export class TheatreWorldMapApplication extends Application {
     }
     const worldMap = TheatreStore.getWorldMapById(this.mapId);
     if (syncGroup === "objectOverlays") this._syncLeafletObjectOverlays(worldMap);
+    if (syncGroup === "regions") this._syncLeafletRegions(worldMap);
     if (syncGroup === "lines") this._syncLeafletLines(worldMap);
+  }
+
+  async _onToggleContextTargetVisibility(event) {
+    event.preventDefault();
+    if (!game.user?.isGM || !this.mapId) return;
+    const worldMap = TheatreStore.getWorldMapById(this.mapId);
+    const target = this._getContextTarget(worldMap);
+    this._closeContextMenu({ rerender: false });
+    if (!target?.entry?.id) return;
+    const operation = getWorldMapElementOperation(target.type);
+    if (!operation?.upsertMethod || typeof TheatreStore[operation.upsertMethod] !== "function") return;
+    await TheatreStore[operation.upsertMethod](this.mapId, {
+      id: target.entry.id,
+      visibleForPlayers: target.entry.visibleForPlayers === false
+    });
+    this._syncWorldMapElementGroup(operation.syncGroup);
+    this._renderPreservingView();
   }
 
   async _onDuplicateContextTarget(event) {
@@ -4185,6 +4850,20 @@ export class TheatreWorldMapApplication extends Application {
     await this._createObjectOverlayAtLatLng("text", latlng);
   }
 
+  async _onCreateCircleAtContextMenu(event) {
+    event.preventDefault();
+    const latlng = this._contextMenuState.latlng;
+    this._closeContextMenu();
+    await this._createObjectOverlayAtLatLng("circle", latlng);
+  }
+
+  async _onCreateRectangleAtContextMenu(event) {
+    event.preventDefault();
+    const latlng = this._contextMenuState.latlng;
+    this._closeContextMenu();
+    await this._createObjectOverlayAtLatLng("rectangle", latlng);
+  }
+
   async _onStartRegionAtContextMenu(event) {
     event.preventDefault();
     const latlng = this._contextMenuState.latlng;
@@ -4201,8 +4880,8 @@ export class TheatreWorldMapApplication extends Application {
     this._pendingRegionPoints = [this._latLngToMapPixels(snappedLatLng, worldMap)];
     this._syncDraftRegionLayer(worldMap);
     this._syncRegionVertexMarkers(worldMap);
+    this._syncEditGridLayer(worldMap);
     this.render(false);
-    await this._openDraftRegionInspector(this._editingRegionStyle);
   }
 
   async _onStartLineAtContextMenu(event) {
@@ -4224,7 +4903,6 @@ export class TheatreWorldMapApplication extends Application {
     this._syncDraftLineLayer(worldMap);
     this._syncLineVertexMarkers(worldMap);
     this.render(false);
-    await this._openDraftLineInspector(this._editingLineStyle);
   }
 
   async _onSaveRegionEdit(event) {
@@ -4291,15 +4969,42 @@ export class TheatreWorldMapApplication extends Application {
     }
     const worldMap = this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null;
     this._syncDraftRegionLayer(worldMap);
+    this._syncEditGridLayer(worldMap);
     this.render(false);
   }
 
   async _onFinishRegionDraw(event) {
     event.preventDefault();
     if (!this.mapId || this._pendingRegionPoints.length < 3) return;
-    const draftRegion = { id: randomId(), ...this._createDefaultRegionDraft(TheatreStore.getWorldMapById(this.mapId)), ...(this._editingRegionStyle ?? {}), points: this._pendingRegionPoints };
+    const worldMap = TheatreStore.getWorldMapById(this.mapId);
+    const regionPoints = this._pendingRegionPoints.map((point) => ({
+      x: Number(point.x) || 0,
+      y: Number(point.y) || 0
+    }));
+    const draftRegion = {
+      id: randomId(),
+      ...this._createDefaultRegionDraft(worldMap),
+      ...(this._editingRegionStyle ?? {}),
+      points: regionPoints
+    };
     this._isRegionDrawMode = false;
-    await this._editRegion(draftRegion);
+    this._editingRegionStyle = null;
+    this._pendingRegionPoints = [];
+    this._syncDraftRegionLayer(worldMap);
+    this._syncRegionVertexMarkers(worldMap);
+    this._syncEditGridLayer(worldMap);
+    this._renderPreservingView();
+
+    const data = await this._promptForRegionData(draftRegion, { isEditing: false });
+    if (!data) return;
+    await TheatreStore.upsertWorldMapRegion(this.mapId, {
+      id: draftRegion.id,
+      ...data,
+      points: regionPoints,
+      visible: true
+    });
+    this._syncLeafletRegions(TheatreStore.getWorldMapById(this.mapId));
+    this._renderPreservingView();
   }
 
   _onCancelRegionDraw(event) {
@@ -4309,6 +5014,7 @@ export class TheatreWorldMapApplication extends Application {
     this._editingRegionStyle = null;
     const worldMap = this.mapId ? TheatreStore.getWorldMapById(this.mapId) : null;
     this._syncDraftRegionLayer(worldMap);
+    this._syncEditGridLayer(worldMap);
     this.render(false);
   }
 
@@ -4354,9 +5060,31 @@ export class TheatreWorldMapApplication extends Application {
   async _onFinishLineDraw(event) {
     event.preventDefault();
     if (!this.mapId || this._pendingLinePoints.length < 2) return;
-    const draftLine = { id: randomId(), ...this._createDefaultLineDraft(TheatreStore.getWorldMapById(this.mapId)), ...(this._editingLineStyle ?? {}), points: this._pendingLinePoints };
+    const worldMap = TheatreStore.getWorldMapById(this.mapId);
+    const linePoints = this._pendingLinePoints.map((point) => ({
+      x: Number(point.x) || 0,
+      y: Number(point.y) || 0
+    }));
+    const draftLine = {
+      id: randomId(),
+      ...this._createDefaultLineDraft(worldMap),
+      ...(this._editingLineStyle ?? {}),
+      points: linePoints
+    };
     this._isLineDrawMode = false;
-    await this._editLine(draftLine);
+    this._editingLineStyle = null;
+    this._pendingLinePoints = [];
+    this._syncDraftLineLayer(worldMap);
+    this._syncLineVertexMarkers(worldMap);
+    this._syncEditGridLayer(worldMap);
+    await TheatreStore.upsertWorldMapLine(this.mapId, {
+      ...draftLine,
+      visible: true
+    });
+    this._syncLeafletLines(TheatreStore.getWorldMapById(this.mapId));
+    this._renderPreservingView();
+    const createdLine = TheatreStore.getWorldMapById(this.mapId)?.lines?.find((line) => line.id === draftLine.id) ?? draftLine;
+    await this._editLine(createdLine);
   }
 
   _stopLineDraw({ rerender = true } = {}) {
@@ -4381,6 +5109,15 @@ export class TheatreWorldMapApplication extends Application {
     const entry = worldMap?.objectOverlays?.find((item) => item.id === objectId);
     if (!entry) return;
     await this._editObjectOverlay(entry);
+  }
+
+  _onToggleSidebarSection(event) {
+    event.preventDefault();
+    const section = String(event.currentTarget?.dataset?.sidebarSection || "").trim();
+    if (!["objectOverlays", "regions", "lines"].includes(section)) return;
+    if (this._collapsedSidebarSections.has(section)) this._collapsedSidebarSections.delete(section);
+    else this._collapsedSidebarSections.add(section);
+    this._renderPreservingView();
   }
 
   async _onRemoveObjectOverlay(event) {
@@ -4637,12 +5374,12 @@ export class TheatreWorldMapApplication extends Application {
     if (!Number.isFinite(numericZoom)) return Number(targetMap?.minZoom) || 0;
     const minZoomRaw = Number.isFinite(Number(targetMap?.minZoom)) ? Number(targetMap.minZoom) : numericZoom;
     const maxZoomRaw = Number.isFinite(Number(targetMap?.maxZoom)) ? Number(targetMap.maxZoom) : numericZoom;
-    const minZoom = Math.ceil(minZoomRaw);
-    const maxZoom = Math.floor(maxZoomRaw);
-    if (minZoom <= maxZoom) {
-      return Math.max(minZoom, Math.min(maxZoom, Math.round(numericZoom)));
-    }
-    return Math.max(minZoomRaw, Math.min(maxZoomRaw, numericZoom));
+    const minZoom = Math.min(minZoomRaw, maxZoomRaw);
+    const maxZoom = Math.max(minZoomRaw, maxZoomRaw);
+    const clampedZoom = Math.max(minZoom, Math.min(maxZoom, numericZoom));
+    const zoomStep = this._getWorldMapZoomStep(targetMap);
+    const snappedZoom = Math.round(clampedZoom / zoomStep) * zoomStep;
+    return Number(Math.max(minZoom, Math.min(maxZoom, snappedZoom)).toFixed(4));
   }
 
   _consumePreservedView() {
@@ -4660,6 +5397,7 @@ export class TheatreWorldMapApplication extends Application {
     return buildWorldMapTooltipContent({
       heading: pin?.label || tr("Pin"),
       body: pin?.note || "",
+      bodyHtml: true,
       documentName: pin?.documentName || "",
       access: this._getWorldMapTooltipAccess(pin)
     });
@@ -4760,6 +5498,7 @@ export class TheatreWorldMapApplication extends Application {
       shadowOpacity: 0.55,
       shadowBlur: 4,
       movableForPlayers: false,
+      visibleForPlayers: true,
       tooltipEnabled: true,
       documentPlayerAccess: true,
       documentUuid: String(document.uuid || "").trim(),
@@ -4792,6 +5531,7 @@ export class TheatreWorldMapApplication extends Application {
       travelPlayerAccess: pinData.travelPlayerAccess,
       travelCloseWorldMap: pinData.travelCloseWorldMap,
       movableForPlayers: pinData.movableForPlayers,
+      visibleForPlayers: pinData.visibleForPlayers,
       tooltipEnabled: pinData.tooltipEnabled,
       x: point.x,
       y: point.y

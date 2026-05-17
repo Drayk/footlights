@@ -2,7 +2,7 @@ import { MODULE_ID } from "../constants.js";
 import { applyTheatreDialogTheme, applyThemeInlineStyleToHost, buildThemeInlineStyle, openImagePickerForInput, randomId } from "../helpers.js";
 import { translate as tr } from "../localization.js";
 import { TheatreStore } from "../store.js";
-import { collectWorldMapCategorySource, getDefaultWorldMapCategories, getWorldMapCategories, normalizeWorldMapCategoryList } from "../world-map/category-utils.js";
+import { WORLD_MAP_CATEGORY_SEPARATOR_TYPE, collectWorldMapCategorySource, getDefaultWorldMapCategories, getWorldMapCategories, isWorldMapCategorySeparator, normalizeWorldMapCategoryList } from "../world-map/category-utils.js";
 import { FOG_DEFAULTS, normalizeFogImageTileSize, normalizeFogMode, normalizeFogOpacity } from "../world-map/fog-utils.js";
 
 function clampNumber(value, fallback, min, max) {
@@ -64,7 +64,57 @@ const MAP_PIN_ICON_OPTIONS = [
   "fa-tower-observation",
   "fa-triangle-exclamation",
   "fa-water",
-  "fa-warehouse"
+  "fa-warehouse",
+  "fa-door-open",
+  "fa-key",
+  "fa-lock",
+  "fa-lock-open",
+  "fa-skull-crossbones",
+  "fa-crosshairs",
+  "fa-radiation",
+  "fa-biohazard",
+  "fa-hospital",
+  "fa-wrench",
+  "fa-gears",
+  "fa-screwdriver-wrench",
+  "fa-store",
+  "fa-shop",
+  "fa-car",
+  "fa-truck",
+  "fa-helicopter",
+  "fa-plane",
+  "fa-train",
+  "fa-ship",
+  "fa-bridge-water",
+  "fa-person-hiking",
+  "fa-person-running",
+  "fa-users",
+  "fa-user-secret",
+  "fa-id-card",
+  "fa-sack-dollar",
+  "fa-coins",
+  "fa-scroll",
+  "fa-wand-magic-sparkles",
+  "fa-dragon",
+  "fa-khanda",
+  "fa-cross",
+  "fa-ankh",
+  "fa-dice-d20",
+  "fa-dice",
+  "fa-utensils",
+  "fa-martini-glass",
+  "fa-bed",
+  "fa-torii-gate",
+  "fa-monument",
+  "fa-industry",
+  "fa-tower-cell",
+  "fa-satellite-dish",
+  "fa-wifi",
+  "fa-bolt",
+  "fa-bomb",
+  "fa-eye",
+  "fa-eye-slash",
+  "fa-circle-info"
 ];
 
 export class TheatreWorldMapConfigApplication extends FormApplication {
@@ -81,6 +131,8 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
     this._lastProgressRenderAt = 0;
     this._inlineHost = null;
     this._inlineForm = null;
+    this._categoryDragState = null;
+    this._categoryAutoSaveTimeout = null;
   }
 
   static get defaultOptions() {
@@ -146,9 +198,20 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
   _createDefaultCategoryData() {
     return {
       id: randomId(),
+      type: "category",
       name: tr("Category"),
       iconClass: "fa-location-dot",
       color: "#33475f"
+    };
+  }
+
+  _createDefaultCategorySeparatorData() {
+    return {
+      id: randomId(),
+      type: WORLD_MAP_CATEGORY_SEPARATOR_TYPE,
+      name: tr("Divider"),
+      iconClass: "fa-minus",
+      color: "#7a93ad"
     };
   }
 
@@ -231,11 +294,14 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
         ...this._createDefaultCategoryData(),
         ...(fallbackCategories?.[index] ?? {}),
         id: String(entry?.id || fallbackCategories?.[index]?.id || randomId()).trim() || randomId(),
+        type: String(entry?.type || fallbackCategories?.[index]?.type || "category").trim().toLowerCase() === WORLD_MAP_CATEGORY_SEPARATOR_TYPE
+          ? WORLD_MAP_CATEGORY_SEPARATOR_TYPE
+          : "category",
         name: String(entry?.name || "").trim(),
         iconClass: String(entry?.iconClass || fallbackCategories?.[index]?.iconClass || "fa-location-dot").trim() || "fa-location-dot",
         color: /^#[0-9a-f]{6}$/i.test(String(entry?.color || "").trim()) ? String(entry.color).trim().toLowerCase() : String(fallbackCategories?.[index]?.color || "#33475f").trim().toLowerCase()
       }))
-      .filter((entry) => entry.name));
+      .filter((entry) => entry.type === WORLD_MAP_CATEGORY_SEPARATOR_TYPE || entry.name));
     return this._syncSharedCategoryAliases({
       ...fallback,
       id: String(expanded.id || fallback.id || "").trim(),
@@ -345,6 +411,8 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
     const worldMap = this._getMapDraft();
     this.options.title = worldMap?.name || tr("World Map Config");
     const hasTiles = Boolean(worldMap.tileUrlTemplate);
+    const manifestData = await this._loadWorldMapManifestData(worldMap.manifestPath);
+    const systemCritical = this._getSystemCriticalMapValues(worldMap, manifestData);
     return {
       map: worldMap,
       isExistingMap: Boolean(this.mapId),
@@ -356,6 +424,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
       sectionAdvancedCollapsed: this._collapsedSections.has("advanced"),
       hasTiles,
       canOpenMap: hasTiles,
+      systemCritical,
       fogModeOptions: [
         { value: "color", label: tr("Color") },
         { value: "image", label: tr("Image") }
@@ -372,7 +441,8 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
         .map((entry, index) => ({
           ...this._createDefaultCategoryData(),
           ...entry,
-          index
+          index,
+          isSeparator: isWorldMapCategorySeparator(entry)
         })),
       tileSizeOptions: [
         { value: "256", label: "256 px", selected: Number(worldMap.tileSize) === 256 },
@@ -410,8 +480,17 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
     html.find("[data-action='add-map-overlay']").on("click", this._onAddOverlay.bind(this));
     html.find("[data-action='remove-map-overlay']").on("click", this._onRemoveOverlay.bind(this));
     html.find("[data-action='add-map-category']").on("click", this._onAddCategory.bind(this));
+    html.find("[data-action='add-map-category-separator']").on("click", this._onAddCategorySeparator.bind(this));
     html.find("[data-action='remove-map-category']").on("click", this._onRemoveCategory.bind(this));
     html.find("[data-action='pick-map-category-icon']").on("click", this._onPickCategoryIcon.bind(this));
+    html.find("[data-action='drag-map-category']")
+      .on("dragstart", this._onCategoryDragStart.bind(this))
+      .on("dragend", this._onCategoryDragEnd.bind(this));
+    html.find(".tom-map-editmode__category-row")
+      .on("dragover", this._onCategoryDragOver.bind(this))
+      .on("dragleave", this._onCategoryDragLeave.bind(this))
+      .on("drop", this._onCategoryDrop.bind(this));
+    html.find("[name^='worldMap.categories.']").on("input change", this._onCategoryInputChange.bind(this));
     html.find("[data-action='generate-map-tiles']").on("click", this._onGenerateMapTiles.bind(this));
     html.find("[data-action='toggle-map-config-section']").on("click", this._onToggleSection.bind(this));
     html.find("[data-action='open-world-map']").on("click", this._onOpenWorldMap.bind(this));
@@ -432,6 +511,46 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
       const color = this._normalizeColorSwatchValue(input.value);
       input.style.setProperty("--tom-color-swatch-value", color);
     });
+  }
+
+  _formatSystemCriticalValue(value, suffix = "") {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "";
+    return `${numeric}${suffix}`;
+  }
+
+  async _loadWorldMapManifestData(manifestPath) {
+    const path = String(manifestPath || "").trim();
+    if (!path) return null;
+    try {
+      const url = normalizePublicAssetPath(path);
+      const separator = url.includes("?") ? "&" : "?";
+      const response = await fetch(`${url}${separator}v=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data && typeof data === "object" ? data : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  _getSystemCriticalMapValues(worldMap, manifestData) {
+    const hasGeneratedTiles = Boolean(worldMap?.tileUrlTemplate || worldMap?.manifestPath);
+    if (!hasGeneratedTiles) return {};
+    const manifest = manifestData && typeof manifestData === "object" ? manifestData : {};
+    const getValue = (key) => {
+      const manifestValue = Number(manifest[key]);
+      if (Number.isFinite(manifestValue)) return manifestValue;
+      const mapValue = Number(worldMap?.[key]);
+      return Number.isFinite(mapValue) ? mapValue : null;
+    };
+    return {
+      tileSize: this._formatSystemCriticalValue(getValue("tileSize"), " px"),
+      width: this._formatSystemCriticalValue(getValue("width"), " px"),
+      height: this._formatSystemCriticalValue(getValue("height"), " px"),
+      minZoom: this._formatSystemCriticalValue(getValue("minZoom")),
+      maxNativeZoom: this._formatSystemCriticalValue(getValue("maxNativeZoom"))
+    };
   }
 
   _onColorSwatchInput(event) {
@@ -490,9 +609,32 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
     event.preventDefault();
     const draft = this._readWorldMapDataFromForm();
     draft.categories = Array.isArray(draft.categories) ? draft.categories : [];
-    draft.categories.push(this._createDefaultCategoryData());
+    const category = this._createDefaultCategoryData();
+    draft.categories.push(category);
     this._syncSharedCategoryAliases(draft);
-    this._replaceMapDraft(draft);
+    this._mapDraftOverride = foundry.utils.mergeObject(this._getDefaultWorldMapData(), draft, { inplace: false });
+    this._queueCategoryAutoSave(draft, { immediate: true });
+    if (this._appendCategoryRowInPlace(category, draft.categories)) {
+      this._applyLiveStylePreview();
+      return;
+    }
+    this._replaceMapDraft(draft, { preserveScroll: true });
+  }
+
+  _onAddCategorySeparator(event) {
+    event.preventDefault();
+    const draft = this._readWorldMapDataFromForm();
+    draft.categories = Array.isArray(draft.categories) ? draft.categories : [];
+    const separator = this._createDefaultCategorySeparatorData();
+    draft.categories.push(separator);
+    this._syncSharedCategoryAliases(draft);
+    this._mapDraftOverride = foundry.utils.mergeObject(this._getDefaultWorldMapData(), draft, { inplace: false });
+    this._queueCategoryAutoSave(draft, { immediate: true });
+    if (this._appendCategoryRowInPlace(separator, draft.categories)) {
+      this._applyLiveStylePreview();
+      return;
+    }
+    this._replaceMapDraft(draft, { preserveScroll: true });
   }
 
   _onRemoveCategory(event) {
@@ -501,6 +643,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
     const draft = this._readWorldMapDataFromForm();
     draft.categories = (Array.isArray(draft.categories) ? draft.categories : []).filter((entry) => entry.id !== categoryId);
     this._syncSharedCategoryAliases(draft);
+    this._queueCategoryAutoSave(draft, { immediate: true });
     this._replaceMapDraft(draft);
   }
 
@@ -515,7 +658,315 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
       entry.id === categoryId ? { ...entry, iconClass } : entry
     ));
     this._syncSharedCategoryAliases(draft);
-    this._replaceMapDraft(draft);
+    this._mapDraftOverride = foundry.utils.mergeObject(this._getDefaultWorldMapData(), draft, { inplace: false });
+    this._queueCategoryAutoSave(draft, { immediate: true });
+    if (this._updateCategoryIconInPlace(categoryId, iconClass, draft.categories)) {
+      this._applyLiveStylePreview();
+      return;
+    }
+    this._replaceMapDraft(draft, { preserveScroll: true, anchorCategoryId: categoryId });
+  }
+
+  _onCategoryDragStart(event) {
+    const handle = event.currentTarget;
+    const row = handle?.closest?.(".tom-map-editmode__category-row");
+    const categoryId = String(handle?.dataset?.categoryId || row?.dataset?.categoryId || "").trim();
+    if (!categoryId) return;
+    this._categoryDragState = { categoryId };
+    row?.classList?.add("is-dragging");
+    const nativeEvent = event.originalEvent ?? event;
+    const dataTransfer = nativeEvent?.dataTransfer;
+    if (dataTransfer) {
+      dataTransfer.effectAllowed = "move";
+      dataTransfer.setData("text/plain", categoryId);
+    }
+  }
+
+  _onCategoryDragOver(event) {
+    const row = event.currentTarget;
+    const targetId = String(row?.dataset?.categoryId || "").trim();
+    const nativeEvent = event.originalEvent ?? event;
+    const draggedId = String(this._categoryDragState?.categoryId || nativeEvent?.dataTransfer?.getData("text/plain") || "").trim();
+    if (!draggedId || !targetId || draggedId === targetId) return;
+    event.preventDefault();
+    this._markCategoryDropTarget(row, nativeEvent?.clientY ?? event.clientY);
+    if (nativeEvent?.dataTransfer) nativeEvent.dataTransfer.dropEffect = "move";
+  }
+
+  _onCategoryDragLeave(event) {
+    const row = event.currentTarget;
+    if (row?.contains?.(event.relatedTarget)) return;
+    row?.classList?.remove("is-drop-before", "is-drop-after");
+  }
+
+  _onCategoryDrop(event) {
+    const row = event.currentTarget;
+    const targetId = String(row?.dataset?.categoryId || "").trim();
+    const nativeEvent = event.originalEvent ?? event;
+    const draggedId = String(this._categoryDragState?.categoryId || nativeEvent?.dataTransfer?.getData("text/plain") || "").trim();
+    if (!draggedId || !targetId || draggedId === targetId) {
+      this._clearCategoryDragClasses();
+      return;
+    }
+    event.preventDefault();
+    const beforeTarget = this._isBeforeCategoryDropTarget(row, nativeEvent?.clientY ?? event.clientY);
+    const draft = this._readWorldMapDataFromForm();
+    const categories = Array.isArray(draft.categories) ? [...draft.categories] : [];
+    const fromIndex = categories.findIndex((entry) => String(entry?.id || "") === draggedId);
+    const targetIndex = categories.findIndex((entry) => String(entry?.id || "") === targetId);
+    if (fromIndex < 0 || targetIndex < 0) {
+      this._clearCategoryDragClasses();
+      return;
+    }
+    const [moved] = categories.splice(fromIndex, 1);
+    const currentTargetIndex = categories.findIndex((entry) => String(entry?.id || "") === targetId);
+    const insertIndex = beforeTarget ? currentTargetIndex : currentTargetIndex + 1;
+    categories.splice(Math.max(0, Math.min(categories.length, insertIndex)), 0, moved);
+    draft.categories = categories;
+    this._syncSharedCategoryAliases(draft);
+    this._mapDraftOverride = foundry.utils.mergeObject(this._getDefaultWorldMapData(), draft, { inplace: false });
+    this._queueCategoryAutoSave(draft, { immediate: true });
+    const reorderedInPlace = this._reorderCategoryRowsInPlace(draggedId, targetId, beforeTarget, categories);
+    this._clearCategoryDragClasses();
+    this._categoryDragState = null;
+    if (reorderedInPlace) {
+      this._applyLiveStylePreview();
+      return;
+    }
+    this._replaceMapDraft(draft, { preserveScroll: true, anchorCategoryId: draggedId });
+  }
+
+  _onCategoryDragEnd() {
+    this._categoryDragState = null;
+    this._clearCategoryDragClasses();
+  }
+
+  _onCategoryInputChange(event) {
+    if (event?.currentTarget?.type === "color") this._onColorSwatchInput(event);
+    const draft = this._readWorldMapDataFromForm();
+    this._syncSharedCategoryAliases(draft);
+    this._mapDraftOverride = foundry.utils.mergeObject(this._getDefaultWorldMapData(), draft, { inplace: false });
+    this._applyLiveStylePreview();
+    this._queueCategoryAutoSave(draft);
+  }
+
+  _queueCategoryAutoSave(draft = null, { immediate = false } = {}) {
+    const nextDraft = draft ?? this._readWorldMapDataFromForm();
+    const targetMapId = String(nextDraft?.id || this.mapId || "").trim();
+    if (!targetMapId) return;
+    if (this._categoryAutoSaveTimeout) {
+      window.clearTimeout(this._categoryAutoSaveTimeout);
+      this._categoryAutoSaveTimeout = null;
+    }
+    const save = async () => {
+      try {
+        const latestDraft = immediate && draft ? nextDraft : this._readWorldMapDataFromForm();
+        const latestMapId = String(latestDraft?.id || this.mapId || targetMapId).trim();
+        if (!latestMapId) return;
+        globalThis.__TOM_SUPPRESS_MAP_LIBRARY_REFRESH_UNTIL = Date.now() + 1200;
+        const savedMap = await TheatreStore.upsertWorldMap({
+          ...latestDraft,
+          id: latestMapId
+        });
+        this.mapId = savedMap.id;
+        this._mapDraftOverride = foundry.utils.mergeObject(this._getDefaultWorldMapData(), savedMap, { inplace: false });
+        this._applyLiveStylePreview();
+      } catch (error) {
+        console.warn(`${MODULE_ID} | Could not auto-save world map categories`, error);
+      }
+    };
+    if (immediate) {
+      void save();
+      return;
+    }
+    this._categoryAutoSaveTimeout = window.setTimeout(save, 350);
+  }
+
+  _markCategoryDropTarget(row, clientY) {
+    this._clearCategoryDropClasses();
+    if (!row) return;
+    const beforeTarget = this._isBeforeCategoryDropTarget(row, clientY);
+    row.classList.toggle("is-drop-before", beforeTarget);
+    row.classList.toggle("is-drop-after", !beforeTarget);
+  }
+
+  _isBeforeCategoryDropTarget(row, clientY) {
+    const rect = row?.getBoundingClientRect?.();
+    if (!rect) return true;
+    return Number(clientY) < rect.top + (rect.height / 2);
+  }
+
+  _clearCategoryDropClasses() {
+    const root = this.element?.[0] ?? this._inlineHost?.element?.[0] ?? this._inlineHost;
+    root?.querySelectorAll?.(".tom-map-editmode__category-row.is-drop-before, .tom-map-editmode__category-row.is-drop-after")
+      ?.forEach((row) => row.classList.remove("is-drop-before", "is-drop-after"));
+  }
+
+  _clearCategoryDragClasses() {
+    const root = this.element?.[0] ?? this._inlineHost?.element?.[0] ?? this._inlineHost;
+    root?.querySelectorAll?.(".tom-map-editmode__category-row.is-dragging, .tom-map-editmode__category-row.is-drop-before, .tom-map-editmode__category-row.is-drop-after")
+      ?.forEach((row) => row.classList.remove("is-dragging", "is-drop-before", "is-drop-after"));
+  }
+
+  _escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  _sanitizeIconClass(value, fallback = "fa-location-dot") {
+    const iconClass = String(value || "").trim();
+    return /^fa[srldb]?\s+fa-[a-z0-9-]+$/i.test(iconClass) || /^fa-[a-z0-9-]+$/i.test(iconClass)
+      ? iconClass
+      : fallback;
+  }
+
+  _sanitizeHexColor(value, fallback = "#33475f") {
+    const color = String(value || "").trim();
+    return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : fallback;
+  }
+
+  _ensureCategoryHiddenFields(categories = []) {
+    const root = this._getMapConfigRoot();
+    if (!root) return;
+    const fields = ["id", "type", "iconClass"];
+    const hiddenValue = (entry, field) => {
+      if (field === "id") return String(entry?.id || "").trim();
+      if (field === "type") return isWorldMapCategorySeparator(entry) ? WORLD_MAP_CATEGORY_SEPARATOR_TYPE : "category";
+      if (field === "iconClass") return this._sanitizeIconClass(entry?.iconClass || "fa-location-dot");
+      return "";
+    };
+    for (const field of fields) {
+      const selector = `input[type="hidden"][name^="worldMap.categories."][name$=".${field}"]`;
+      const existing = Array.from(root.querySelectorAll(selector));
+      while (existing.length < categories.length) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        root.appendChild(input);
+        existing.push(input);
+      }
+      while (existing.length > categories.length) existing.pop()?.remove?.();
+      categories.forEach((entry, index) => {
+        const input = existing[index];
+        input.name = `worldMap.categories.${index}.${field}`;
+        input.value = hiddenValue(entry, field);
+      });
+    }
+  }
+
+  _buildCategoryRowMarkup(entry, index) {
+    const id = this._escapeHtml(entry?.id || randomId());
+    const color = this._sanitizeHexColor(entry?.color, isWorldMapCategorySeparator(entry) ? "#7a93ad" : "#33475f");
+    if (isWorldMapCategorySeparator(entry)) {
+      return `
+        <section class="tom-map-editmode__category-row tom-map-editmode__category-row--separator" data-category-id="${id}">
+          <button type="button" class="tom-map-editmode__category-drag-handle" draggable="true" data-action="drag-map-category" data-category-id="${id}" title="${this._escapeHtml(tr("Reorder divider"))}" aria-label="${this._escapeHtml(tr("Reorder divider"))}">
+            <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+          </button>
+          <span class="tom-map-editmode__category-separator-preview" style="--tom-map-category-separator-color: ${color};" aria-hidden="true"></span>
+          <input type="hidden" name="worldMap.categories.${index}.name" value="${this._escapeHtml(entry?.name || tr("Divider"))}" />
+          <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.categories.${index}.color" value="${color}" aria-label="${this._escapeHtml(tr("Divider color"))}" title="${this._escapeHtml(tr("Divider color"))}" />
+          <button type="button" class="tom-map-editmode__delete-icon" data-action="remove-map-category" data-category-id="${id}" title="${this._escapeHtml(tr("Delete"))}" aria-label="${this._escapeHtml(tr("Delete"))}">
+            <i class="fas fa-trash-can" aria-hidden="true"></i>
+          </button>
+        </section>
+      `;
+    }
+    const iconClass = this._escapeHtml(this._sanitizeIconClass(entry?.iconClass || "fa-location-dot"));
+    return `
+      <section class="tom-map-editmode__category-row" data-category-id="${id}">
+        <button type="button" class="tom-map-editmode__category-drag-handle" draggable="true" data-action="drag-map-category" data-category-id="${id}" title="${this._escapeHtml(tr("Reorder category"))}" aria-label="${this._escapeHtml(tr("Reorder category"))}">
+          <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="tom-map-editmode__icon-button tom-map-editmode__category-icon" data-action="pick-map-category-icon" data-category-id="${id}" title="${this._escapeHtml(tr("Choose icon"))}" aria-label="${this._escapeHtml(tr("Choose icon"))}">
+          <i class="fas ${iconClass}" aria-hidden="true"></i>
+        </button>
+        <input type="text" name="worldMap.categories.${index}.name" value="${this._escapeHtml(entry?.name || tr("Category"))}" aria-label="${this._escapeHtml(tr("Category"))}" />
+        <input class="tom-world-map-config__color-swatch" type="color" name="worldMap.categories.${index}.color" value="${color}" aria-label="${this._escapeHtml(tr("Color"))}" title="${this._escapeHtml(tr("Color"))}" />
+        <button type="button" class="tom-map-editmode__delete-icon" data-action="remove-map-category" data-category-id="${id}" title="${this._escapeHtml(tr("Delete"))}" aria-label="${this._escapeHtml(tr("Delete"))}">
+          <i class="fas fa-trash-can" aria-hidden="true"></i>
+        </button>
+      </section>
+    `;
+  }
+
+  _bindCategoryRowListeners(row) {
+    if (!row) return;
+    row.querySelector?.("[data-action='drag-map-category']")
+      ?.addEventListener("dragstart", this._onCategoryDragStart.bind(this));
+    row.querySelector?.("[data-action='drag-map-category']")
+      ?.addEventListener("dragend", this._onCategoryDragEnd.bind(this));
+    row.addEventListener("dragover", this._onCategoryDragOver.bind(this));
+    row.addEventListener("dragleave", this._onCategoryDragLeave.bind(this));
+    row.addEventListener("drop", this._onCategoryDrop.bind(this));
+    row.querySelector?.("[data-action='pick-map-category-icon']")
+      ?.addEventListener("click", this._onPickCategoryIcon.bind(this));
+    row.querySelector?.("[data-action='remove-map-category']")
+      ?.addEventListener("click", this._onRemoveCategory.bind(this));
+    row.querySelectorAll?.("input[type='color']").forEach((input) => {
+      input.addEventListener("input", this._onColorSwatchInput.bind(this));
+    });
+    row.querySelectorAll?.("[name^='worldMap.categories.']").forEach((input) => {
+      input.addEventListener("input", this._onCategoryInputChange.bind(this));
+      input.addEventListener("change", this._onCategoryInputChange.bind(this));
+    });
+  }
+
+  _appendCategoryRowInPlace(entry, categories = []) {
+    const root = this._getMapConfigRoot();
+    const list = root?.querySelector?.(".tom-map-editmode__category-list");
+    if (!root || !list) return false;
+    this._ensureCategoryHiddenFields(categories);
+    const template = document.createElement("template");
+    template.innerHTML = this._buildCategoryRowMarkup(entry, categories.length - 1).trim();
+    const row = template.content.firstElementChild;
+    if (!row) return false;
+    list.appendChild(row);
+    this._bindCategoryRowListeners(row);
+    this._syncCategoryFormIndexes(categories);
+    return true;
+  }
+
+  _updateCategoryIconInPlace(categoryId, iconClass, categories = []) {
+    const row = this._getCategoryRowElement(categoryId);
+    const icon = row?.querySelector?.(".tom-map-editmode__category-icon i");
+    if (!icon) return false;
+    const nextIconClass = this._sanitizeIconClass(iconClass);
+    icon.className = `fas ${nextIconClass}`;
+    this._ensureCategoryHiddenFields(categories);
+    this._syncCategoryFormIndexes(categories);
+    return true;
+  }
+
+  _reorderCategoryRowsInPlace(draggedId, targetId, beforeTarget, categories = []) {
+    const root = this._getMapConfigRoot();
+    const list = root?.querySelector?.(".tom-map-editmode__category-list");
+    if (!list) return false;
+    const draggedRow = root.querySelector?.(`.tom-map-editmode__category-row[data-category-id="${this._escapeAttributeValue(draggedId)}"]`);
+    const targetRow = root.querySelector?.(`.tom-map-editmode__category-row[data-category-id="${this._escapeAttributeValue(targetId)}"]`);
+    if (!draggedRow || !targetRow || draggedRow === targetRow) return false;
+    list.insertBefore(draggedRow, beforeTarget ? targetRow : targetRow.nextElementSibling);
+    this._ensureCategoryHiddenFields(categories);
+    this._syncCategoryFormIndexes(categories);
+    return true;
+  }
+
+  _syncCategoryFormIndexes(categories = []) {
+    const root = this._getMapConfigRoot();
+    if (!root) return;
+    this._ensureCategoryHiddenFields(categories);
+
+    const rows = Array.from(root.querySelectorAll(".tom-map-editmode__category-list > .tom-map-editmode__category-row"));
+    rows.forEach((row, index) => {
+      row.querySelectorAll?.("[name^='worldMap.categories.']")?.forEach((input) => {
+        const match = String(input.name || "").match(/^worldMap\.categories\.\d+\.(.+)$/);
+        if (!match?.[1]) return;
+        input.name = `worldMap.categories.${index}.${match[1]}`;
+      });
+    });
   }
 
   async _promptForCategoryIcon() {
@@ -541,6 +992,7 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
       window.setTimeout(() => {
         const root = dialog.element?.[0];
         applyTheatreDialogTheme(dialog, MODULE_ID, "26rem");
+        root?.classList?.add("tom-world-map-icon-picker-host");
         if (root) applyThemeInlineStyleToHost(root, TheatreStore.getThemeState());
         root?.querySelectorAll?.("[data-icon-class]")?.forEach((button) => {
           button.addEventListener("click", (clickEvent) => {
@@ -553,9 +1005,127 @@ export class TheatreWorldMapConfigApplication extends FormApplication {
     });
   }
 
-  _replaceMapDraft(draft) {
+  _escapeAttributeValue(value) {
+    return String(value || "").replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+  }
+
+  _getMapConfigRoot() {
+    return this._getFormElement?.()
+      ?? this.element?.[0]?.querySelector?.(".tom-world-map-config")
+      ?? this._inlineHost?.form?.querySelector?.(".tom-world-map-config")
+      ?? this._inlineHost?.element?.[0]?.querySelector?.(".tom-world-map-config")
+      ?? this.element?.[0]
+      ?? this._inlineHost?.form
+      ?? this._inlineHost?.element?.[0]
+      ?? null;
+  }
+
+  _getCategoryRowElement(categoryId) {
+    const id = String(categoryId || "").trim();
+    if (!id) return null;
+    return this._getMapConfigRoot()?.querySelector?.(`.tom-map-editmode__category-row[data-category-id="${this._escapeAttributeValue(id)}"]`) ?? null;
+  }
+
+  _getNearestScrollContainer(element) {
+    const ElementCtor = globalThis.Element;
+    if (!ElementCtor || !(element instanceof ElementCtor)) return document?.scrollingElement ?? null;
+    let current = element.parentElement;
+    while (current) {
+      const style = globalThis.getComputedStyle?.(current);
+      const overflow = `${style?.overflow || ""} ${style?.overflowX || ""} ${style?.overflowY || ""}`;
+      const canScroll = /\b(auto|scroll|overlay)\b/i.test(overflow);
+      const hasScrollRoom = current.scrollHeight > current.clientHeight + 1 || current.scrollWidth > current.clientWidth + 1;
+      if (canScroll && hasScrollRoom) return current;
+      current = current.parentElement;
+    }
+    return document?.scrollingElement ?? null;
+  }
+
+  _captureScrollState({ anchorCategoryId = "" } = {}) {
+    const ElementCtor = globalThis.Element;
+    if (!ElementCtor) return [];
+    const anchorElement = this._getCategoryRowElement(anchorCategoryId);
+    const anchor = anchorElement
+      ? {
+        categoryId: String(anchorCategoryId || "").trim(),
+        top: anchorElement.getBoundingClientRect?.().top ?? 0
+      }
+      : null;
+    const roots = [
+      this._getMapConfigRoot(),
+      this.element?.[0],
+      this._inlineHost?.form,
+      this._inlineHost?.element?.[0],
+      document?.scrollingElement
+    ].filter(Boolean);
+    const seen = new Set();
+    const scrollTargets = [];
+    const addTarget = (element) => {
+      if (!(element instanceof ElementCtor) || seen.has(element)) return;
+      const isDocumentScroller = element === document?.scrollingElement;
+      const style = isDocumentScroller ? null : globalThis.getComputedStyle?.(element);
+      const overflow = `${style?.overflow || ""} ${style?.overflowX || ""} ${style?.overflowY || ""}`;
+      const canScroll = isDocumentScroller || /\b(auto|scroll|overlay)\b/i.test(overflow);
+      const hasScrollRoom = isDocumentScroller || element.scrollHeight > element.clientHeight + 1 || element.scrollWidth > element.clientWidth + 1;
+      if (!canScroll || !hasScrollRoom) return;
+      seen.add(element);
+      scrollTargets.push({
+        element,
+        scrollTop: element.scrollTop ?? 0,
+        scrollLeft: element.scrollLeft ?? 0
+      });
+    };
+
+    for (const root of roots) {
+      let element = root instanceof ElementCtor ? root : null;
+      while (element) {
+        addTarget(element);
+        element = element.parentElement;
+      }
+    }
+    return { scrollTargets, anchor };
+  }
+
+  _restoreScrollState(scrollState = {}) {
+    const scrollTargets = Array.isArray(scrollState) ? scrollState : (scrollState.scrollTargets ?? []);
+    const anchor = Array.isArray(scrollState) ? null : scrollState.anchor;
+    const restore = () => {
+      for (const target of scrollTargets) {
+        const element = target?.element;
+        if (!element || (!element.isConnected && element !== document?.scrollingElement)) continue;
+        element.scrollTop = target.scrollTop;
+        element.scrollLeft = target.scrollLeft;
+      }
+      if (anchor?.categoryId) {
+        const anchorElement = this._getCategoryRowElement(anchor.categoryId);
+        const scrollContainer = this._getNearestScrollContainer(anchorElement);
+        const currentTop = anchorElement?.getBoundingClientRect?.().top;
+        if (anchorElement && scrollContainer && Number.isFinite(currentTop)) {
+          const delta = currentTop - anchor.top;
+          if (Math.abs(delta) > 0.5) scrollContainer.scrollTop += delta;
+        }
+      }
+    };
+    restore();
+    requestAnimationFrame(() => {
+      restore();
+      requestAnimationFrame(restore);
+    });
+    window.setTimeout(restore, 80);
+  }
+
+  _replaceMapDraft(draft, { preserveScroll = false, anchorCategoryId = "" } = {}) {
+    const scrollState = preserveScroll ? this._captureScrollState({ anchorCategoryId }) : null;
     this._mapDraftOverride = foundry.utils.mergeObject(this._getDefaultWorldMapData(), draft, { inplace: false });
-    this.render(false);
+    const renderResult = this.render(false);
+    if (preserveScroll) {
+      if (renderResult?.then instanceof Function) {
+        renderResult.then(() => this._restoreScrollState(scrollState));
+      } else {
+        this._restoreScrollState(scrollState);
+      }
+    }
+    return renderResult;
   }
 
   render(force = false, options = {}) {

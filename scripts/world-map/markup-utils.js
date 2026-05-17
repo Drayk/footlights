@@ -241,9 +241,22 @@ function buildTooltipAccessIcon({ type, access }) {
   `;
 }
 
-export function buildWorldMapTooltipContent({ heading = "", body = "", documentName = "", travelAccess = null, access = null } = {}) {
+function sanitizeTooltipHtml(value = "") {
+  return String(value || "")
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, "")
+    .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, "")
+    .replace(/\shref\s*=\s*"javascript:[^"]*"/gi, "")
+    .replace(/\shref\s*=\s*'javascript:[^']*'/gi, "");
+}
+
+export function buildWorldMapTooltipContent({ heading = "", body = "", bodyHtml = false, documentName = "", travelAccess = null, access = null } = {}) {
   const safeHeading = escapeHtml(String(heading || "").trim());
-  const safeBody = escapeHtml(String(body || "").trim()).replace(/\n/g, "<br />");
+  const rawBody = String(body || "").trim();
+  const safeBody = bodyHtml
+    ? sanitizeTooltipHtml(rawBody).replace(/\n/g, "<br />")
+    : escapeHtml(rawBody).replace(/\n/g, "<br />");
   const safeDocumentName = escapeHtml(String(documentName || "").trim());
   const accessState = access && typeof access === "object" ? access : null;
   const indicators = [];

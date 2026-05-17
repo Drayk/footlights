@@ -554,6 +554,8 @@ function onFootlightsSettingUpdate(setting) {
     const isMapLibrarySetting = setting.key === `${MODULE_ID}.${SETTINGS.MAP_LIBRARY}`;
     const isPortalLibrarySetting = setting.key === `${MODULE_ID}.${SETTINGS.PORTAL_LIBRARY}`;
     const isSoundLibrarySetting = setting.key === `${MODULE_ID}.${SETTINGS.SOUND_LIBRARY}`;
+    const shouldSuppressMapLibraryRefresh = isMapLibrarySetting
+      && Number(globalThis.__TOM_SUPPRESS_MAP_LIBRARY_REFRESH_UNTIL || 0) > Date.now();
     if (isLanguageSetting) {
       void setActiveLanguage(setting.value ?? TheatreStore.getLanguage()).then(() => {
         stageGoblinApp?.render(false);
@@ -588,7 +590,8 @@ function onFootlightsSettingUpdate(setting) {
     refreshOpenApps({
       skipNames: [
         ...(isMindmapSetting ? MINDMAP_SETTING_SKIP_REFRESH_APP_NAMES : []),
-        ...(isMapLibrarySetting ? MAP_LIBRARY_REFRESH_SKIP_APP_NAMES : [])
+        ...(isMapLibrarySetting ? MAP_LIBRARY_REFRESH_SKIP_APP_NAMES : []),
+        ...(shouldSuppressMapLibraryRefresh ? ["TheatreSceneLibraryApplication"] : [])
       ]
     });
   }

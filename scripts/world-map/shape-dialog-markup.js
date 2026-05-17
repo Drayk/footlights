@@ -5,6 +5,7 @@ import {
   buildLinePointStyleOptions,
   buildButtonSwitchMarkup,
   buildNumberInputGroup,
+  buildRichTextGroup,
   buildSelectOptions,
   buildSelectGroup,
   buildStrokeStyleOptions,
@@ -83,6 +84,7 @@ function buildLineBehaviorBox(initialData = {}) {
       <h4>${tr("Behavior")}</h4>
       <div class="tom-world-map-line-clean-dialog__behavior-grid">
         ${buildLineSwitch("lineMovableForPlayers", "Movable for players", initialData.movableForPlayers)}
+        ${buildButtonSwitchMarkup("lineVisibleForPlayers", "Visible for players", initialData.visibleForPlayers !== false)}
         ${buildLineSwitch("lineTooltipEnabled", "Show hover info", initialData.tooltipEnabled !== false)}
         ${buildButtonSwitchMarkup("lineTravelPlayerAccess", "Travel Access", Boolean(initialData.travelPlayerAccess), { wrapperClass: "tom-world-map-line-clean-dialog__behavior-access tom-world-map-travel-target__switch tom-world-map-destination-card__switch" })}
         ${buildButtonSwitchMarkup("lineDocumentPlayerAccess", "Info Access", documentPlayerAccess, { wrapperClass: "tom-world-map-line-clean-dialog__behavior-access tom-world-map-linked-document__access-switch tom-world-map-destination-card__switch" })}
@@ -100,6 +102,12 @@ function buildLineLinkedActionsBox(initialData = {}) {
   `;
 }
 
+function buildLineLayerBox(initialData = {}) {
+  return buildLineGroup("Layer", `
+    ${buildNumberInputGroup("lineZIndex", "Z-axis", Number.isFinite(Number(initialData.zIndex)) ? Number(initialData.zIndex) : 0, { min: -100, max: 100, step: 1 })}
+  `);
+}
+
 export function buildLineDialogContent(initialData = {}, { categoryOptions = "", fallbackCategory = "location" } = {}) {
   const categoryOptionsMarkup = typeof categoryOptions === "string"
     ? categoryOptions
@@ -110,14 +118,16 @@ export function buildLineDialogContent(initialData = {}, { categoryOptions = "",
   const linePointStyleOptions = buildLinePointStyleOptions(pointStyle);
   const shadowDirectionOptions = buildLineShadowDirectionOptions(Number.isFinite(Number(initialData.shadowDirection)) ? Number(initialData.shadowDirection) : 135);
   return `
-    <div class="tom-theme-root tom-world-map-pin-dialog tom-world-map-line-clean-dialog">
+    <div class="tom-theme-root tom-world-map-edit-dialog tom-world-map-pin-dialog tom-world-map-line-clean-dialog">
       <section class="tom-world-map-line-clean-dialog__identity tom-world-map-edit-dialog__card tom-theme-content-surface">
         <div class="tom-world-map-line-clean-dialog__grid tom-world-map-line-clean-dialog__grid--two">
           ${buildTextInputGroup("lineName", "Name", initialData.name || tr("Line"), { autofocus: true })}
           ${buildSelectGroup("lineCategory", "Category", categoryOptionsMarkup)}
+          ${buildRichTextGroup("lineDescription", "Description", initialData.description || "", { wrapperClass: "tom-world-map-line-clean-dialog__span-two", minHeight: 96 })}
         </div>
       </section>
       ${buildLineBehaviorBox(initialData)}
+      ${buildLineLayerBox(initialData)}
       <div class="tom-world-map-line-clean-dialog__columns">
         ${buildLinePanel("Line style", `
           <div class="tom-world-map-line-clean-dialog__stack">

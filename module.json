@@ -34,7 +34,7 @@
     }
   ],
   "url": "",
-  "manifest": "",
-  "download": "",
+  "manifest": "https://raw.githubusercontent.com/Drayk/footlights/main/module.json",
+  "download": "https://github.com/Drayk/footlights/releases/download/alpha/footlights.zip",
   "license": "LICENSE"
 }

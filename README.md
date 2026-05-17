@@ -2,6 +2,9 @@
 
 Footlights is a Foundry VTT v12 module for cinematic theatre-of-the-mind play, campaign preparation, interactive maps, and fast GM access during sessions. It helps GMs present scenes with atmosphere, character focus, sound, visual structure, and fewer interruptions from the standard Foundry interface.
 
+Installation: Install Module in foundry with: https://raw.githubusercontent.com/Drayk/footlights/master/module.json
+
+
 ## Main Features
 
 ### Theatre Scenes

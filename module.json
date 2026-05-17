@@ -1,11 +1,11 @@
 {
   "id": "footlights",
   "title": "Footlights",
-  "description": "Actor-basiertes cineastisches Footlights-Modul fuer Foundry VTT v12.",
+  "description": "GM authoring and orchestrating tool for FoundryVTT v12",
   "version": "0.1.3",
   "authors": [
     {
-      "name": "syria"
+      "name": "Drayk/Tzeerian"
     }
   ],
   "compatibility": {

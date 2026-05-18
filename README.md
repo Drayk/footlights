@@ -10,7 +10,7 @@ Installation: Install Module in foundry with: https://raw.githubusercontent.com/
 
 ### Theatre Scenes
 
-- Create fullscreen or windowed theatre-of-the-mind scenes with backgrounds, titles, subtitles, avatars, moods, and music.
+- Create fullscreen or windowed theatre-of-the-mind scenes with backgrounds, titles, subtitles, avatars, moods (using different avatar images depending on character mood), and music.
 - Keep character-focused moments visually clear without relying on tactical maps.
 - Use configurable transitions and presentation options for smoother scene changes.
 

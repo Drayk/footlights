@@ -7,11 +7,15 @@ Installation: Install Module in foundry with: https://raw.githubusercontent.com/
 
 ## Main Features
 
+
 ### Theatre Scenes
 
 - Create fullscreen or windowed theatre-of-the-mind scenes with backgrounds, titles, subtitles, avatars, moods, and music.
 - Keep character-focused moments visually clear without relying on tactical maps.
 - Use configurable transitions and presentation options for smoother scene changes.
+
+<img width="1300" height="984" alt="scenes" src="https://github.com/user-attachments/assets/40e34d07-561b-4842-a549-7b1e5577353a" />
+
 
 ### Avatar Library
 
@@ -31,6 +35,9 @@ Installation: Install Module in foundry with: https://raw.githubusercontent.com/
 - Link map elements to journals, Foundry scenes, Footlights scenes, portals, or other maps.
 - Export and import map packages for sharing or moving prepared map layouts between worlds.
 
+<img width="1300" alt="map33" src="https://github.com/user-attachments/assets/df80544a-1c64-4a2c-82bc-1994ee963cc9" />
+
+
 ### Portals
 
 - Design interactive portal scenes with layered content, effects, sounds, data text, and avatar layers.
@@ -42,6 +49,9 @@ Installation: Install Module in foundry with: https://raw.githubusercontent.com/
 - Plan campaign structure with a visual node-based planner for scenes, locations, NPCs, clues, and notes.
 - Connect related entries and pin important items for quick access during a session.
 - Use planner entries together with Stage Goblin for flexible live play.
+
+<img width="1300" alt="planner" src="https://github.com/user-attachments/assets/b64cf883-dce3-4d17-86e9-c2e3842a4409" />
+
 
 ### Stage Goblin
 

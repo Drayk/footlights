@@ -6098,7 +6098,13 @@ export class TheatreSceneLibraryApplication extends FormApplication {
   }
 
   _openPlannerConfig(plannerId = null) {
-    new TheatreAdventurePlannerConfigApplication(plannerId ? { plannerId } : {}).render(true);
+    new TheatreAdventurePlannerConfigApplication({
+      ...(plannerId ? { plannerId } : {}),
+      onSaved: () => {
+        this.activeTab = "mindmap";
+        this._renderLibrary();
+      }
+    }).render(true);
   }
 
   _openWorldMapConfig(mapId = null) {

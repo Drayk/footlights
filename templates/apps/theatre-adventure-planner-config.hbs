@@ -1,12 +1,21 @@
-<form class="tom-theme-root tom-theme-default" style="{{themeInlineStyle}}">
-  <section class="tom-theme-content-surface">
-    <div class="form-group">
+<form class="tom-theme-root tom-theme-default tom-planner-config-form" style="{{themeInlineStyle}}">
+  <section class="tom-theme-content-surface tom-planner-config-card">
+    <header class="tom-planner-config-card__header">
+      <span class="tom-planner-config-card__icon" aria-hidden="true">
+        <i class="fas fa-share-nodes"></i>
+      </span>
+      <span>
+        <strong>{{tr "Adventure Planner"}}</strong>
+        <small>{{tr "Name this planner for your story board and StageGoblin workflows."}}</small>
+      </span>
+    </header>
+    <div class="form-group tom-planner-config-field">
       <label for="planner-name">{{tr "Name"}}</label>
-      <input id="planner-name" type="text" name="name" value="{{planner.name}}" />
+      <input id="planner-name" type="text" name="name" value="{{planner.name}}" autofocus />
     </div>
   </section>
 
-  <footer class="sheet-footer flexrow">
+  <footer class="sheet-footer tom-planner-config-footer">
     <button type="submit" class="tom-button tom-button-primary">{{tr "Save"}}</button>
   </footer>
 </form>

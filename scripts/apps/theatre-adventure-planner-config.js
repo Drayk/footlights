@@ -7,6 +7,7 @@ export class TheatreAdventurePlannerConfigApplication extends FormApplication {
   constructor(options = {}) {
     super({}, options);
     this.plannerId = options.plannerId ?? null;
+    this.onSaved = typeof options.onSaved === "function" ? options.onSaved : null;
   }
 
   static get defaultOptions() {
@@ -15,8 +16,8 @@ export class TheatreAdventurePlannerConfigApplication extends FormApplication {
       title: tr("Adventure Planner"),
       classes: [MODULE_ID, "theatre-adventure-planner-config"],
       template: `modules/${MODULE_ID}/templates/apps/theatre-adventure-planner-config.hbs`,
-      width: 460,
-      height: 220,
+      width: 480,
+      height: 260,
       closeOnSubmit: true
     });
   }
@@ -39,12 +40,13 @@ export class TheatreAdventurePlannerConfigApplication extends FormApplication {
 
   async _updateObject(_event, formData) {
     const planner = this.plannerId ? TheatreStore.getAdventurePlannerById(this.plannerId) : null;
-    await TheatreStore.upsertAdventurePlanner({
+    const savedPlanner = await TheatreStore.upsertAdventurePlanner({
       id: this.plannerId || undefined,
       name: String(formData.name ?? "").trim() || planner?.name || tr("New Adventure Planner"),
       board: planner?.board,
       nodes: planner?.nodes,
       edges: planner?.edges
     });
+    this.onSaved?.(savedPlanner);
   }
 }

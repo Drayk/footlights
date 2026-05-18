@@ -2267,7 +2267,10 @@ export class TheatreMindmapApplication extends Application {
       return;
     }
 
-    await TheatreStore.toggleStageGoblinPlannerNode(this.plannerId, nodeId, node.label || "Entry", bars[0]?.id || "bar-1");
+    const targetBarId = bars[0]?.id || "bar-1";
+    const added = await TheatreStore.toggleStageGoblinPlannerNode(this.plannerId, nodeId, node.label || "Entry", targetBarId);
+    await this._syncStageGoblinPlannerSelection(targetBarId, added);
+    game.modules.get(MODULE_ID)?.api?.openStageGoblin?.();
     game.modules.get(MODULE_ID)?.api?.renderStageGoblin?.();
     this._renderPreservingViewport(false);
   }
@@ -2275,6 +2278,11 @@ export class TheatreMindmapApplication extends Application {
   _getVisibleStageGoblinBars() {
     const state = TheatreStore.getStageGoblinState();
     return (state.bars ?? []).slice(0, Math.max(1, Number(state.barCount) || 1));
+  }
+
+  async _syncStageGoblinPlannerSelection(barId = "bar-1", shouldSelect = true) {
+    if (!shouldSelect || !this.plannerId) return;
+    await TheatreStore.saveStageGoblinSelectedPlanner(this.plannerId, barId || "bar-1");
   }
 
   _openStageGoblinTargetMenu(anchor, payload, bars = this._getVisibleStageGoblinBars()) {
@@ -2307,7 +2315,9 @@ export class TheatreMindmapApplication extends Application {
         event.stopPropagation();
         const barId = event.currentTarget?.dataset?.stageGoblinTargetBarId || "bar-1";
         this._closeStageGoblinTargetMenu();
-        await TheatreStore.toggleStageGoblinPlannerNode(this.plannerId, payload.nodeId, payload.label || "Entry", barId);
+        const added = await TheatreStore.toggleStageGoblinPlannerNode(this.plannerId, payload.nodeId, payload.label || "Entry", barId);
+        await this._syncStageGoblinPlannerSelection(barId, added);
+        game.modules.get(MODULE_ID)?.api?.openStageGoblin?.();
         game.modules.get(MODULE_ID)?.api?.renderStageGoblin?.();
         this._renderPreservingViewport(false);
       });

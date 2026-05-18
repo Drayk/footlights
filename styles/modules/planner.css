@@ -2753,6 +2753,28 @@
   border-color: var(--tom-nav-action-create-border, var(--tom-shadow-focus-color, var(--tom-content-highlight)));
 }
 
+.theatre-scene-library .tom-library-inline-editor--mindmap,
+.theatre-scene-library .tom-library-inline-mindmap-shell,
+.theatre-scene-library .tom-library-inline-mindmap-stage,
+.theatre-scene-library .tom-library-inline-mindmap,
+.theatre-scene-library .tom-library-inline-mindmap > .tom-mindmap,
+.theatre-scene-library .tom-library-inline-mindmap .tom-mindmap-layout,
+.theatre-scene-library .tom-library-inline-mindmap .tom-mindmap-sources,
+.theatre-scene-library .tom-library-inline-mindmap .tom-mindmap-inspector,
+.theatre-scene-library .tom-library-inline-mindmap .tom-mindmap-board-pane {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.theatre-scene-library .tom-library-inline-mindmap .tom-mindmap-sources {
+  padding-right: 0.75rem;
+}
+
+.theatre-scene-library .tom-library-inline-mindmap .tom-mindmap-layout {
+  column-gap: 1.15rem;
+}
+
 @media (max-width: 960px) {
   .tom-mindmap-layout {
     grid-template-columns: 1fr;

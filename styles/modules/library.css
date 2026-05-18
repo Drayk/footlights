@@ -1050,7 +1050,7 @@ form.tom-scene-config {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  background: var(--tom-library-mindmap-bg);
+  background: transparent;
 }
 
 .tom-library-inline-mindmap {
@@ -1061,7 +1061,7 @@ form.tom-scene-config {
   height: 100%;
   max-height: 100%;
   overflow: hidden;
-  background: var(--tom-library-mindmap-bg);
+  background: transparent;
 }
 
 .tom-library-inline-mindmap > .tom-mindmap {
@@ -1071,7 +1071,7 @@ form.tom-scene-config {
   gap: 0;
   height: 100%;
   min-height: 0;
-  background: var(--tom-library-mindmap-bg);
+  background: transparent !important;
 }
 
 .tom-library-inline-mindmap .tom-editor-header {
@@ -1082,13 +1082,13 @@ form.tom-scene-config {
 .tom-library-inline-mindmap .tom-mindmap-board-pane,
 .tom-library-inline-mindmap .tom-mindmap-board-viewport {
   min-height: 0;
-  background: var(--tom-library-mindmap-bg);
+  background: transparent;
 }
 
 .tom-library-inline-editor--mindmap {
   flex: 1 1 auto;
   min-height: 0;
-  background: var(--tom-library-mindmap-bg);
+  background: transparent;
 }
 
 .tom-editor-header--inline-section {
@@ -1101,11 +1101,15 @@ form.tom-scene-config {
 
 .tom-library-inline-mindmap .tom-mindmap-layout {
   flex: 1 1 auto;
-  background: var(--tom-library-mindmap-bg);
+  background: transparent;
 }
 
 .tom-library-inline-mindmap .tom-mindmap-board-pane {
   overflow: hidden;
+}
+
+.tom-library-inline-mindmap .tom-mindmap-sources {
+  padding-right: 0.75rem;
 }
 
 :where(
@@ -4818,6 +4822,98 @@ form.tom-scene-config {
 .theatre-adventure-planner-config :where(button, .tom-button, .tom-button-icon, .tom-library-action),
 .theatre-canvas-drop-dialog :where(button, .tom-button, .tom-button-icon, .tom-library-action) {
   border-radius: var(--tom-library-action-radius, 8px) !important;
+}
+
+.theatre-adventure-planner-config .window-content {
+  overflow: hidden;
+}
+
+.tom-planner-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  height: 100%;
+  min-height: 0;
+  padding: 0.8rem;
+  background: transparent;
+}
+
+.tom-planner-config-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0 !important;
+  padding: 1rem !important;
+}
+
+.tom-planner-config-card__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--tom-content-divider, var(--tom-content-horizontal-2));
+}
+
+.tom-planner-config-card__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: var(--tom-content-card-radius, 6px);
+  background: var(--tom-content-card-bg, transparent);
+  color: var(--tom-content-highlight, var(--tom-content-heading-2));
+}
+
+.tom-planner-config-card__header strong {
+  display: block;
+  color: var(--tom-content-heading-2) !important;
+  font-family: var(--tom-font-family-heading-2, inherit);
+  font-size: var(--tom-font-heading-2, 1.05rem);
+  line-height: 1.15;
+}
+
+.tom-planner-config-card__header small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--tom-content-subtext) !important;
+  font-family: var(--tom-font-family-sub-text, inherit);
+  font-size: var(--tom-font-sub-text, 0.82rem);
+  line-height: 1.35;
+}
+
+.tom-planner-config-field {
+  display: grid !important;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  margin: 0 !important;
+}
+
+.tom-planner-config-field > label {
+  margin: 0 !important;
+}
+
+.tom-planner-config-field > input {
+  width: 100%;
+  min-height: 2.35rem;
+  margin: 0 !important;
+}
+
+.tom-planner-config-footer {
+  display: flex !important;
+  justify-content: flex-end;
+  align-items: center;
+  margin: auto 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.tom-planner-config-footer .tom-button {
+  min-width: 8rem;
+  min-height: 2.25rem;
+  margin: 0 !important;
 }
 
 .theatre-scene-library .tom-library-create-button {
